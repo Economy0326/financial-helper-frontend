@@ -184,3 +184,65 @@ export async function moveToPreviousFollowUpQuestionFixture() {
 
   return buildFollowUpState();
 }
+
+// Consultation Summary
+export type ConsultationSummaryFixture = {
+  category: string;
+  situation: string;
+  keyPoints: string[];
+};
+
+export type SummaryStateFixture =
+  | {
+      kind: "ready";
+      summary: ConsultationSummaryFixture;
+    }
+  | {
+      kind: "generation-failed";
+    };
+
+const MOCK_SUMMARY_DELAY = 300;
+const MOCK_SUMMARY_GENERATION_FAILURE = false;
+const MOCK_SUMMARY_CONFIRM_ERROR = false;
+
+const consultationSummaryFixture: ConsultationSummaryFixture = {
+  category: "보험",
+  situation:
+    "보험 계약을 해지하려고 했는데 예상했던 것보다 해지환급금이 적어서 이유를 확인하고 싶어요.",
+  keyPoints: [
+    "보험 계약 해지를 고려하고 있어요.",
+    "예상보다 해지환급금이 적다고 느끼고 있어요.",
+    "해지환급금 산정 기준과 확인 방법을 알고 싶어 해요.",
+  ],
+};
+
+export async function getSummaryFixture(): Promise<SummaryStateFixture> {
+  await new Promise((resolve) => {
+    setTimeout(resolve, MOCK_SUMMARY_DELAY);
+  });
+
+  if (MOCK_SUMMARY_GENERATION_FAILURE) {
+    return {
+      kind: "generation-failed",
+    };
+  }
+
+  return {
+    kind: "ready",
+    summary: consultationSummaryFixture,
+  };
+}
+
+export async function confirmSummaryFixture() {
+  await new Promise((resolve) => {
+    setTimeout(resolve, MOCK_SUMMARY_DELAY);
+  });
+
+  if (MOCK_SUMMARY_CONFIRM_ERROR) {
+    throw new Error("Mock summary confirmation error");
+  }
+
+  return {
+    confirmed: true,
+  };
+}

@@ -30,6 +30,7 @@ export default function FollowUpFlow() {
   const queryClient = useQueryClient();
 
   // 아직 저장하지 않은 현재 선택 값만 Local State로 관리
+  // 선택 후 다음 질문 결정은 Frontend가 아니라 Server가 담당
   const [selectedOption, setSelectedOption] =
     useState<string | null>(null);
 
