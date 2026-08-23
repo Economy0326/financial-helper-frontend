@@ -1,51 +1,101 @@
 import { AppHeader } from "@/components/layout/AppHeader";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { SecondaryButton } from "@/components/ui/SecondaryButton";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
+import HomeActionCard from "@/components/home/HomeActionCard";
+import HomeResumeSection, {
+  type HomeResumeState,
+} from "@/components/home/HomeResumeSection";
 
-export default function HomePage() {
+const resumeFixture: HomeResumeState = {
+  status: "active",
+  consultation: {
+    title: "보험 해지환급금 상담",
+    stepLabel: "내용 확인 단계 (4/6)",
+    updatedAtLabel: "오늘 오후 3:20",
+    href: "/consultation/summary",
+  },
+};
+
+// 다른 Home State 확인 시 위 Fixture를 아래처럼 바꿔볼 수 있다.
+// const resumeFixture: HomeResumeState = { status: "none" };
+// const resumeFixture: HomeResumeState = { status: "loading" };
+// const resumeFixture: HomeResumeState = { status: "error" };
+
+export default function Home() {
   return (
-    <>
+    <div className="min-h-screen bg-background">
       <AppHeader />
 
-      <main className="px-5 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-[44rem]">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6 sm:px-6 md:pt-8 lg:px-8">
+        <section className="rounded-card border border-border bg-surface-subtle p-6 sm:p-8 md:p-10">
           <p className="text-sm font-semibold text-primary">
-            Roadmap 7
+            금융소비자 보호 AI
           </p>
 
-          <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
-            공통 UI 기반 확인
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+            안녕하세요!
           </h1>
 
-          <p className="mt-4 text-base leading-7 text-foreground-muted sm:text-lg">
-            실제 화면 구현 전에 Header, Button, Surface
-            Card가 동일한 Design Token을 사용하는지
-            확인합니다.
+          <p className="mt-3 text-xl font-semibold text-foreground sm:text-2xl">
+            금융 문제를 쉽고 안전하게 해결하세요.
           </p>
 
-          <SurfaceCard className="mt-8">
-            <h2 className="text-xl font-bold">
-              금융 문제 해결을 시작해볼까요?
-            </h2>
+          <p className="mt-5 flex items-center gap-2 text-sm text-foreground-muted sm:text-base">
+            <span aria-hidden="true" className="text-primary">
+              ✓
+            </span>
+            개인정보와 상담 내용은 안전하게 보호됩니다.
+          </p>
+        </section>
 
-            <p className="mt-3 leading-7 text-foreground-muted">
-              실제 Home 화면은 다음 단계에서 Responsive
-              Design Reference를 기준으로 구현합니다.
-            </p>
+        <section
+          aria-label="상담 시작"
+          className="mt-5 grid gap-4 md:grid-cols-2"
+        >
+          <HomeActionCard
+            href="/consultation/problem-category"
+            title="금융 문제 해결하기"
+            description="보험, 대출, 카드, 계좌 등 궁금한 금융 문제를 해결해요."
+            ctaLabel="상담 시작하기"
+            tone="primary"
+            icon="consultation"
+          />
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <PrimaryButton className="w-full sm:w-auto">
-                시작하기
-              </PrimaryButton>
+          <HomeActionCard
+            href="/emergency/type"
+            title="긴급 금융 피해 대응"
+            description="보이스피싱, 금융사기 등 긴급 상황에 즉시 대응해요."
+            ctaLabel="지금 바로 시작하기"
+            tone="danger"
+            icon="emergency"
+          />
+        </section>
 
-              <SecondaryButton className="w-full sm:w-auto">
-                나중에 하기
-              </SecondaryButton>
-            </div>
-          </SurfaceCard>
+        <div className="mt-5">
+          <HomeResumeSection state={resumeFixture} />
         </div>
+
+        <section
+          aria-label="서비스 안내"
+          className="mt-5 grid gap-4 md:grid-cols-2"
+        >
+          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
+            <h2 className="font-bold text-foreground">믿고 이용하세요</h2>
+
+            <p className="mt-2 leading-7 text-foreground-muted">
+              공식 금융기관 자료를 기반으로 분석하며, 근거가 부족할 경우
+              신중하게 안내합니다.
+            </p>
+          </article>
+
+          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
+            <h2 className="font-bold text-foreground">보안 안내</h2>
+
+            <p className="mt-2 leading-7 text-foreground-muted">
+              상담 내용은 안전하게 처리하며 민감한 개인정보 입력은
+              최소화합니다.
+            </p>
+          </article>
+        </section>
       </main>
-    </>
+    </div>
   );
 }
