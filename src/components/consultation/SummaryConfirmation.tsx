@@ -14,6 +14,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import {
   confirmSummaryFixture,
   getSummaryFixture,
+  startAnalysisFixture,
 } from "@/lib/fixtures/consultation";
 
 const summaryQueryKey = [
@@ -31,16 +32,28 @@ export default function SummaryConfirmation() {
     retry: false,
   });
 
-  const confirmMutation = useMutation({
-    mutationFn: confirmSummaryFixture,
+  const startAnalysisMutation = useMutation({
+    mutationFn: startAnalysisFixture,
 
     onSuccess: () => {
       router.push("/consultation/analysis");
     },
   });
 
+  const confirmMutation = useMutation({
+    mutationFn: confirmSummaryFixture,
+
+    onSuccess: () => {
+      startAnalysisMutation.mutate();
+    },
+  });
+
+  const isProcessing =
+    confirmMutation.isPending ||
+    startAnalysisMutation.isPending;
+
   function handleEdit() {
-    if (confirmMutation.isPending) {
+    if (isProcessing) {
       return;
     }
 
@@ -244,23 +257,48 @@ export default function SummaryConfirmation() {
         </div>
       ) : null}
 
+      {startAnalysisMutation.isError ? (
+        <div
+          role="alert"
+          className="mt-5 rounded-control border border-danger bg-surface p-4"
+        >
+          <p className="font-semibold text-danger">
+            분석 시작 요청을 완료하지 못했어요.
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-foreground-muted">
+            상담 내용 확인은 완료되어 있어요.
+            분석 시작만 다시 시도해 주세요.
+          </p>
+        </div>
+      ) : null}
+
       {/* 맞아요, 수정할래요 모두 Navigation이므로 Mutation 만들 필요 없음 */}
       <div className="mt-8 space-y-3">
         <PrimaryButton
           type="button"
           className="w-full"
-          disabled={confirmMutation.isPending}
-          onClick={() => confirmMutation.mutate()}
+          disabled={isProcessing}
+          onClick={() => {
+            if (confirmMutation.isSuccess) {
+              startAnalysisMutation.mutate();
+              return;
+            }
+
+            confirmMutation.mutate();
+          }}
         >
-          {confirmMutation.isPending
-            ? "확인 중..."
-            : "맞아요"}
+          {isProcessing
+            ? "분석을 준비하고 있어요..."
+            : startAnalysisMutation.isError
+              ? "분석 시작 다시 시도"
+              : "맞아요"}
         </PrimaryButton>
 
         <SecondaryButton
           type="button"
           className="w-full"
-          disabled={confirmMutation.isPending}
+          disabled={isProcessing}
           onClick={handleEdit}
         >
           수정할래요
