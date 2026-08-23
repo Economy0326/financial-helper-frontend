@@ -431,3 +431,145 @@ export async function getEmergencyImmediateActionFixture(): Promise<EmergencyImm
     },
   };
 }
+
+// Emergency Contact / Evidence
+export type EmergencyContactFixture = {
+  id: string;
+  name: string;
+  description: string;
+  phoneLabel: string | null;
+  phoneHref: string | null;
+  icon: "police" | "financial-company" | "card-company" | "official";
+};
+
+export type EmergencyEvidenceFixture = {
+  id: string;
+  label: string;
+};
+
+export type EmergencyContactEvidenceFixture = {
+  scenarioId: string;
+  type: EmergencyType;
+  contacts: EmergencyContactFixture[];
+  evidence: EmergencyEvidenceFixture[];
+};
+
+export type EmergencyContactEvidenceStateFixture =
+  | {
+      kind: "ready";
+      data: EmergencyContactEvidenceFixture;
+    }
+  | {
+      kind: "not-selected";
+    }
+  | {
+      kind: "unavailable";
+      message: string;
+    };
+
+const MOCK_CONTACT_EVIDENCE_DELAY = 300;
+const MOCK_CONTACT_EVIDENCE_LOAD_ERROR = false;
+
+const baseEmergencyContacts: EmergencyContactFixture[] = [
+  {
+    id: "police",
+    name: "경찰 신고",
+    description: "범죄 피해가 의심되는 경우 공식 신고 채널을 이용하세요.",
+    phoneLabel: "112",
+    phoneHref: "tel:112",
+    icon: "police",
+  },
+  {
+    id: "financial-company",
+    name: "이용 중인 금융회사",
+    description:
+      "은행·보험사 등 이용 중인 금융회사의 공식 고객센터에 연락하세요.",
+    phoneLabel: null,
+    phoneHref: null,
+    icon: "financial-company",
+  },
+  {
+    id: "official-agency",
+    name: "금융 관련 공식 기관",
+    description: "필요하면 금융 관련 공식 상담기관의 안내를 확인하세요.",
+    phoneLabel: "1332",
+    phoneHref: "tel:1332",
+    icon: "official",
+  },
+];
+
+const commonEvidenceFixture: EmergencyEvidenceFixture[] = [
+  {
+    id: "messages",
+    label: "문자 / 메시지",
+  },
+  {
+    id: "call-history",
+    label: "통화 기록",
+  },
+  {
+    id: "account-number",
+    label: "상대방 계좌번호",
+  },
+  {
+    id: "transaction-history",
+    label: "송금 · 결제 내역",
+  },
+  {
+    id: "screenshots",
+    label: "대화 화면 캡처",
+  },
+  {
+    id: "installed-apps",
+    label: "설치한 앱 정보",
+  },
+];
+
+function buildEmergencyContacts(
+  type: EmergencyType,
+): EmergencyContactFixture[] {
+  if (type === "UNKNOWN_PAYMENT") {
+    return [
+      {
+        id: "card-company",
+        name: "이용 중인 카드사",
+        description:
+          "본인이 하지 않은 카드 결제라면 카드사의 공식 고객센터를 확인하세요.",
+        phoneLabel: null,
+        phoneHref: null,
+        icon: "card-company",
+      },
+      ...baseEmergencyContacts,
+    ];
+  }
+
+  return baseEmergencyContacts;
+}
+
+export async function getEmergencyContactEvidenceFixture(): Promise<EmergencyContactEvidenceStateFixture> {
+  await delay(MOCK_CONTACT_EVIDENCE_DELAY);
+
+  if (MOCK_CONTACT_EVIDENCE_LOAD_ERROR) {
+    throw new Error(
+      "Mock emergency contact evidence load error",
+    );
+  }
+
+  if (!selectedEmergencyScenario) {
+    return {
+      kind: "not-selected",
+    };
+  }
+
+  return {
+    kind: "ready",
+    data: {
+      scenarioId: selectedEmergencyScenario.id,
+      type: selectedEmergencyScenario.type,
+      contacts: buildEmergencyContacts(
+        selectedEmergencyScenario.type,
+      ),
+      evidence: commonEvidenceFixture,
+    },
+  };
+}

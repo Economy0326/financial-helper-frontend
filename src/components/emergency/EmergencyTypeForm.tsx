@@ -225,11 +225,18 @@ export default function EmergencyTypeForm() {
     mutationFn: selectEmergencyTypeFixture,
 
     onSuccess: () => {
-      // 시나리오를 변경했을 때, 이전 Action 캐시 무효화
+      // 피해 유형이 바뀌면 이전 유형 기준의 즉시 대응 캐시는 더 이상 유효하지 않으므로 제거
       queryClient.removeQueries({
         queryKey: [
           "emergency",
           "immediate-action",
+        ],
+      });
+      // 피해 유형이 바뀌면 이전 유형 기준의 연락처/증거 캐시도 함께 무효화
+      queryClient.removeQueries({
+        queryKey: [
+          "emergency",
+          "contact-evidence",
         ],
       });
 
