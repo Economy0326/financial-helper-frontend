@@ -37,10 +37,10 @@ export default function ConsultationProgress({
             >
               <span
                 className={[
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold",
                   isComplete || isCurrent
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-border text-foreground-muted",
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border-strong bg-surface-subtle text-foreground-muted",
                 ].join(" ")}
               >
                 {isComplete ? (
