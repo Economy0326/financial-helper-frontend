@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { SecondaryButton } from "@/components/ui/SecondaryButton";
@@ -212,15 +212,27 @@ function EmergencyTypeIcon({
 export default function EmergencyTypeForm() {
   const router = useRouter();
 
+  const queryClient = useQueryClient();
+
+  // 서버에 저장하기 전, 사용자가 현재 선택 중인 피해 유형  
   const [
     selectedEmergencyType,
     setSelectedEmergencyType,
   ] = useState<EmergencyType | null>(null);
 
+  // 현재 선택값을 저장하는 요청의 pending/error/success 상태를 관리
   const selectMutation = useMutation({
     mutationFn: selectEmergencyTypeFixture,
 
     onSuccess: () => {
+      // 시나리오를 변경했을 때, 이전 Action 캐시 무효화
+      queryClient.removeQueries({
+        queryKey: [
+          "emergency",
+          "immediate-action",
+        ],
+      });
+
       router.push("/emergency/action");
     },
   });
