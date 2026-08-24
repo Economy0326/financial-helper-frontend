@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surface */
+  --background: #f6f8fb;
+  --surface: #ffffff;
+  --surface-subtle: #f0f4f8;
+
+  /* Text */
+  --foreground: #1f2937;
+  --foreground-muted: #64748b;
+
+  /* Border */
+  --border: #d9e1ea;
+  --border-strong: #b8c4d1;
+
+  /* Brand / Primary */
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-subtle: #ecfdf5;
+  --primary-foreground: #ffffff;
+
+  /* Semantic */
+  --success: #067647;
+  --success-surface: #ecfdf3;
+
+  --warning: #9a6700;
+  --warning-surface: #fff8db;
+
+  --danger: #b42318;
+  --danger-surface: #fff1f0;
+
+  /* Focus */
+  --focus: #2563eb;
+
+  /* Shape */
+  --radius-card: 1.25rem;
+  --radius-control: 0.875rem;
+
+  /* Shadow */
+  --shadow-card: 0 10px 30px rgb(15 23 42 / 0.08);
+
+  /* Typography */
+  --font-app-sans:
+    "Pretendard",
+    "Noto Sans KR",
+    "Apple SD Gothic Neo",
+    "Malgun Gothic",
+    Arial,
+    sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground-muted: var(--foreground-muted);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+
+  --color-focus: var(--focus);
+
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
+
+  --shadow-card: var(--shadow-card);
+
+  --font-sans: var(--font-app-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
 }
 
 body {
+  margin: 0;
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-app-sans);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--primary-subtle);
+  color: var(--foreground);
 }

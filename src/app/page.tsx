@@ -1,68 +1,100 @@
-import Image from "next/image";
+import { AppHeader } from "@/components/layout/AppHeader";
+import HomeActionCard from "@/components/home/HomeActionCard";
+import HomeResumeSection, {
+  type HomeResumeState,
+} from "@/components/home/HomeResumeSection";
+
+const resumeFixture: HomeResumeState = {
+  status: "active",
+  consultation: {
+    title: "보험 해지환급금 상담",
+    stepLabel: "내용 확인 단계 (4/6)",
+    updatedAtLabel: "오늘 오후 3:20",
+    href: "/consultation/summary",
+  },
+};
+
+// 다른 Home State 확인 시 위 Fixture를 아래처럼 바꿔볼 수 있다.
+// const resumeFixture: HomeResumeState = { status: "none" };
+// const resumeFixture: HomeResumeState = { status: "loading" };
+// const resumeFixture: HomeResumeState = { status: "error" };
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+
+      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6 sm:px-6 md:pt-8 lg:px-8">
+        <section className="rounded-card border border-border bg-surface-subtle p-6 sm:p-8 md:p-10">
+          <p className="text-sm font-semibold text-primary">
+            금융소비자 보호 AI
           </p>
+
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+            안녕하세요!
+          </h1>
+
+          <p className="mt-3 text-xl font-semibold text-foreground sm:text-2xl">
+            금융 문제를 쉽고 안전하게 해결하세요.
+          </p>
+
+          <p className="mt-5 flex items-center gap-2 text-sm text-foreground-muted sm:text-base">
+            <span aria-hidden="true" className="text-primary">
+              ✓
+            </span>
+            개인정보와 상담 내용은 안전하게 보호됩니다.
+          </p>
+        </section>
+
+        <section
+          aria-label="상담 시작"
+          className="mt-5 grid gap-4 md:grid-cols-2"
+        >
+          <HomeActionCard
+            href="/consultation/problem-category"
+            title="금융 문제 해결하기"
+            description="보험, 대출, 카드, 계좌 등 궁금한 금융 문제를 해결해요."
+            ctaLabel="상담 시작하기"
+            tone="primary"
+            icon="consultation"
+          />
+
+          <HomeActionCard
+            href="/emergency/type"
+            title="긴급 금융 피해 대응"
+            description="보이스피싱, 금융사기 등 긴급 상황에 즉시 대응해요."
+            ctaLabel="지금 바로 시작하기"
+            tone="danger"
+            icon="emergency"
+          />
+        </section>
+
+        <div className="mt-5">
+          <HomeResumeSection state={resumeFixture} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <section
+          aria-label="서비스 안내"
+          className="mt-5 grid gap-4 md:grid-cols-2"
+        >
+          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
+            <h2 className="font-bold text-foreground">믿고 이용하세요</h2>
+
+            <p className="mt-2 leading-7 text-foreground-muted">
+              공식 금융기관 자료를 기반으로 분석하며, 근거가 부족할 경우
+              신중하게 안내합니다.
+            </p>
+          </article>
+
+          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
+            <h2 className="font-bold text-foreground">보안 안내</h2>
+
+            <p className="mt-2 leading-7 text-foreground-muted">
+              상담 내용은 안전하게 처리하며 민감한 개인정보 입력은
+              최소화합니다.
+            </p>
+          </article>
+        </section>
       </main>
     </div>
   );
