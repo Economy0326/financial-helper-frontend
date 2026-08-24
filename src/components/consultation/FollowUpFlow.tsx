@@ -29,10 +29,12 @@ export default function FollowUpFlow() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 아직 저장하지 않은 현재 선택 값만 Local State로 관리
-  // 선택 후 다음 질문 결정은 Frontend가 아니라 Server가 담당
-  const [selectedOption, setSelectedOption] =
-    useState<string | null>(null);
+  // 아직 저장하지 않은 사용자의 현재 선택만 Local State로 관리
+  // 어느 질문에서 선택한 값인지 함께 저장해 질문 전환 시 값을 구분
+  const [selection, setSelection] = useState<{
+    questionId: string;
+    optionValue: string;
+  } | null>(null);
 
   // Question과 기존 저장 Answer만 TanStack Query의 Server State가 소유
   const followUpQuery = useQuery({
@@ -74,17 +76,6 @@ export default function FollowUpFlow() {
       );
     },
   });
-
-  useEffect(() => {
-    if (followUpQuery.data?.kind !== "question") {
-      setSelectedOption(null);
-      return;
-    }
-
-    setSelectedOption(
-      followUpQuery.data.savedAnswer,
-    );
-  }, [followUpQuery.data]);
 
   useEffect(() => {
     if (
@@ -195,6 +186,13 @@ export default function FollowUpFlow() {
     );
   }
 
+  // 현재 질문의 서버 저장 Answer와 사용자의 미저장 선택을 조합한 Derived State
+  // 질문이 바뀌면 이전 Local State를 직접 초기화하지 않아도 savedAnswer로 자연스럽게 전환됨
+  const selectedOption =
+    selection?.questionId === state.question.id
+      ? selection.optionValue
+      : state.savedAnswer;
+
   const isLastQuestion =
     state.currentQuestionNumber ===
     state.totalQuestions;
@@ -252,9 +250,10 @@ export default function FollowUpFlow() {
                       value={option.value}
                       checked={isSelected}
                       onChange={() =>
-                        setSelectedOption(
-                          option.value,
-                        )
+                        setSelection({
+                          questionId: state.question.id,
+                          optionValue: option.value,
+                        })
                       }
                       className="peer sr-only"
                     />

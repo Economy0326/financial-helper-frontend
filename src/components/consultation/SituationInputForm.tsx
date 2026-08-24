@@ -8,7 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, } from "react-hook-form";
 import { z } from "zod";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -49,7 +49,7 @@ export default function SituationInputForm() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: {
       errors,
       isValid,
@@ -92,7 +92,14 @@ export default function SituationInputForm() {
     }
   }, [isDirty, reset, situationQuery.data]);
 
-  const content = watch("content") ?? "";
+  // textarea의 현재 Form 값을 구독
+  const content =
+    useWatch({
+      control,
+      name: "content",
+    }) ?? "";
+
+  // 입력값에서 바로 계산할 수 있으므로 별도 State로 저장하지 않는 Derived State
   const characterCount = content.length;
 
   const errorMessage = errors.content?.message;

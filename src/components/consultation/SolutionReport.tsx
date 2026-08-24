@@ -97,11 +97,17 @@ function SourceLinks({
           ].join(" ")}
         >
           {source.organization} 근거 확인
+
           <span
             aria-hidden="true"
             className="ml-1"
           >
             ↗
+          </span>
+
+          {/* sr-only => 화면에서는 숨기고, 스크린리더는 읽을 수 있게 */}
+          <span className="sr-only">
+            새 탭에서 열림
           </span>
         </a>
       ))}
@@ -185,11 +191,11 @@ function ReportSection({
 export default function SolutionReport() {
   const router = useRouter();
 
-  // 데스크탑 목차에서 현재 활성화되는 섹션
+  // 데스크탑 목차에서 현재 활성화되는 섹션에서 사용
   const [activeSection, setActiveSection] =
     useState<ReportSectionId>("priority");
 
-  // 모바일 아코디언에서 펼쳐진 섹션
+  // 모바일 아코디언에서 펼쳐진 섹션에서 사용
   const [expandedSections, setExpandedSections] =
     useState<Set<ReportSectionId>>(
       () =>
@@ -227,10 +233,17 @@ export default function SolutionReport() {
   ) {
     setActiveSection(sectionId);
 
+    const prefersReducedMotion =
+      window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
     document
       .getElementById(sectionId)
       ?.scrollIntoView({
-        behavior: "smooth",
+        behavior: prefersReducedMotion
+          ? "auto"
+          : "smooth",
         block: "start",
       });
   }
@@ -261,12 +274,9 @@ export default function SolutionReport() {
     );
   }
 
-  /*
-   * Report 조회 실패.
-   *
-   * 다시 시도는 Analysis Retry가 아니라
-   * Report Query만 다시 조회한다.
-   */
+
+  // Report 조회 실패
+  // 다시 시도는 Analysis Retry가 아니라 Report Query만 다시 조회한다.
   if (reportQuery.isError) {
     return (
       <>
@@ -452,11 +462,13 @@ export default function SolutionReport() {
                     className="border-b border-border last:border-b-0"
                   >
                     <button
+                      // 스크린리더 사용자를 위해서 aria-current 포함
                       type="button"
+                      aria-current={
+                        isActive ? "location" : undefined
+                      }
                       onClick={() =>
-                        moveToSection(
-                          section.id,
-                        )
+                        moveToSection(section.id)
                       }
                       className={[
                         "w-full px-4 py-4 text-left text-sm font-semibold",
@@ -787,11 +799,17 @@ export default function SolutionReport() {
                       ].join(" ")}
                     >
                       공식 원문 확인
+
                       <span
                         aria-hidden="true"
                         className="ml-1"
                       >
                         ↗
+                      </span>
+
+                      {/* sr-only => 화면에서는 숨기고, 스크린리더는 읽을 수 있게 */}
+                      <span className="sr-only">
+                        새 탭에서 열림
                       </span>
                     </a>
                   </li>

@@ -71,8 +71,10 @@ export default function HomeActionCard({
     <Link
       href={href}
       className={[
+        // hover 효과를 없애는게 아니라, 장식적인 motion만 줄임
         "group flex h-full flex-col rounded-card border bg-surface p-5 shadow-card",
         "transition hover:-translate-y-0.5",
+        "motion-reduce:transform-none motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
         "sm:p-6",
         isDanger ? "border-danger" : "border-primary",

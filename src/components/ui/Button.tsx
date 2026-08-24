@@ -41,9 +41,15 @@ export default function Button({
       disabled={disabled}
       className={[
         "inline-flex min-h-14 items-center justify-center",
-        "rounded-control px-5",
-        "font-semibold transition",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "rounded-control px-5 font-semibold",
+        "transition",
+        "focus-visible:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-focus",
+        "focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed",
+        "disabled:opacity-50",
+        "motion-reduce:transition-none",
         variantClasses[variant],
         className,
       ]
