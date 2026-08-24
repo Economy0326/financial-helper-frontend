@@ -8,8 +8,8 @@ import {
 } from "@tanstack/react-query";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 
 import {
   getAnalysisStatusFixture,

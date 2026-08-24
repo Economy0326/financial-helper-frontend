@@ -11,8 +11,8 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 
 import {
   getSituationFixture,

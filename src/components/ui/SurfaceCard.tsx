@@ -1,30 +1,24 @@
 import type {
   HTMLAttributes,
-  ReactNode,
 } from "react";
 
 type SurfaceCardProps =
-  HTMLAttributes<HTMLDivElement> & {
-    children: ReactNode;
-  };
+  HTMLAttributes<HTMLDivElement>;
 
-// 정보를 담는 기본 Surface Container
-export function SurfaceCard({
-  children,
-  className = "",
+export default function SurfaceCard({
+  className,
   ...props
 }: SurfaceCardProps) {
   return (
     <div
       className={[
         "rounded-card border border-border",
-        "bg-surface p-5 shadow-card",
-        "sm:p-6",
+        "bg-surface shadow-card",
         className,
-      ].join(" ")}
+      ]
+        .filter(Boolean)
+        .join(" ")}
       {...props}
-    >
-      {children}
-    </div>
+    />
   );
 }
