@@ -38,6 +38,15 @@ export type ActiveConsultationResponse = {
   updatedAt: string;
 };
 
+export type ConsultationDetailResponse = {
+  consultationId: string;
+  category: ConsultationCategory | null;
+  situationText: string | null;
+  status: ConsultationStatus;
+  currentStep: ConsultationStep;
+  updatedAt: string;
+};
+
 export type UpdateCategoryResponse = {
   currentStep: ConsultationStep;
 };

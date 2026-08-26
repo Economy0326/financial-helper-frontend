@@ -1,23 +1,6 @@
 import { AppHeader } from "@/components/layout/AppHeader";
 import HomeActionCard from "@/components/home/HomeActionCard";
-import HomeResumeSection, {
-  type HomeResumeState,
-} from "@/components/home/HomeResumeSection";
-
-const resumeFixture: HomeResumeState = {
-  status: "active",
-  consultation: {
-    title: "보험 해지환급금 상담",
-    stepLabel: "내용 확인 단계 (4/6)",
-    updatedAtLabel: "오늘 오후 3:20",
-    href: "/consultation/summary",
-  },
-};
-
-// 다른 Home State 확인 시 위 Fixture를 아래처럼 바꿔볼 수 있다.
-// const resumeFixture: HomeResumeState = { status: "none" };
-// const resumeFixture: HomeResumeState = { status: "loading" };
-// const resumeFixture: HomeResumeState = { status: "error" };
+import HomeResumeContainer from "@/components/home/HomeResumeContainer";
 
 export default function Home() {
   return (
@@ -70,7 +53,7 @@ export default function Home() {
         </section>
 
         <div className="mt-5">
-          <HomeResumeSection state={resumeFixture} />
+          <HomeResumeContainer />
         </div>
 
         <section

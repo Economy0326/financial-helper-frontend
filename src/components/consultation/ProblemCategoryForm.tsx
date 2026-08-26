@@ -3,6 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type {
+  ConsultationCategory,
+} from "@/lib/api/types";
+
+import {
+  useActiveConsultationQuery,
+  useStartConsultationMutation,
+  useUpdateCategoryMutation,
+} from "@/lib/query/consultation";
+
+import { useSessionQuery } from "@/lib/query/session";
+
+import {
+  ApiNetworkError,
+  ApiResponseError,
+} from "@/lib/api/errors";
+
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
@@ -33,21 +50,8 @@ const categories = [
   },
 ] as const;
 
-type ProblemCategory = (typeof categories)[number]["value"];
-
-const MOCK_SUBMIT_ERROR = false;
-
-async function saveProblemCategoryFixture(category: ProblemCategory) {
-  await new Promise((resolve) => {
-    window.setTimeout(resolve, 300);
-  });
-
-  if (MOCK_SUBMIT_ERROR) {
-    throw new Error("Mock submit error");
-  }
-
-  return category;
-}
+type ProblemCategory =
+  ConsultationCategory;
 
 function CategoryIcon({
   type,
@@ -172,33 +176,95 @@ function CategoryIcon({
 export default function ProblemCategoryForm() {
   const router = useRouter();
 
-  const [selectedCategory, setSelectedCategory] =
-    useState<ProblemCategory | null>(null);
+  // 사용자가 현재 화면에서 직접 선택한 Category
+  const [
+    selectedCategoryOverride,
+    setSelectedCategoryOverride,
+  ] = useState<ProblemCategory | null>(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const sessionQuery = useSessionQuery();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      sessionQuery.data
+        ?.hasActiveConsultation === true,
+    );
+
+  const savedCategory =
+    activeConsultationQuery.data?.category ?? null;
+
+  // 사용자가 직접 선택한 값이 있으면 그 값을 우선하고,
+  // 아직 선택하지 않았다면 서버에 저장된 값을 사용
+  const selectedCategory =
+    selectedCategoryOverride ??
+    savedCategory;
+
+  const startConsultationMutation =
+    useStartConsultationMutation();
+
+  const updateCategoryMutation =
+    useUpdateCategoryMutation();
+
+  const isSubmitting =
+    startConsultationMutation.isPending ||
+    updateCategoryMutation.isPending;
+
+  const submitError =
+    updateCategoryMutation.error ??
+    startConsultationMutation.error;
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
-    if (!selectedCategory || isSubmitting) {
+    if (
+      !selectedCategory ||
+      isSubmitting
+    ) {
       return;
     }
 
-    setSubmitError(null);
-    setIsSubmitting(true);
+    startConsultationMutation.reset();
+    updateCategoryMutation.reset();
 
     try {
-      await saveProblemCategoryFixture(selectedCategory);
+      const consultation =
+        await startConsultationMutation
+          .mutateAsync();
 
-      router.push("/consultation/situation");
-    } catch {
-      setSubmitError(
-        "선택 내용을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      await updateCategoryMutation.mutateAsync({
+        consultationId:
+          consultation.consultationId,
+
+        category:
+          selectedCategory,
+      });
+
+      router.push(
+        "/consultation/situation",
       );
-
-      setIsSubmitting(false);
+    } catch {
+      return;
     }
+  }
+
+  function getSubmitErrorMessage(
+    error: Error | null,
+  ) {
+    if (error instanceof ApiNetworkError) {
+      return "서버에 연결할 수 없어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.";
+    }
+
+    if (
+      error instanceof ApiResponseError &&
+      error.code ===
+        "INVALID_CONSULTATION_STATE"
+    ) {
+      return "현재 상담 단계에서는 문제 유형을 변경할 수 없어요.";
+    }
+
+    return "선택 내용을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.";
   }
 
   return (
@@ -222,8 +288,14 @@ export default function ProblemCategoryForm() {
                   value={category.value}
                   checked={isSelected}
                   onChange={() => {
-                    setSelectedCategory(category.value);
-                    setSubmitError(null);
+                    // 사용자가 현재 화면에서 선택한 값을 임시 UI State로 저장
+                    setSelectedCategoryOverride(
+                      category.value,
+                    );
+
+                    // 새 선택 시 이전 저장 실패 상태 초기화
+                    startConsultationMutation.reset();
+                    updateCategoryMutation.reset();
                   }}
                   // peer: radio의 상태를 뒤쪽 카드 UI 스타일에 연결하기 위해 필요
                   // sr-only: 실제 radio는 화면에서만 숨기고 접근성/키보드 기능은 유지
@@ -279,7 +351,9 @@ export default function ProblemCategoryForm() {
           role="alert"
           className="mt-4 rounded-control border border-danger p-4 text-danger"
         >
-          {submitError}
+          {getSubmitErrorMessage(
+            submitError,
+          )}
         </p>
       ) : null}
 

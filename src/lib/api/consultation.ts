@@ -2,6 +2,7 @@ import { apiFetch } from "./client";
 
 import type {
   ActiveConsultationResponse,
+  ConsultationDetailResponse,
   ConsultationCategory,
   ConsultationCreateResponse,
   UpdateCategoryResponse,
@@ -20,6 +21,16 @@ export function startConsultation() {
 export function getActiveConsultation() {
   return apiFetch<ActiveConsultationResponse>(
     "/consultations/active",
+  );
+}
+
+export function getConsultation(
+  consultationId: string,
+) {
+  return apiFetch<ConsultationDetailResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}`,
   );
 }
 

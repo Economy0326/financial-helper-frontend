@@ -6,6 +6,7 @@ import {
 
 import {
   getActiveConsultation,
+  getConsultation,
   startConsultation,
   updateConsultationCategory,
   updateConsultationSituation,
@@ -29,6 +30,31 @@ export function useActiveConsultationQuery(
 
     // 애초에 Cookie가 없는 첫 방문에서는 Active 호출 무의미
     enabled,
+  });
+}
+
+// 상담 세부사항
+export function useConsultationDetailQuery(
+  consultationId: string | null | undefined,
+) {
+  return useQuery({
+    queryKey: queryKeys.consultations.detail(
+      consultationId ?? "pending",
+    ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultation(
+        consultationId,
+      );
+    },
+
+    enabled: Boolean(consultationId),
   });
 }
 
@@ -76,16 +102,22 @@ export function useUpdateCategoryMutation() {
         category,
       ),
 
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey:
-            queryKeys.session.all,
+          queryKey: queryKeys.session.all,
         }),
 
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
         }),
       ]);
     },
@@ -111,16 +143,22 @@ export function useUpdateSituationMutation() {
         situationText,
       ),
 
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey:
-            queryKeys.session.all,
+          queryKey: queryKeys.session.all,
         }),
 
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
         }),
       ]);
     },

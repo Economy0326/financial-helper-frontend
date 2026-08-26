@@ -3,21 +3,23 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
 import { useForm, useWatch, } from "react-hook-form";
 import { z } from "zod";
 
-import PrimaryButton from "@/components/ui/PrimaryButton";
-import SecondaryButton from "@/components/ui/SecondaryButton";
+import {
+  useActiveConsultationQuery,
+  useConsultationDetailQuery,
+  useUpdateSituationMutation,
+} from "@/lib/query/consultation";
+
+import { useSessionQuery } from "@/lib/query/session";
 
 import {
-  getSituationFixture,
-  saveSituationFixture,
-} from "@/lib/fixtures/consultation";
+  ApiResponseError,
+} from "@/lib/api/errors";
+
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 
 const MAX_SITUATION_LENGTH = 1000;
 
@@ -37,18 +39,15 @@ const situationSchema = z.object({
 
 type SituationFormValues = z.infer<typeof situationSchema>;
 
-const situationQueryKey = ["consultation", "situation"] as const;
-
 export default function SituationInputForm() {
   const router = useRouter();
-  // React Query의 useQueryClient를 사용하여 쿼리 캐시를 관리
-  const queryClient = useQueryClient();
 
   // useForm이 반환하는 Form 제어 함수와 상태 중 현재 화면에 필요한 값만 구조분해
   const {
     register,
     handleSubmit,
     reset,
+    setError,
     control,
     formState: {
       errors,
@@ -63,34 +62,52 @@ export default function SituationInputForm() {
     },
   });
 
-  const situationQuery = useQuery({
-    queryKey: situationQueryKey,
-    queryFn: getSituationFixture,
-    staleTime: Infinity,
-  });
+  const sessionQuery =
+    useSessionQuery();
 
-  const situationMutation = useMutation({
-    mutationFn: (content: string) =>
-      saveSituationFixture(content),
+  const hasActiveConsultation =
+    sessionQuery.data
+      ?.hasActiveConsultation === true;
 
-    onSuccess: (savedSituation) => {
-      queryClient.setQueryData(
-        situationQueryKey,
-        savedSituation,
-      );
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      hasActiveConsultation,
+    );
 
-      router.push("/consultation/follow-up");
-    },
-  });
+  const consultationId =
+    activeConsultationQuery.data
+      ?.consultationId ?? null;
 
+  const consultationDetailQuery =
+    useConsultationDetailQuery(
+      consultationId,
+    );
+
+  const situationMutation =
+    useUpdateSituationMutation();
+
+  // DB에서 조회한 기존 situationText를 RHF 폼에 복원시킴
   useEffect(() => {
-    // isDirty => 사용자가 작성 중인 내용을 서버 데이터로 덮어쓰는 것을 방지
-    if (situationQuery.data && !isDirty) {
-      reset({
-        content: situationQuery.data.content,
-      });
+    if (
+      !consultationDetailQuery.data ||
+      // isDirty => 사용자가 이미 폼을 수정했으면 덮어쓰지 않음
+      isDirty
+    ) {
+      return;
     }
-  }, [isDirty, reset, situationQuery.data]);
+
+    // 서버에 저장된 기존 내용을 폼의 기준값으로 복원
+    // is_Dirty 판별을 위해서 남겨둠
+    reset({
+      content:
+        consultationDetailQuery.data
+          .situationText ?? "",
+    });
+  }, [
+    consultationDetailQuery.data,
+    isDirty,
+    reset,
+  ]);
 
   // textarea의 현재 Form 값을 구독
   const content =
@@ -98,14 +115,47 @@ export default function SituationInputForm() {
       control,
       name: "content",
     }) ?? "";
-
   // 입력값에서 바로 계산할 수 있으므로 별도 State로 저장하지 않는 Derived State
   const characterCount = content.length;
 
   const errorMessage = errors.content?.message;
 
-  function onSubmit(values: SituationFormValues) {
-    situationMutation.mutate(values.content.trim());
+  async function onSubmit(
+    values: SituationFormValues,
+  ) {
+    if (!consultationId) {
+      return;
+    }
+
+    situationMutation.reset();
+
+    try {
+      await situationMutation.mutateAsync({
+        consultationId,
+        situationText:
+          values.content.trim(),
+      });
+
+      router.push(
+        "/consultation/follow-up",
+      );
+      // 실패해도 RHF의 현재 Form값은 그대로 남음
+    } catch (error) {
+      if (
+        error instanceof ApiResponseError &&
+        error.fieldErrors.some(
+          (fieldError) =>
+            fieldError.field ===
+            "situationText",
+        )
+      ) {
+        setError("content", {
+          type: "server",
+          message:
+            "입력 내용을 확인해 주세요.",
+        });
+      }
+    }
   }
 
   const descriptionIds = [
@@ -116,12 +166,43 @@ export default function SituationInputForm() {
     .filter(Boolean)
     .join(" ");
 
+  const activeConsultation =
+    activeConsultationQuery.data;
+
+  const canEditSituation =
+    Boolean(
+      activeConsultation &&
+        activeConsultation.category &&
+        (
+          activeConsultation.currentStep ===
+            "SITUATION" ||
+          activeConsultation.currentStep ===
+            "FOLLOW_UP"
+        ),
+    );
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="mt-8"
       noValidate
     >
+      {sessionQuery.isSuccess &&
+      !hasActiveConsultation ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-control border border-border bg-surface p-4"
+        >
+          <p className="font-medium text-foreground">
+            먼저 문제 유형을 선택해 주세요.
+          </p>
+
+          <p className="mt-1 text-sm text-foreground-muted">
+            상담을 시작한 뒤 상황을 입력할 수 있어요.
+          </p>
+        </div>
+      ) : null}
+
       <div>
         <label
           htmlFor="situation-content"
@@ -209,7 +290,7 @@ export default function SituationInputForm() {
         </div>
       </aside>
 
-      {situationQuery.isError ? (
+      {consultationDetailQuery.isError ? (
         <div
           role="status"
           className="mt-4 rounded-control border border-border bg-surface p-4"
@@ -245,8 +326,11 @@ export default function SituationInputForm() {
           className="w-full"
           disabled={
             !isValid ||
+            !canEditSituation ||
             situationMutation.isPending ||
-            situationQuery.isLoading
+            sessionQuery.isLoading ||
+            activeConsultationQuery.isLoading ||
+            consultationDetailQuery.isLoading
           }
         >
           {situationMutation.isPending
