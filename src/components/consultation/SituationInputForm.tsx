@@ -296,9 +296,14 @@ export default function SituationInputForm() {
 
         if (
           error.code ===
-            "CONSULTATION_NOT_FOUND" ||
+            "INVALID_CONSULTATION_STATE"
+        ) {
+          void activeConsultationQuery.refetch();
+        }
+
+        if (
           error.code ===
-            "GUEST_SESSION_EXPIRED"
+            "CONSULTATION_NOT_FOUND"
         ) {
           void sessionQuery.refetch();
           void activeConsultationQuery.refetch();

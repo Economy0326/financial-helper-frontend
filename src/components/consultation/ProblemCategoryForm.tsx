@@ -305,7 +305,6 @@ export default function ProblemCategoryForm() {
         error.code ===
           "INVALID_CONSULTATION_STATE"
       ) {
-        void sessionQuery.refetch();
         void activeConsultationQuery.refetch();
       }
     }
