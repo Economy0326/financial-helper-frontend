@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch, } from "react-hook-form";
+
+import {
+  useForm,
+  useWatch,
+} from "react-hook-form";
+
 import { z } from "zod";
 
 import {
@@ -21,6 +29,13 @@ import {
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
+import {
+  getSituationPageAccess,
+} from "@/lib/consultation/access";
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
+
 const MAX_SITUATION_LENGTH = 1000;
 
 // RHF와 Zod를 사용하여 폼의 유효성 검사
@@ -37,7 +52,8 @@ const situationSchema = z.object({
     ),
 });
 
-type SituationFormValues = z.infer<typeof situationSchema>;
+type SituationFormValues =
+  z.infer<typeof situationSchema>;
 
 export default function SituationInputForm() {
   const router = useRouter();
@@ -55,7 +71,9 @@ export default function SituationInputForm() {
       isDirty,
     },
   } = useForm<SituationFormValues>({
-    resolver: zodResolver(situationSchema),
+    resolver: zodResolver(
+      situationSchema,
+    ),
     mode: "onChange",
     defaultValues: {
       content: "",
@@ -74,6 +92,15 @@ export default function SituationInputForm() {
       hasActiveConsultation,
     );
 
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
+
+  const pageAccess =
+    getSituationPageAccess(
+      currentStep,
+    );
+
   const consultationId =
     activeConsultationQuery.data
       ?.consultationId ?? null;
@@ -85,6 +112,20 @@ export default function SituationInputForm() {
 
   const situationMutation =
     useUpdateSituationMutation();
+
+  const canEditSituation =
+    pageAccess.status === "allowed" &&
+    Boolean(
+      activeConsultationQuery.data
+        ?.category,
+    );
+
+  const isConsultationStateLoading =
+    sessionQuery.isLoading ||
+    (
+      hasActiveConsultation &&
+      activeConsultationQuery.isLoading
+    );
 
   // DB에서 조회한 기존 situationText를 RHF 폼에 복원시킴
   useEffect(() => {
@@ -115,10 +156,13 @@ export default function SituationInputForm() {
       control,
       name: "content",
     }) ?? "";
-  // 입력값에서 바로 계산할 수 있으므로 별도 State로 저장하지 않는 Derived State
-  const characterCount = content.length;
 
-  const errorMessage = errors.content?.message;
+  // 입력값에서 바로 계산할 수 있으므로 별도 State로 저장하지 않는 Derived State
+  const characterCount =
+    content.length;
+
+  const errorMessage =
+    errors.content?.message;
 
   async function onSubmit(
     values: SituationFormValues,
@@ -139,6 +183,7 @@ export default function SituationInputForm() {
       router.push(
         "/consultation/follow-up",
       );
+
       // 실패해도 RHF의 현재 Form값은 그대로 남음
     } catch (error) {
       if (
@@ -161,25 +206,12 @@ export default function SituationInputForm() {
   const descriptionIds = [
     "situation-help",
     "situation-count",
-    errorMessage ? "situation-error" : null,
+    errorMessage
+      ? "situation-error"
+      : null,
   ]
     .filter(Boolean)
     .join(" ");
-
-  const activeConsultation =
-    activeConsultationQuery.data;
-
-  const canEditSituation =
-    Boolean(
-      activeConsultation &&
-        activeConsultation.category &&
-        (
-          activeConsultation.currentStep ===
-            "SITUATION" ||
-          activeConsultation.currentStep ===
-            "FOLLOW_UP"
-        ),
-    );
 
   return (
     <form
@@ -187,19 +219,124 @@ export default function SituationInputForm() {
       className="mt-8"
       noValidate
     >
+      {isConsultationStateLoading ? (
+        <p
+          role="status"
+          className="mb-6 text-sm text-foreground-muted"
+        >
+          상담 내용을 확인하고 있어요.
+        </p>
+      ) : null}
+
+      {sessionQuery.isError ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-control border border-danger bg-surface p-4"
+        >
+          <p className="font-medium text-danger">
+            상담 상태를 확인하지 못했어요.
+          </p>
+
+          <p className="mt-1 text-sm text-foreground-muted">
+            인터넷 연결을 확인한 뒤 다시 시도해 주세요.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              void sessionQuery.refetch();
+            }}
+            className="mt-4 min-h-11 font-semibold text-primary underline"
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : null}
+
+      {hasActiveConsultation &&
+      activeConsultationQuery.isError ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-control border border-danger bg-surface p-4"
+        >
+          <p className="font-medium text-danger">
+            진행 중 상담을 불러오지 못했어요.
+          </p>
+
+          <p className="mt-1 text-sm text-foreground-muted">
+            잠시 후 다시 시도해 주세요.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              void activeConsultationQuery.refetch();
+            }}
+            className="mt-4 min-h-11 font-semibold text-primary underline"
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : null}
+
       {sessionQuery.isSuccess &&
       !hasActiveConsultation ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        >
+          <p className="text-lg font-bold text-foreground">
+            먼저 문제 유형을 선택해 주세요.
+          </p>
+
+          <p className="mt-2 leading-6 text-foreground-muted">
+            상담을 시작한 뒤 상황을 입력할 수 있어요.
+          </p>
+
+          <Link
+            href="/consultation/problem-category"
+            className={[
+              "mt-5 inline-flex min-h-12 items-center justify-center",
+              "rounded-control bg-primary px-5 py-3",
+              "font-bold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            문제 유형 선택하기
+          </Link>
+        </div>
+      ) : null}
+
+      {hasActiveConsultation &&
+      pageAccess.status ===
+        "wrong-step" ? (
         <div
           role="alert"
           className="mb-6 rounded-control border border-border bg-surface p-4"
         >
           <p className="font-medium text-foreground">
-            먼저 문제 유형을 선택해 주세요.
+            현재 상담 단계와 맞지 않는 화면이에요.
           </p>
 
           <p className="mt-1 text-sm text-foreground-muted">
-            상담을 시작한 뒤 상황을 입력할 수 있어요.
+            저장된 상담 단계로 돌아가서 계속 진행해 주세요.
           </p>
+
+          <Link
+            href={getConsultationStepHref(
+              pageAccess.currentStep,
+            )}
+            className={[
+              "mt-5 inline-flex min-h-12 items-center justify-center",
+              "rounded-control bg-primary px-5 py-3",
+              "font-bold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            현재 단계로 이동
+          </Link>
         </div>
       ) : null}
 
@@ -214,12 +351,20 @@ export default function SituationInputForm() {
         <div className="relative">
           <textarea
             id="situation-content"
-            maxLength={MAX_SITUATION_LENGTH}
+            maxLength={
+              MAX_SITUATION_LENGTH
+            }
             placeholder={
               "예) 보험금이 지급되지 않았어요.\n대출 금리가 갑자기 올랐어요."
             }
-            aria-invalid={errorMessage ? "true" : "false"}
-            aria-describedby={descriptionIds}
+            aria-invalid={
+              errorMessage
+                ? "true"
+                : "false"
+            }
+            aria-describedby={
+              descriptionIds
+            }
             className={[
               "min-h-72 w-full resize-y rounded-card border bg-surface",
               "px-5 pb-14 pt-5 text-base leading-7 text-foreground",
@@ -237,7 +382,8 @@ export default function SituationInputForm() {
             id="situation-count"
             className="absolute bottom-4 right-5 text-sm text-foreground-muted"
           >
-            {characterCount}/{MAX_SITUATION_LENGTH}
+            {characterCount}/
+            {MAX_SITUATION_LENGTH}
           </span>
         </div>
 
@@ -256,7 +402,10 @@ export default function SituationInputForm() {
             role="alert"
             className="mt-3 flex items-center gap-2 font-medium text-danger"
           >
-            <span aria-hidden="true">!</span>
+            <span aria-hidden="true">
+              !
+            </span>
+
             {errorMessage}
           </p>
         ) : null}
@@ -328,8 +477,9 @@ export default function SituationInputForm() {
             !isValid ||
             !canEditSituation ||
             situationMutation.isPending ||
-            sessionQuery.isLoading ||
-            activeConsultationQuery.isLoading ||
+            isConsultationStateLoading ||
+            sessionQuery.isError ||
+            activeConsultationQuery.isError ||
             consultationDetailQuery.isLoading
           }
         >
@@ -341,7 +491,9 @@ export default function SituationInputForm() {
         <SecondaryButton
           type="button"
           className="w-full"
-          disabled={situationMutation.isPending}
+          disabled={
+            situationMutation.isPending
+          }
           onClick={() =>
             router.push(
               "/consultation/problem-category",

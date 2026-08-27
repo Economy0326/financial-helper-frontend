@@ -5,14 +5,17 @@ import HomeResumeSection, {
 } from "@/components/home/HomeResumeSection";
 
 import type {
-  ConsultationCategory,
-  ConsultationStep,
+  ConsultationCategory
 } from "@/lib/api/types";
 
 import {
   useActiveConsultationQuery,
 } from "@/lib/query/consultation";
 import { useSessionQuery } from "@/lib/query/session";
+
+import {
+  consultationStepMeta,
+} from "@/lib/consultation/navigation";
 
 const categoryLabels: Record<
   ConsultationCategory,
@@ -22,51 +25,6 @@ const categoryLabels: Record<
   LOAN: "대출",
   CARD: "카드",
   UNKNOWN: "금융 문제",
-};
-
-const stepMeta: Record<
-  ConsultationStep,
-  {
-    label: string;
-    number: number;
-    href: string;
-  }
-> = {
-  CATEGORY: {
-    label: "문제 선택",
-    number: 1,
-    href: "/consultation/problem-category",
-  },
-
-  SITUATION: {
-    label: "상황 입력",
-    number: 2,
-    href: "/consultation/situation",
-  },
-
-  FOLLOW_UP: {
-    label: "추가 질문",
-    number: 3,
-    href: "/consultation/follow-up",
-  },
-
-  SUMMARY: {
-    label: "내용 확인",
-    number: 4,
-    href: "/consultation/summary",
-  },
-
-  ANALYSIS: {
-    label: "AI 분석",
-    number: 5,
-    href: "/consultation/analysis",
-  },
-
-  REPORT: {
-    label: "결과 리포트",
-    number: 6,
-    href: "/consultation/report",
-  },
 };
 
 function formatUpdatedAt(value: string) {
@@ -129,7 +87,9 @@ export default function HomeResumeContainer() {
       activeConsultationQuery.data;
 
     const step =
-      stepMeta[consultation.currentStep];
+      consultationStepMeta[
+        consultation.currentStep
+      ];
 
     const categoryLabel =
       consultation.category

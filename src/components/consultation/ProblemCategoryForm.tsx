@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import type {
   ConsultationCategory,
@@ -22,6 +23,13 @@ import {
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
+
+import {
+  getCategoryPageAccess,
+} from "@/lib/consultation/access";
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 
 const categories = [
   {
@@ -189,6 +197,13 @@ export default function ProblemCategoryForm() {
       sessionQuery.data
         ?.hasActiveConsultation === true,
     );
+  
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
+
+  const pageAccess =
+    getCategoryPageAccess(currentStep);
 
   const savedCategory =
     activeConsultationQuery.data?.category ?? null;
@@ -213,6 +228,9 @@ export default function ProblemCategoryForm() {
     updateCategoryMutation.error ??
     startConsultationMutation.error;
 
+  const isCategoryLocked =
+    pageAccess.status === "wrong-step";
+
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
@@ -220,7 +238,8 @@ export default function ProblemCategoryForm() {
 
     if (
       !selectedCategory ||
-      isSubmitting
+      isSubmitting ||
+      isCategoryLocked
     ) {
       return;
     }
@@ -268,113 +287,152 @@ export default function ProblemCategoryForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8">
-      <fieldset>
-        <legend className="sr-only">
-          금융 문제 유형 하나를 선택해 주세요.
-        </legend>
+    <>
+      {pageAccess.status === "wrong-step" ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        >
+          <p className="text-lg font-bold text-foreground">
+            이미 다음 단계까지 진행한 상담이에요.
+          </p>
 
-        <div className="space-y-3 sm:space-y-4">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.value;
+          <p className="mt-2 leading-6 text-foreground-muted">
+            현재 상담 단계로 돌아가서 계속 진행해 주세요.
+          </p>
 
-            return (
-              <div key={category.value}>
-                {/* 하나만 선택하므로 Radio 사용 */}
-                <input
-                  id={`problem-category-${category.value}`}
-                  type="radio"
-                  name="problem-category"
-                  value={category.value}
-                  checked={isSelected}
-                  onChange={() => {
-                    // 사용자가 현재 화면에서 선택한 값을 임시 UI State로 저장
-                    setSelectedCategoryOverride(
-                      category.value,
-                    );
+          <Link
+            href={getConsultationStepHref(
+              pageAccess.currentStep,
+            )}
+            className={[
+              "mt-5 inline-flex min-h-12 items-center justify-center",
+              "rounded-control bg-primary px-5 py-3",
+              "font-bold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            현재 단계로 이동
+          </Link>
+        </div>
+      ) : null}
+      <form onSubmit={handleSubmit} className="mt-8">
+        <fieldset>
+          <legend className="sr-only">
+            금융 문제 유형 하나를 선택해 주세요.
+          </legend>
 
-                    // 새 선택 시 이전 저장 실패 상태 초기화
-                    startConsultationMutation.reset();
-                    updateCategoryMutation.reset();
-                  }}
-                  // peer: radio의 상태를 뒤쪽 카드 UI 스타일에 연결하기 위해 필요
-                  // sr-only: 실제 radio는 화면에서만 숨기고 접근성/키보드 기능은 유지
-                  className="peer sr-only"
-                />
+          <div className="space-y-3 sm:space-y-4">
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.value;
 
-                <label
-                  htmlFor={`problem-category-${category.value}`}
-                  className={[
-                    "flex min-h-28 cursor-pointer items-center gap-4 rounded-card border bg-surface p-4 shadow-card",
-                    "transition",
-                    "peer-focus-visible:ring-2 peer-focus-visible:ring-focus peer-focus-visible:ring-offset-2",
-                    "sm:min-h-32 sm:gap-5 sm:p-5",
-                    isSelected
-                      ? "border-primary bg-primary-subtle"
-                      : "border-border hover:border-border-strong",
-                  ].join(" ")}
-                >
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-primary sm:h-16 sm:w-16">
-                    <CategoryIcon type={category.icon} />
-                  </span>
+              return (
+                <div key={category.value}>
+                  {/* 하나만 선택하므로 Radio 사용 */}
+                  <input
+                    id={`problem-category-${category.value}`}
+                    type="radio"
+                    disabled={
+                      isSubmitting ||
+                      isCategoryLocked
+                    }
+                    name="problem-category"
+                    value={category.value}
+                    checked={isSelected}
+                    onChange={() => {
+                      // 사용자가 현재 화면에서 선택한 값을 임시 UI State로 저장
+                      setSelectedCategoryOverride(
+                        category.value,
+                      );
 
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-lg font-bold text-foreground sm:text-xl">
-                      {category.title}
-                    </span>
+                      // 새 선택 시 이전 저장 실패 상태 초기화
+                      startConsultationMutation.reset();
+                      updateCategoryMutation.reset();
+                    }}
+                    // peer: radio의 상태를 뒤쪽 카드 UI 스타일에 연결하기 위해 필요
+                    // sr-only: 실제 radio는 화면에서만 숨기고 접근성/키보드 기능은 유지
+                    className="peer sr-only"
+                  />
 
-                    <span className="mt-1 block leading-6 text-foreground-muted">
-                      {category.description}
-                    </span>
-                  </span>
-
-                  <span
-                    aria-hidden="true"
+                  <label
+                    htmlFor={`problem-category-${category.value}`}
                     className={[
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-bold",
+                      "flex min-h-28 cursor-pointer items-center gap-4 rounded-card border bg-surface p-4 shadow-card",
+                      "transition",
+                      "peer-focus-visible:ring-2 peer-focus-visible:ring-focus peer-focus-visible:ring-offset-2",
+                      "sm:min-h-32 sm:gap-5 sm:p-5",
                       isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border-strong bg-surface",
+                        ? "border-primary bg-primary-subtle"
+                        : "border-border hover:border-border-strong",
                     ].join(" ")}
                   >
-                    {isSelected ? "✓" : ""}
-                  </span>
-                </label>
-              </div>
-            );
-          })}
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-primary sm:h-16 sm:w-16">
+                      <CategoryIcon type={category.icon} />
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-lg font-bold text-foreground sm:text-xl">
+                        {category.title}
+                      </span>
+
+                      <span className="mt-1 block leading-6 text-foreground-muted">
+                        {category.description}
+                      </span>
+                    </span>
+
+                    <span
+                      aria-hidden="true"
+                      className={[
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-bold",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border-strong bg-surface",
+                      ].join(" ")}
+                    >
+                      {isSelected ? "✓" : ""}
+                    </span>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {submitError ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-control border border-danger p-4 text-danger"
+          >
+            {getSubmitErrorMessage(
+              submitError,
+            )}
+          </p>
+        ) : null}
+
+        <div className="mt-8 space-y-3">
+          <PrimaryButton
+            type="submit"
+            disabled={
+              !selectedCategory ||
+              isSubmitting ||
+              isCategoryLocked
+            }
+            className="w-full"
+          >
+            {isSubmitting ? "저장 중..." : "다음"}
+          </PrimaryButton>
+
+          <SecondaryButton
+            type="button"
+            className="w-full"
+            disabled={isSubmitting}
+            onClick={() => router.push("/")}
+          >
+            이전으로
+          </SecondaryButton>
         </div>
-      </fieldset>
-
-      {submitError ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-control border border-danger p-4 text-danger"
-        >
-          {getSubmitErrorMessage(
-            submitError,
-          )}
-        </p>
-      ) : null}
-
-      <div className="mt-8 space-y-3">
-        <PrimaryButton
-          type="submit"
-          disabled={!selectedCategory || isSubmitting}
-          className="w-full"
-        >
-          {isSubmitting ? "저장 중..." : "다음"}
-        </PrimaryButton>
-
-        <SecondaryButton
-          type="button"
-          className="w-full"
-          disabled={isSubmitting}
-          onClick={() => router.push("/")}
-        >
-          이전으로
-        </SecondaryButton>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }
