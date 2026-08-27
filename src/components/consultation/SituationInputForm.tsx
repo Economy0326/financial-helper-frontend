@@ -136,14 +136,22 @@ export default function SituationInputForm() {
   const sessionQuery =
     useSessionQuery();
 
+  const hasSessionError =
+    sessionQuery.isError;
+
   const hasActiveConsultation =
-    sessionQuery.data
-      ?.hasActiveConsultation === true;
+    sessionQuery.isSuccess &&
+    sessionQuery.data.hasActiveConsultation == true;
 
   const activeConsultationQuery =
     useActiveConsultationQuery(
       hasActiveConsultation,
     );
+
+  const hasActiveConsultationError =
+    !hasSessionError &&
+    hasActiveConsultation &&
+    activeConsultationQuery.isError;
 
   const currentStep =
     activeConsultationQuery.data
@@ -340,7 +348,7 @@ export default function SituationInputForm() {
         </p>
       ) : null}
 
-      {sessionQuery.isError ? (
+      {hasSessionError ? (
         <div
           role="alert"
           className="mb-6 rounded-control border border-danger bg-surface p-4"
@@ -365,8 +373,7 @@ export default function SituationInputForm() {
         </div>
       ) : null}
 
-      {hasActiveConsultation &&
-      activeConsultationQuery.isError ? (
+      {hasActiveConsultationError ? (
         <div
           role="alert"
           className="mb-6 rounded-control border border-danger bg-surface p-4"
@@ -395,13 +402,13 @@ export default function SituationInputForm() {
       !hasActiveConsultation ? (
         <div
           role="alert"
-          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+          className="mt-6 mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:mt-8 sm:p-6"
         >
-          <p className="text-lg font-bold text-foreground">
+          <p className="break-keep text-lg font-bold text-foreground">
             먼저 문제 유형을 선택해 주세요.
           </p>
 
-          <p className="mt-2 leading-6 text-foreground-muted">
+          <p className="mt-2 break-keep leading-6 text-foreground-muted">
             상담을 시작한 뒤 상황을 입력할 수 있어요.
           </p>
 
@@ -425,13 +432,13 @@ export default function SituationInputForm() {
         "wrong-step" ? (
         <div
           role="alert"
-          className="mb-6 rounded-control border border-border bg-surface p-4"
+          className="mt-6 mb-6 rounded-card border border-border bg-surface p-5 sm:mt-8 sm:p-6"
         >
-          <p className="font-medium text-foreground">
+          <p className="break-keep font-medium text-foreground">
             현재 상담 단계와 맞지 않는 화면이에요.
           </p>
 
-          <p className="mt-1 text-sm text-foreground-muted">
+          <p className="mt-1 break-keep text-sm text-foreground-muted">
             저장된 상담 단계로 돌아가서 계속 진행해 주세요.
           </p>
 

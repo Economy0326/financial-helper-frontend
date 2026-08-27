@@ -315,13 +315,13 @@ export default function ProblemCategoryForm() {
       {pageAccess.status === "wrong-step" ? (
         <div
           role="alert"
-          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+          className="mt-6 mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:mt-8 sm:p-6"
         >
-          <p className="text-lg font-bold text-foreground">
+          <p className="break-keep text-lg font-bold text-foreground">
             이미 다음 단계까지 진행한 상담이에요.
           </p>
 
-          <p className="mt-2 leading-6 text-foreground-muted">
+          <p className="mt-2 break-keep leading-6 text-foreground-muted">
             현재 상담 단계로 돌아가서 계속 진행해 주세요.
           </p>
 
