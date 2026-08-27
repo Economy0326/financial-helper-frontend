@@ -64,6 +64,13 @@ export default function HomeResumeContainer() {
   } else if (sessionQuery.isError) {
     state = {
       status: "error",
+
+      isRetrying:
+        sessionQuery.isFetching,
+
+      onRetry: () => {
+        void sessionQuery.refetch();
+      },
     };
   } else if (!hasActiveConsultation) {
     state = {
@@ -81,6 +88,13 @@ export default function HomeResumeContainer() {
   ) {
     state = {
       status: "error",
+
+      isRetrying:
+        activeConsultationQuery.isFetching,
+
+      onRetry: () => {
+        void activeConsultationQuery.refetch();
+      },
     };
   } else {
     const consultation =

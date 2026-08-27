@@ -18,6 +18,11 @@ import type {
 
 import { queryKeys } from "./keys";
 
+import {
+  queryRetryDelay,
+  shouldRetryQuery,
+} from "./retry";
+
 // 상담이 이미 존재할 경우
 export function useActiveConsultationQuery(
   enabled = true,
@@ -30,6 +35,9 @@ export function useActiveConsultationQuery(
 
     // 애초에 Cookie가 없는 첫 방문에서는 Active 호출 무의미
     enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
   });
 }
 
@@ -55,6 +63,9 @@ export function useConsultationDetailQuery(
     },
 
     enabled: Boolean(consultationId),
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
   });
 }
 
@@ -66,7 +77,7 @@ export function useStartConsultationMutation() {
     mutationFn: startConsultation,
 
     onSuccess: async () => {
-      // Promise로 session과 active 모두 invalidate
+      // Promise로 session과 active 한 번에 invalidate
       await Promise.all([
         // 상담 생성 성공하면 데이터가 최신이 아닐 확률이 높으니 성공 이후 invalidate
         queryClient.invalidateQueries({

@@ -24,6 +24,8 @@ import { useSessionQuery } from "@/lib/query/session";
 
 import {
   ApiResponseError,
+  ApiContractError,
+  ApiNetworkError,
 } from "@/lib/api/errors";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -32,6 +34,7 @@ import SecondaryButton from "@/components/ui/SecondaryButton";
 import {
   getSituationPageAccess,
 } from "@/lib/consultation/access";
+
 import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
@@ -52,6 +55,55 @@ const situationSchema = z.object({
     ),
 });
 
+function getSituationSubmitErrorMessage(
+  error: Error,
+) {
+  if (error instanceof ApiNetworkError) {
+    return "서버에 연결할 수 없어요. 작성한 내용은 유지되어 있으니 연결을 확인한 뒤 다시 시도해 주세요.";
+  }
+
+  if (error instanceof ApiContractError) {
+    return "서버 응답을 확인하지 못했어요. 작성한 내용은 그대로 유지됩니다.";
+  }
+
+  if (error instanceof ApiResponseError) {
+    switch (error.code) {
+      case "GUEST_SESSION_EXPIRED":
+        return "상담 세션이 만료되어 현재 상담에 저장할 수 없어요.";
+
+      case "CONSULTATION_NOT_FOUND":
+        return "현재 상담을 확인하지 못해 내용을 저장할 수 없어요.";
+
+      case "INVALID_CONSULTATION_STATE":
+        return "현재 상담 단계에서는 이 내용을 저장할 수 없어요.";
+
+      case "VALIDATION_ERROR":
+        return "입력 내용을 확인해 주세요.";
+
+      default:
+        if (error.status >= 500) {
+          return "서버에서 내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
+        }
+    }
+  }
+
+  return "내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
+}
+
+function isUnavailableConsultation(
+  error: Error | null,
+) {
+  return (
+    error instanceof ApiResponseError &&
+    (
+      error.code ===
+        "GUEST_SESSION_EXPIRED" ||
+      error.code ===
+        "CONSULTATION_NOT_FOUND"
+    )
+  );
+}
+
 type SituationFormValues =
   z.infer<typeof situationSchema>;
 
@@ -64,6 +116,7 @@ export default function SituationInputForm() {
     handleSubmit,
     reset,
     setError,
+    clearErrors,
     control,
     formState: {
       errors,
@@ -105,6 +158,8 @@ export default function SituationInputForm() {
     activeConsultationQuery.data
       ?.consultationId ?? null;
 
+  // activeQuery는 현재 상담의 존재 여부/ID/진행 상태
+  // detailQuery는 실제 서버의 상담 상세 입력 데이터 조회용
   const consultationDetailQuery =
     useConsultationDetailQuery(
       consultationId,
@@ -113,12 +168,19 @@ export default function SituationInputForm() {
   const situationMutation =
     useUpdateSituationMutation();
 
+  // 치명적 조회 실패 종류 -> 404, 401
+  const hasFatalDetailError =
+    isUnavailableConsultation(
+      consultationDetailQuery.error,
+    );
+
   const canEditSituation =
     pageAccess.status === "allowed" &&
     Boolean(
       activeConsultationQuery.data
         ?.category,
-    );
+    ) &&
+    !hasFatalDetailError;
 
   const isConsultationStateLoading =
     sessionQuery.isLoading ||
@@ -164,13 +226,39 @@ export default function SituationInputForm() {
   const errorMessage =
     errors.content?.message;
 
+  function getSituationFieldErrorMessage(
+    error: ApiResponseError,
+  ) {
+    const fieldError =
+      error.fieldErrors.find(
+        (item) =>
+          item.field ===
+          "situationText",
+      );
+
+    if (!fieldError) {
+      return null;
+    }
+
+    if (fieldError.reason === "REQUIRED") {
+      return "내용을 입력해 주세요.";
+    }
+
+    return "입력 내용을 확인해 주세요.";
+  }
+
   async function onSubmit(
     values: SituationFormValues,
   ) {
-    if (!consultationId) {
+    if (
+      !consultationId ||
+      situationMutation.isPending ||
+      !canEditSituation
+    ) {
       return;
     }
 
+    clearErrors("content");
     situationMutation.reset();
 
     try {
@@ -184,21 +272,37 @@ export default function SituationInputForm() {
         "/consultation/follow-up",
       );
 
-      // 실패해도 RHF의 현재 Form값은 그대로 남음
+      // 실패해도 form 값은 그대로 남김
     } catch (error) {
-      if (
-        error instanceof ApiResponseError &&
-        error.fieldErrors.some(
-          (fieldError) =>
-            fieldError.field ===
-            "situationText",
-        )
-      ) {
-        setError("content", {
-          type: "server",
-          message:
-            "입력 내용을 확인해 주세요.",
-        });
+      if (error instanceof ApiResponseError) {
+        const fieldMessage =
+          getSituationFieldErrorMessage(
+            error,
+          );
+
+        if (fieldMessage) {
+          setError("content", {
+            type: "server",
+            message: fieldMessage,
+          });
+        }
+
+        if (
+          error.code ===
+          "INVALID_CONSULTATION_STATE"
+        ) {
+          void activeConsultationQuery.refetch();
+        }
+
+        if (
+          error.code ===
+            "CONSULTATION_NOT_FOUND" ||
+          error.code ===
+            "GUEST_SESSION_EXPIRED"
+        ) {
+          void sessionQuery.refetch();
+          void activeConsultationQuery.refetch();
+        }
       }
     }
   }
@@ -218,6 +322,9 @@ export default function SituationInputForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="mt-8"
       noValidate
+      aria-busy={
+        situationMutation.isPending
+      }
     >
       {isConsultationStateLoading ? (
         <p
@@ -375,7 +482,22 @@ export default function SituationInputForm() {
                 ? "border-danger"
                 : "border-border-strong",
             ].join(" ")}
-            {...register("content")}
+            {...register("content", {
+              onChange: () => {
+                if (
+                  errors.content?.type ===
+                    "server"
+                ) {
+                  clearErrors("content");
+                }
+
+                if (
+                  situationMutation.isError
+                ) {
+                  situationMutation.reset();
+                }
+              },
+            })}
           />
 
           <span
@@ -439,7 +561,23 @@ export default function SituationInputForm() {
         </div>
       </aside>
 
-      {consultationDetailQuery.isError ? (
+      {hasFatalDetailError ? (
+        <div
+          role="alert"
+          className="mt-4 rounded-control border border-danger bg-surface p-4"
+        >
+          <p className="font-medium text-danger">
+            현재 상담을 불러올 수 없어요.
+          </p>
+
+          <p className="mt-1 text-sm text-foreground-muted">
+            상담 세션이 만료되었거나 진행 중 상담을 찾을 수 없어요.
+          </p>
+        </div>
+      ) : null}
+
+      {consultationDetailQuery.isError &&
+      !hasFatalDetailError ? (
         <div
           role="status"
           className="mt-4 rounded-control border border-border bg-surface p-4"
@@ -449,22 +587,40 @@ export default function SituationInputForm() {
           </p>
 
           <p className="mt-1 text-sm text-foreground-muted">
-            새로 작성한 내용은 계속 입력할 수 있어요.
+            현재 작성 중인 내용은 유지됩니다.
           </p>
+
+          <button
+            type="button"
+            disabled={
+              consultationDetailQuery.isFetching
+            }
+            onClick={() => {
+              // isDirty로 인해서 사용자 입력을 덮어쓰지 않게 함
+              void consultationDetailQuery.refetch();
+            }}
+            className="mt-4 min-h-11 font-semibold text-primary underline disabled:opacity-60"
+          >
+            {consultationDetailQuery.isFetching
+              ? "다시 불러오는 중..."
+              : "다시 시도"}
+          </button>
         </div>
       ) : null}
 
-      {situationMutation.isError ? (
+      {situationMutation.error ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"
         >
           <p className="font-medium text-danger">
-            내용을 저장하지 못했어요.
+            {getSituationSubmitErrorMessage(
+              situationMutation.error,
+            )}
           </p>
 
           <p className="mt-1 text-sm text-foreground-muted">
-            작성한 내용은 유지됩니다. 잠시 후 다시 시도해 주세요.
+            작성한 내용은 이 화면에 그대로 유지됩니다.
           </p>
         </div>
       ) : null}

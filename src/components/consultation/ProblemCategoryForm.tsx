@@ -17,6 +17,7 @@ import {
 import { useSessionQuery } from "@/lib/query/session";
 
 import {
+  ApiContractError,
   ApiNetworkError,
   ApiResponseError,
 } from "@/lib/api/errors";
@@ -180,6 +181,41 @@ function CategoryIcon({
   );
 }
 
+function getCategorySubmitErrorMessage(
+  error: Error,
+) {
+  if (error instanceof ApiNetworkError) {
+    return "서버에 연결할 수 없어요. 선택은 유지되어 있으니 연결을 확인한 뒤 다시 시도해 주세요.";
+  }
+
+  if (error instanceof ApiContractError) {
+    return "서버 응답을 확인하지 못했어요. 선택은 유지되어 있으니 다시 시도해 주세요.";
+  }
+
+  if (error instanceof ApiResponseError) {
+    switch (error.code) {
+      case "INVALID_CONSULTATION_STATE":
+        return "이미 다음 단계까지 진행한 상담이에요. 현재 상담 단계에서 계속 진행해 주세요.";
+
+      case "GUEST_SESSION_EXPIRED":
+        return "상담 세션을 확인하지 못했어요. 다시 시도해 주세요.";
+
+      case "CONSULTATION_NOT_FOUND":
+        return "진행 중 상담을 확인하지 못했어요.";
+
+      case "VALIDATION_ERROR":
+        return "선택 내용을 확인해 주세요.";
+
+      default:
+        if (error.status >= 500) {
+          return "서버에서 요청을 처리하지 못했어요. 선택은 유지되어 있으니 잠시 후 다시 시도해 주세요.";
+        }
+    }
+  }
+
+  return "선택 내용을 저장하지 못했어요. 다시 시도해 주세요.";
+}
+
 // 카드를 클릭 후 바로 Navigation이 아니라 다음 버튼을 눌러야 이동 => UX 원칙
 export default function ProblemCategoryForm() {
   const router = useRouter();
@@ -263,27 +299,16 @@ export default function ProblemCategoryForm() {
       router.push(
         "/consultation/situation",
       );
-    } catch {
-      return;
+    } catch (error) {
+      if (
+        error instanceof ApiResponseError &&
+        error.code ===
+          "INVALID_CONSULTATION_STATE"
+      ) {
+        void sessionQuery.refetch();
+        void activeConsultationQuery.refetch();
+      }
     }
-  }
-
-  function getSubmitErrorMessage(
-    error: Error | null,
-  ) {
-    if (error instanceof ApiNetworkError) {
-      return "서버에 연결할 수 없어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.";
-    }
-
-    if (
-      error instanceof ApiResponseError &&
-      error.code ===
-        "INVALID_CONSULTATION_STATE"
-    ) {
-      return "현재 상담 단계에서는 문제 유형을 변경할 수 없어요.";
-    }
-
-    return "선택 내용을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.";
   }
 
   return (
@@ -400,14 +425,20 @@ export default function ProblemCategoryForm() {
         </fieldset>
 
         {submitError ? (
-          <p
+          <div
             role="alert"
-            className="mt-4 rounded-control border border-danger p-4 text-danger"
+            className="mt-4 rounded-control border border-danger bg-surface p-4"
           >
-            {getSubmitErrorMessage(
-              submitError,
-            )}
-          </p>
+            <p className="font-medium text-danger">
+              {getCategorySubmitErrorMessage(
+                submitError,
+              )}
+            </p>
+
+            <p className="mt-1 text-sm text-foreground-muted">
+              선택한 항목은 그대로 유지됩니다.
+            </p>
+          </div>
         ) : null}
 
         <div className="mt-8 space-y-3">
