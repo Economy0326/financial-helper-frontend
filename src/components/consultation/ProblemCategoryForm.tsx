@@ -2,9 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+import type {
+  ConsultationCategory,
+} from "@/lib/api/types";
+
+import {
+  useActiveConsultationQuery,
+  useStartConsultationMutation,
+  useUpdateCategoryMutation,
+} from "@/lib/query/consultation";
+
+import { useSessionQuery } from "@/lib/query/session";
+
+import {
+  ApiContractError,
+  ApiNetworkError,
+  ApiResponseError,
+} from "@/lib/api/errors";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
+
+import {
+  getCategoryPageAccess,
+} from "@/lib/consultation/access";
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 
 const categories = [
   {
@@ -33,21 +59,8 @@ const categories = [
   },
 ] as const;
 
-type ProblemCategory = (typeof categories)[number]["value"];
-
-const MOCK_SUBMIT_ERROR = false;
-
-async function saveProblemCategoryFixture(category: ProblemCategory) {
-  await new Promise((resolve) => {
-    window.setTimeout(resolve, 300);
-  });
-
-  if (MOCK_SUBMIT_ERROR) {
-    throw new Error("Mock submit error");
-  }
-
-  return category;
-}
+type ProblemCategory =
+  ConsultationCategory;
 
 function CategoryIcon({
   type,
@@ -168,139 +181,288 @@ function CategoryIcon({
   );
 }
 
+function getCategorySubmitErrorMessage(
+  error: Error,
+) {
+  if (error instanceof ApiNetworkError) {
+    return "서버에 연결할 수 없어요. 선택은 유지되어 있으니 연결을 확인한 뒤 다시 시도해 주세요.";
+  }
+
+  if (error instanceof ApiContractError) {
+    return "서버 응답을 확인하지 못했어요. 선택은 유지되어 있으니 다시 시도해 주세요.";
+  }
+
+  if (error instanceof ApiResponseError) {
+    switch (error.code) {
+      case "INVALID_CONSULTATION_STATE":
+        return "이미 다음 단계까지 진행한 상담이에요. 현재 상담 단계에서 계속 진행해 주세요.";
+
+      case "GUEST_SESSION_EXPIRED":
+        return "상담 세션을 확인하지 못했어요. 다시 시도해 주세요.";
+
+      case "CONSULTATION_NOT_FOUND":
+        return "진행 중 상담을 확인하지 못했어요.";
+
+      case "VALIDATION_ERROR":
+        return "선택 내용을 확인해 주세요.";
+
+      default:
+        if (error.status >= 500) {
+          return "서버에서 요청을 처리하지 못했어요. 선택은 유지되어 있으니 잠시 후 다시 시도해 주세요.";
+        }
+    }
+  }
+
+  return "선택 내용을 저장하지 못했어요. 다시 시도해 주세요.";
+}
+
 // 카드를 클릭 후 바로 Navigation이 아니라 다음 버튼을 눌러야 이동 => UX 원칙
 export default function ProblemCategoryForm() {
   const router = useRouter();
 
-  const [selectedCategory, setSelectedCategory] =
-    useState<ProblemCategory | null>(null);
+  // 사용자가 현재 화면에서 직접 선택한 Category
+  const [
+    selectedCategoryOverride,
+    setSelectedCategoryOverride,
+  ] = useState<ProblemCategory | null>(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const sessionQuery = useSessionQuery();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      sessionQuery.data
+        ?.hasActiveConsultation === true,
+    );
+  
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
+
+  const pageAccess =
+    getCategoryPageAccess(currentStep);
+
+  const savedCategory =
+    activeConsultationQuery.data?.category ?? null;
+
+  // 사용자가 직접 선택한 값이 있으면 그 값을 우선하고,
+  // 아직 선택하지 않았다면 서버에 저장된 값을 사용
+  const selectedCategory =
+    selectedCategoryOverride ??
+    savedCategory;
+
+  const startConsultationMutation =
+    useStartConsultationMutation();
+
+  const updateCategoryMutation =
+    useUpdateCategoryMutation();
+
+  const isSubmitting =
+    startConsultationMutation.isPending ||
+    updateCategoryMutation.isPending;
+
+  const submitError =
+    updateCategoryMutation.error ??
+    startConsultationMutation.error;
+
+  const isCategoryLocked =
+    pageAccess.status === "wrong-step";
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
-    if (!selectedCategory || isSubmitting) {
+    if (
+      !selectedCategory ||
+      isSubmitting ||
+      isCategoryLocked
+    ) {
       return;
     }
 
-    setSubmitError(null);
-    setIsSubmitting(true);
+    startConsultationMutation.reset();
+    updateCategoryMutation.reset();
 
     try {
-      await saveProblemCategoryFixture(selectedCategory);
+      const consultation =
+        await startConsultationMutation
+          .mutateAsync();
 
-      router.push("/consultation/situation");
-    } catch {
-      setSubmitError(
-        "선택 내용을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      await updateCategoryMutation.mutateAsync({
+        consultationId:
+          consultation.consultationId,
+
+        category:
+          selectedCategory,
+      });
+
+      router.push(
+        "/consultation/situation",
       );
-
-      setIsSubmitting(false);
+    } catch (error) {
+      if (
+        error instanceof ApiResponseError &&
+        error.code ===
+          "INVALID_CONSULTATION_STATE"
+      ) {
+        void activeConsultationQuery.refetch();
+      }
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8">
-      <fieldset>
-        <legend className="sr-only">
-          금융 문제 유형 하나를 선택해 주세요.
-        </legend>
+    <>
+      {pageAccess.status === "wrong-step" ? (
+        <div
+          role="alert"
+          className="mt-6 mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:mt-8 sm:p-6"
+        >
+          <p className="break-keep text-lg font-bold text-foreground">
+            이미 다음 단계까지 진행한 상담이에요.
+          </p>
 
-        <div className="space-y-3 sm:space-y-4">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.value;
+          <p className="mt-2 break-keep leading-6 text-foreground-muted">
+            현재 상담 단계로 돌아가서 계속 진행해 주세요.
+          </p>
 
-            return (
-              <div key={category.value}>
-                {/* 하나만 선택하므로 Radio 사용 */}
-                <input
-                  id={`problem-category-${category.value}`}
-                  type="radio"
-                  name="problem-category"
-                  value={category.value}
-                  checked={isSelected}
-                  onChange={() => {
-                    setSelectedCategory(category.value);
-                    setSubmitError(null);
-                  }}
-                  // peer: radio의 상태를 뒤쪽 카드 UI 스타일에 연결하기 위해 필요
-                  // sr-only: 실제 radio는 화면에서만 숨기고 접근성/키보드 기능은 유지
-                  className="peer sr-only"
-                />
+          <Link
+            href={getConsultationStepHref(
+              pageAccess.currentStep,
+            )}
+            className={[
+              "mt-5 inline-flex min-h-12 items-center justify-center",
+              "rounded-control bg-primary px-5 py-3",
+              "font-bold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            현재 단계로 이동
+          </Link>
+        </div>
+      ) : null}
+      <form onSubmit={handleSubmit} className="mt-8">
+        <fieldset>
+          <legend className="sr-only">
+            금융 문제 유형 하나를 선택해 주세요.
+          </legend>
 
-                <label
-                  htmlFor={`problem-category-${category.value}`}
-                  className={[
-                    "flex min-h-28 cursor-pointer items-center gap-4 rounded-card border bg-surface p-4 shadow-card",
-                    "transition",
-                    "peer-focus-visible:ring-2 peer-focus-visible:ring-focus peer-focus-visible:ring-offset-2",
-                    "sm:min-h-32 sm:gap-5 sm:p-5",
-                    isSelected
-                      ? "border-primary bg-primary-subtle"
-                      : "border-border hover:border-border-strong",
-                  ].join(" ")}
-                >
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-primary sm:h-16 sm:w-16">
-                    <CategoryIcon type={category.icon} />
-                  </span>
+          <div className="space-y-3 sm:space-y-4">
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.value;
 
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-lg font-bold text-foreground sm:text-xl">
-                      {category.title}
-                    </span>
+              return (
+                <div key={category.value}>
+                  {/* 하나만 선택하므로 Radio 사용 */}
+                  <input
+                    id={`problem-category-${category.value}`}
+                    type="radio"
+                    disabled={
+                      isSubmitting ||
+                      isCategoryLocked
+                    }
+                    name="problem-category"
+                    value={category.value}
+                    checked={isSelected}
+                    onChange={() => {
+                      // 사용자가 현재 화면에서 선택한 값을 임시 UI State로 저장
+                      setSelectedCategoryOverride(
+                        category.value,
+                      );
 
-                    <span className="mt-1 block leading-6 text-foreground-muted">
-                      {category.description}
-                    </span>
-                  </span>
+                      // 새 선택 시 이전 저장 실패 상태 초기화
+                      startConsultationMutation.reset();
+                      updateCategoryMutation.reset();
+                    }}
+                    // peer: radio의 상태를 뒤쪽 카드 UI 스타일에 연결하기 위해 필요
+                    // sr-only: 실제 radio는 화면에서만 숨기고 접근성/키보드 기능은 유지
+                    className="peer sr-only"
+                  />
 
-                  <span
-                    aria-hidden="true"
+                  <label
+                    htmlFor={`problem-category-${category.value}`}
                     className={[
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-bold",
+                      "flex min-h-28 cursor-pointer items-center gap-4 rounded-card border bg-surface p-4 shadow-card",
+                      "transition",
+                      "peer-focus-visible:ring-2 peer-focus-visible:ring-focus peer-focus-visible:ring-offset-2",
+                      "sm:min-h-32 sm:gap-5 sm:p-5",
                       isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border-strong bg-surface",
+                        ? "border-primary bg-primary-subtle"
+                        : "border-border hover:border-border-strong",
                     ].join(" ")}
                   >
-                    {isSelected ? "✓" : ""}
-                  </span>
-                </label>
-              </div>
-            );
-          })}
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-primary sm:h-16 sm:w-16">
+                      <CategoryIcon type={category.icon} />
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-lg font-bold text-foreground sm:text-xl">
+                        {category.title}
+                      </span>
+
+                      <span className="mt-1 block leading-6 text-foreground-muted">
+                        {category.description}
+                      </span>
+                    </span>
+
+                    <span
+                      aria-hidden="true"
+                      className={[
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-bold",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border-strong bg-surface",
+                      ].join(" ")}
+                    >
+                      {isSelected ? "✓" : ""}
+                    </span>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {submitError ? (
+          <div
+            role="alert"
+            className="mt-4 rounded-control border border-danger bg-surface p-4"
+          >
+            <p className="font-medium text-danger">
+              {getCategorySubmitErrorMessage(
+                submitError,
+              )}
+            </p>
+
+            <p className="mt-1 text-sm text-foreground-muted">
+              선택한 항목은 그대로 유지됩니다.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-8 space-y-3">
+          <PrimaryButton
+            type="submit"
+            disabled={
+              !selectedCategory ||
+              isSubmitting ||
+              isCategoryLocked
+            }
+            className="w-full"
+          >
+            {isSubmitting ? "저장 중..." : "다음"}
+          </PrimaryButton>
+
+          <SecondaryButton
+            type="button"
+            className="w-full"
+            disabled={isSubmitting}
+            onClick={() => router.push("/")}
+          >
+            이전으로
+          </SecondaryButton>
         </div>
-      </fieldset>
-
-      {submitError ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-control border border-danger p-4 text-danger"
-        >
-          {submitError}
-        </p>
-      ) : null}
-
-      <div className="mt-8 space-y-3">
-        <PrimaryButton
-          type="submit"
-          disabled={!selectedCategory || isSubmitting}
-          className="w-full"
-        >
-          {isSubmitting ? "저장 중..." : "다음"}
-        </PrimaryButton>
-
-        <SecondaryButton
-          type="button"
-          className="w-full"
-          disabled={isSubmitting}
-          onClick={() => router.push("/")}
-        >
-          이전으로
-        </SecondaryButton>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }

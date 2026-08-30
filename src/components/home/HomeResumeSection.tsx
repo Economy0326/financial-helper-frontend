@@ -11,6 +11,8 @@ export type HomeResumeState =
     }
   | {
       status: "error";
+      isRetrying: boolean;
+      onRetry: () => void;
     }
   | {
       status: "active";
@@ -55,6 +57,7 @@ export default function HomeResumeSection({
       <section
         className="rounded-card border border-border bg-surface p-5"
         aria-live="polite"
+        aria-busy={state.isRetrying}
       >
         <p className="font-semibold text-foreground">
           진행 중 상담을 불러오지 못했어요.
@@ -63,6 +66,21 @@ export default function HomeResumeSection({
         <p className="mt-1 text-sm leading-6 text-foreground-muted">
           새로운 상담과 긴급 대응은 계속 이용할 수 있어요.
         </p>
+
+        <button
+          type="button"
+          disabled={state.isRetrying}
+          onClick={state.onRetry}
+          className={[
+            "mt-4 inline-flex min-h-11 items-center font-semibold text-primary underline",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          ].join(" ")}
+        >
+          {state.isRetrying
+            ? "다시 확인 중..."
+            : "다시 시도"}
+        </button>
       </section>
     );
   }
