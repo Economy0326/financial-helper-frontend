@@ -71,3 +71,26 @@ export function getSituationPageAccess(
     currentStep,
   };
 }
+
+export function getFollowUpPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "FOLLOW_UP"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}

@@ -5,6 +5,7 @@ import type {
   ConsultationDetailResponse,
   ConsultationCategory,
   ConsultationCreateResponse,
+  FollowUpStateResponse,
   UpdateCategoryResponse,
   UpdateSituationResponse,
 } from "./types";
@@ -63,6 +64,57 @@ export function updateConsultationSituation(
       method: "PUT",
       body: {
         situationText,
+      },
+    },
+  );
+}
+
+export function prepareFollowUp(
+  consultationId: string,
+) {
+  return apiFetch<FollowUpStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/follow-up/prepare`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function getFollowUpState(
+  consultationId: string,
+  questionNumber?: number | null,
+) {
+  const query =
+    questionNumber == null
+      ? ""
+      : `?questionNumber=${encodeURIComponent(
+          String(questionNumber),
+        )}`;
+
+  return apiFetch<FollowUpStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/follow-up${query}`,
+  );
+}
+
+export function updateFollowUpAnswer(
+  consultationId: string,
+  questionId: string,
+  answer: string,
+) {
+  return apiFetch<FollowUpStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/follow-up/questions/${encodeURIComponent(
+      questionId,
+    )}/answer`,
+    {
+      method: "PUT",
+      body: {
+        answer,
       },
     },
   );

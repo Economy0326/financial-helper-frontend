@@ -18,5 +18,25 @@ export const queryKeys = {
         "detail",
         consultationId,
       ] as const,
+      
+    followUpRoot: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "follow-up",
+        consultationId,
+      ] as const,
+
+    followUp: (
+      consultationId: string,
+      questionNumber?: number | null,
+    ) =>
+      [
+        "consultations",
+        "follow-up",
+        consultationId,
+        questionNumber ?? "current",
+      ] as const,
   },
 } as const;

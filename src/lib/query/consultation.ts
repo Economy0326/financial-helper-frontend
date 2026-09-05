@@ -7,9 +7,12 @@ import {
 import {
   getActiveConsultation,
   getConsultation,
+  getFollowUpState,
+  prepareFollowUp,
   startConsultation,
   updateConsultationCategory,
   updateConsultationSituation,
+  updateFollowUpAnswer,
 } from "@/lib/api/consultation";
 
 import type {
@@ -217,6 +220,179 @@ export function useUpdateSituationMutation() {
             queryKeys.session.all,
         });
       }
+    },
+  });
+}
+
+// Follow-up 관련
+export function useFollowUpStateQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  questionNumber?: number | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.followUp(
+        consultationId ?? "pending",
+        questionNumber,
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getFollowUpState(
+        consultationId,
+        questionNumber,
+      );
+    },
+
+    // consultationId가 준비되고 조회가 허용된 경우에만 Query 실행
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareFollowUpVariables = {
+  consultationId: string;
+};
+
+export function usePrepareFollowUpMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareFollowUpVariables) =>
+      // prepareFollowUp -> 실제 API 호출
+      prepareFollowUp(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      // variables -> 입력값, data -> API 응답값
+      data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            // Root Query로 전체 캐시 제거
+            .followUpRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.setQueryData(
+        // prepare 응답으로 받은 최신 current Follow-up 상태만 캐시에 저장
+        queryKeys.consultations.followUp(
+          variables.consultationId,
+          null,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+
+    onError: (error) => {
+      if (
+        error instanceof ApiResponseError &&
+        error.code ===
+          "GUEST_SESSION_EXPIRED"
+      ) {
+        queryClient.removeQueries({
+          queryKey:
+            queryKeys.consultations.all,
+        });
+
+        void queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.session.all,
+        });
+      }
+    },
+  });
+}
+
+type UpdateFollowUpAnswerVariables = {
+  consultationId: string;
+  questionId: string;
+  answer: string;
+};
+
+export function useUpdateFollowUpAnswerMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+      questionId,
+      answer,
+    }: UpdateFollowUpAnswerVariables) =>
+      updateFollowUpAnswer(
+        consultationId,
+        questionId,
+        answer,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .followUpRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.setQueryData(
+        queryKeys.consultations.followUp(
+          variables.consultationId,
+          null,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
     },
   });
 }

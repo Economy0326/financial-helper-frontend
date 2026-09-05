@@ -56,6 +56,42 @@ export type UpdateSituationResponse = {
   currentStep: ConsultationStep;
 };
 
+export type FollowUpOptionResponse = {
+  value: string;
+  label: string;
+  description: string;
+};
+
+export type FollowUpQuestionResponse = {
+  id: string;
+  question: string;
+  description: string;
+  options: FollowUpOptionResponse[];
+};
+
+export type FollowUpStateResponse = {
+  kind:
+    | "question"
+    | "complete"
+    | "not-prepared";
+
+  question:
+    | FollowUpQuestionResponse
+    | null;
+
+  currentQuestionNumber:
+    | number
+    | null;
+
+  totalQuestions:
+    | number
+    | null;
+
+  savedAnswer:
+    | string
+    | null;
+};
+
 export type ApiFieldError = {
   field: string;
   reason: string;
