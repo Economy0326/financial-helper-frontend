@@ -1,305 +1,409 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
+  useEffect,
+} from "react";
+
+import Link from "next/link";
+
+import {
+  useRouter,
+} from "next/navigation";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
-import SurfaceCard from "@/components/ui/SurfaceCard";
 
 import {
-  confirmSummaryFixture,
-  getSummaryFixture,
-  startAnalysisFixture,
-} from "@/lib/fixtures/consultation";
+  useActiveConsultationQuery,
+  useConfirmConsultationSummaryMutation,
+  useConsultationSummaryQuery,
+  usePrepareConsultationSummaryMutation,
+} from "@/lib/query/consultation";
 
-const summaryQueryKey = [
-  "consultation",
-  "summary",
-] as const;
+import {
+  useSessionQuery,
+} from "@/lib/query/session";
 
-// Summary 조회
-export default function SummaryConfirmation() {
-  const router = useRouter();
+import {
+  getSummaryPageAccess,
+} from "@/lib/consultation/access";
 
-  const summaryQuery = useQuery({
-    queryKey: summaryQueryKey,
-    queryFn: getSummaryFixture,
-    retry: false,
-  });
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 
-  const startAnalysisMutation = useMutation({
-    mutationFn: startAnalysisFixture,
+export default function SummaryConfirmationFlow() {
+  const router =
+    useRouter();
 
-    onSuccess: () => {
-      router.push("/consultation/analysis");
-    },
-  });
+  const sessionQuery =
+    useSessionQuery();
 
-  const confirmMutation = useMutation({
-    mutationFn: confirmSummaryFixture,
+  const hasActiveConsultation =
+    sessionQuery.isSuccess &&
+    sessionQuery.data
+      .hasActiveConsultation;
 
-    onSuccess: () => {
-      startAnalysisMutation.mutate();
-    },
-  });
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      hasActiveConsultation,
+    );
 
-  const isProcessing =
-    confirmMutation.isPending ||
-    startAnalysisMutation.isPending;
+  const consultationId =
+    activeConsultationQuery.data
+      ?.consultationId ?? null;
 
-  function handleEdit() {
-    if (isProcessing) {
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
+
+  const pageAccess =
+    getSummaryPageAccess(
+      currentStep,
+    );
+
+  const canLoadSummary =
+    pageAccess.status === "allowed" &&
+    Boolean(consultationId);
+
+  const summaryQuery =
+    useConsultationSummaryQuery(
+      consultationId,
+      canLoadSummary,
+    );
+
+  const prepareSummaryMutation =
+    usePrepareConsultationSummaryMutation();
+
+  const confirmSummaryMutation =
+    useConfirmConsultationSummaryMutation();
+
+  useEffect(() => {
+    if (
+      currentStep === "ANALYSIS"
+    ) {
+      router.replace(
+        "/consultation/analysis",
+      );
+    }
+  }, [
+    currentStep,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (
+      !consultationId ||
+      !canLoadSummary ||
+      summaryQuery.data?.kind !==
+        "not-prepared" ||
+      prepareSummaryMutation.isPending
+    ) {
       return;
     }
 
-    router.push("/consultation/situation");
-  }
+    prepareSummaryMutation.mutate({
+      consultationId,
+    });
+  }, [
+    consultationId,
+    canLoadSummary,
+    summaryQuery.data,
+    prepareSummaryMutation,
+  ]);
 
-  if (summaryQuery.isLoading) {
+  const isLoading =
+    sessionQuery.isLoading ||
+    (
+      hasActiveConsultation &&
+      activeConsultationQuery.isLoading
+    ) ||
+    (
+      canLoadSummary &&
+      summaryQuery.isLoading
+    ) ||
+    prepareSummaryMutation.isPending;
+
+  if (isLoading) {
     return (
-      <div
-        className="py-20 text-center"
-        aria-live="polite"
-        aria-busy="true"
-      >
-        <p className="text-lg font-semibold text-foreground">
-          상담 내용을 정리하고 있어요.
-        </p>
+      <>
+        <ConsultationProgress
+          currentStep={4}
+          totalSteps={6}
+          label="상담 내용 확인"
+        />
 
-        <p className="mt-2 text-foreground-muted">
-          잠시만 기다려 주세요.
-        </p>
-      </div>
+        <div
+          className="py-20 text-center"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <p className="text-lg font-semibold text-foreground">
+            상담 내용을 정리하고 있어요.
+          </p>
+
+          <p className="mt-2 text-foreground-muted">
+            잠시만 기다려 주세요.
+          </p>
+        </div>
+      </>
     );
   }
 
-  if (summaryQuery.isError) {
+  if (
+    sessionQuery.isSuccess &&
+    !hasActiveConsultation
+  ) {
     return (
       <div className="py-16 text-center">
         <h1 className="text-2xl font-bold text-foreground">
-          상담 내용을 불러오지 못했어요.
+          진행 중인 상담이 없어요.
         </h1>
 
         <p className="mt-3 leading-7 text-foreground-muted">
-          잠시 후 다시 시도해 주세요.
+          먼저 상담을 시작해 주세요.
         </p>
 
-        <div className="mx-auto mt-8 max-w-sm space-y-3">
-          <PrimaryButton
-            type="button"
-            className="w-full"
-            onClick={() => summaryQuery.refetch()}
-          >
-            다시 시도
-          </PrimaryButton>
-
-          <SecondaryButton
-            type="button"
-            className="w-full"
-            onClick={() =>
-              router.push("/consultation/situation")
-            }
-          >
-            입력 내용으로 돌아가기
-          </SecondaryButton>
-        </div>
+        <Link
+          href="/consultation/problem-category"
+          className={[
+            "mx-auto mt-8 inline-flex min-h-12 items-center justify-center",
+            "rounded-control bg-primary px-5 py-3",
+            "font-bold text-primary-foreground",
+            "focus-visible:outline-none focus-visible:ring-2",
+            "focus-visible:ring-focus focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          상담 시작하기
+        </Link>
       </div>
     );
   }
 
   if (
-    !summaryQuery.data ||
-    summaryQuery.data.kind === "generation-failed"
+    pageAccess.status ===
+      "wrong-step" &&
+    currentStep !== "ANALYSIS"
   ) {
     return (
       <div className="py-16 text-center">
         <h1 className="text-2xl font-bold text-foreground">
-          상담 내용을 정리하지 못했어요.
+          현재 상담 단계와 맞지 않는 화면이에요.
         </h1>
 
         <p className="mt-3 leading-7 text-foreground-muted">
-          입력하신 내용은 유지되어 있어요.
-          <br />
-          다시 시도하거나 내용을 수정해 주세요.
+          저장된 상담 단계에서 계속 진행해 주세요.
         </p>
 
-        <div className="mx-auto mt-8 max-w-sm space-y-3">
-          <PrimaryButton
-            type="button"
-            className="w-full"
-            onClick={() => summaryQuery.refetch()}
-          >
-            다시 시도
-          </PrimaryButton>
-
-          <SecondaryButton
-            type="button"
-            className="w-full"
-            onClick={() =>
-              router.push("/consultation/situation")
-            }
-          >
-            내용 수정하기
-          </SecondaryButton>
-        </div>
+        <Link
+          href={getConsultationStepHref(
+            pageAccess.currentStep,
+          )}
+          className={[
+            "mx-auto mt-8 inline-flex min-h-12 items-center justify-center",
+            "rounded-control bg-primary px-5 py-3",
+            "font-bold text-primary-foreground",
+            "focus-visible:outline-none focus-visible:ring-2",
+            "focus-visible:ring-focus focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          현재 단계로 이동
+        </Link>
       </div>
     );
   }
 
-  const { summary } = summaryQuery.data;
+  if (
+    sessionQuery.isError ||
+    activeConsultationQuery.isError ||
+    summaryQuery.isError ||
+    prepareSummaryMutation.isError
+  ) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={4}
+          totalSteps={6}
+          label="상담 내용 확인"
+        />
+
+        <div className="py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            상담 요약을 불러오지 못했어요.
+          </h1>
+
+          <p className="mt-3 leading-7 text-foreground-muted">
+            입력하신 내용은 저장되어 있어요.
+            <br />
+            잠시 후 다시 시도해 주세요.
+          </p>
+
+          <div className="mx-auto mt-8 max-w-sm space-y-3">
+            <PrimaryButton
+              type="button"
+              className="w-full"
+              onClick={() => {
+                void sessionQuery.refetch();
+                void activeConsultationQuery.refetch();
+                void summaryQuery.refetch();
+              }}
+            >
+              다시 시도
+            </PrimaryButton>
+
+            <SecondaryButton
+              type="button"
+              className="w-full"
+              onClick={() =>
+                router.push(
+                  "/consultation/situation",
+                )
+              }
+            >
+              상황 수정하기
+            </SecondaryButton>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const state =
+    summaryQuery.data;
+
+  if (
+    !state ||
+    state.kind !== "ready" ||
+    !state.summary
+  ) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={4}
+          totalSteps={6}
+          label="상담 내용 확인"
+        />
+
+        <div
+          className="py-20 text-center"
+          aria-live="polite"
+        >
+          <p className="font-semibold text-foreground">
+            상담 요약을 준비하고 있어요.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  const isPending =
+    confirmSummaryMutation.isPending;
 
   return (
     <>
       <ConsultationProgress
         currentStep={4}
         totalSteps={6}
-        label="내용 확인"
+        label="상담 내용 확인"
       />
 
       <header className="mt-10 text-center sm:mt-12">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-          제가 이해한 내용이
-          <br className="sm:hidden" /> 맞나요?
+        <p className="text-sm font-semibold text-primary">
+          상담 내용 확인
+        </p>
+
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          제가 이해한 내용이 맞는지 확인해 주세요
         </h1>
 
         <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
-          분석을 시작하기 전에
-          <br className="sm:hidden" />
-          내용을 한 번 확인해 주세요.
+          아래 요약은 입력하신 상담 내용과 추가 질문 답변을 바탕으로 정리한 내용이에요.
         </p>
       </header>
 
-      <div className="mt-8">
-        <SurfaceCard className="p-5 sm:p-7">
-          <section aria-labelledby="summary-category-heading">
-            <h2
-              id="summary-category-heading"
-              className="text-sm font-semibold text-foreground-muted"
-            >
-              문제 유형
-            </h2>
+      <section className="mt-8 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
+        <h2 className="text-xl font-bold text-foreground">
+          {state.summary.headline}
+        </h2>
 
-            <p className="mt-2 text-lg font-bold text-foreground">
-              {summary.category}
-            </p>
-          </section>
+        <p className="mt-4 whitespace-pre-line leading-7 text-foreground">
+          {state.summary.summaryText}
+        </p>
 
-          <div className="my-6 border-t border-border" />
+        <div className="mt-6">
+          <h3 className="text-sm font-semibold text-foreground-muted">
+            핵심 포인트
+          </h3>
 
-          <section aria-labelledby="summary-situation-heading">
-            <h2
-              id="summary-situation-heading"
-              className="text-sm font-semibold text-foreground-muted"
-            >
-              현재 상황
-            </h2>
-
-            <p className="mt-2 leading-7 text-foreground">
-              {summary.situation}
-            </p>
-          </section>
-
-          <div className="my-6 border-t border-border" />
-
-          <section aria-labelledby="summary-key-points-heading">
-            <h2
-              id="summary-key-points-heading"
-              className="text-sm font-semibold text-foreground-muted"
-            >
-              제가 이해한 핵심 내용
-            </h2>
-
-            <ul className="mt-3 space-y-3">
-              {summary.keyPoints.map((point) => (
+          <ul className="mt-3 space-y-3">
+            {state.summary.keyPoints.map(
+              (point) => (
                 <li
                   key={point}
-                  className="flex items-start gap-3 leading-7 text-foreground"
+                  className="rounded-control bg-surface-subtle px-4 py-3 leading-6 text-foreground"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary"
-                  >
-                    ✓
-                  </span>
-
-                  <span>{point}</span>
+                  • {point}
                 </li>
-              ))}
-            </ul>
-          </section>
-        </SurfaceCard>
-      </div>
+              ),
+            )}
+          </ul>
+        </div>
+      </section>
 
-      {/* 틀린 내용은 원본 입력을 수정 */}
-      <aside className="mt-5 rounded-card bg-surface-subtle p-5 text-sm leading-6 text-foreground-muted">
-        요약 내용은 직접 수정하지 않아요. 내용이 다르다면
-        원래 입력으로 돌아가 수정할 수 있어요.
-      </aside>
-
-      {confirmMutation.isError ? (
+      {confirmSummaryMutation.isError ? (
         <div
           role="alert"
-          className="mt-5 rounded-control border border-danger bg-surface p-4"
+          className="mt-4 rounded-control border border-danger bg-surface p-4"
         >
           <p className="font-semibold text-danger">
-            확인 내용을 저장하지 못했어요.
+            요약 확인을 완료하지 못했어요.
           </p>
 
           <p className="mt-1 text-sm leading-6 text-foreground-muted">
-            요약 내용은 그대로 유지됩니다. 다시 시도해
-            주세요.
+            잠시 후 다시 시도해 주세요.
           </p>
         </div>
       ) : null}
 
-      {startAnalysisMutation.isError ? (
-        <div
-          role="alert"
-          className="mt-5 rounded-control border border-danger bg-surface p-4"
-        >
-          <p className="font-semibold text-danger">
-            분석 시작 요청을 완료하지 못했어요.
-          </p>
-
-          <p className="mt-1 text-sm leading-6 text-foreground-muted">
-            상담 내용 확인은 완료되어 있어요.
-            분석 시작만 다시 시도해 주세요.
-          </p>
-        </div>
-      ) : null}
-
-      {/* 맞아요, 수정할래요 모두 Navigation이므로 Mutation 만들 필요 없음 */}
       <div className="mt-8 space-y-3">
         <PrimaryButton
           type="button"
           className="w-full"
-          disabled={isProcessing}
+          disabled={isPending}
           onClick={() => {
-            if (confirmMutation.isSuccess) {
-              startAnalysisMutation.mutate();
+            if (!consultationId) {
               return;
             }
 
-            confirmMutation.mutate();
+            confirmSummaryMutation.mutate(
+              {
+                consultationId,
+              },
+              {
+                onSuccess: () => {
+                  router.push(
+                    "/consultation/analysis",
+                  );
+                },
+              },
+            );
           }}
         >
-          {isProcessing
-            ? "분석을 준비하고 있어요..."
-            : startAnalysisMutation.isError
-              ? "분석 시작 다시 시도"
-              : "맞아요"}
+          {isPending
+            ? "확인 중..."
+            : "맞아요"}
         </PrimaryButton>
 
         <SecondaryButton
           type="button"
           className="w-full"
-          disabled={isProcessing}
-          onClick={handleEdit}
+          disabled={isPending}
+          onClick={() =>
+            router.push(
+              "/consultation/situation",
+            )
+          }
         >
           수정할래요
         </SecondaryButton>

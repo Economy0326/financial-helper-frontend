@@ -5,9 +5,12 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  confirmConsultationSummary,
   getActiveConsultation,
   getConsultation,
+  getConsultationSummary,
   getFollowUpState,
+  prepareConsultationSummary,
   prepareFollowUp,
   startConsultation,
   updateConsultationCategory,
@@ -389,6 +392,131 @@ export function useUpdateFollowUpAnswerMutation() {
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useConsultationSummaryQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.summary(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationSummary(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareConsultationSummaryVariables =
+  {
+    consultationId: string;
+  };
+
+export function usePrepareConsultationSummaryMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareConsultationSummaryVariables) =>
+      prepareConsultationSummary(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.summary(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+// consultationId => 백엔드의 UUID가 프론트/JSON으로 넘어오면 문자열로 표현됨
+type ConfirmConsultationSummaryVariables =
+  {
+    consultationId: string;
+  };
+
+export function useConfirmConsultationSummaryMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: ConfirmConsultationSummaryVariables) =>
+      confirmConsultationSummary(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      _data,
+      variables,
+    ) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.summary(
               variables.consultationId,
             ),
         }),

@@ -38,5 +38,24 @@ export const queryKeys = {
         consultationId,
         questionNumber ?? "current",
       ] as const,
+
+    summaryRoot: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "summary",
+        consultationId,
+      ] as const,
+
+    summary: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "summary",
+        consultationId,
+        "current",
+      ] as const,
   },
 } as const;

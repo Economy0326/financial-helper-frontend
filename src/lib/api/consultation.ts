@@ -2,9 +2,11 @@ import { apiFetch } from "./client";
 
 import type {
   ActiveConsultationResponse,
-  ConsultationDetailResponse,
+  ConfirmConsultationSummaryResponse,
   ConsultationCategory,
   ConsultationCreateResponse,
+  ConsultationDetailResponse,
+  ConsultationSummaryStateResponse,
   FollowUpStateResponse,
   UpdateCategoryResponse,
   UpdateSituationResponse,
@@ -116,6 +118,42 @@ export function updateFollowUpAnswer(
       body: {
         answer,
       },
+    },
+  );
+}
+
+export function getConsultationSummary(
+  consultationId: string,
+) {
+  return apiFetch<ConsultationSummaryStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/summary`,
+  );
+}
+
+export function prepareConsultationSummary(
+  consultationId: string,
+) {
+  return apiFetch<ConsultationSummaryStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/summary/prepare`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function confirmConsultationSummary(
+  consultationId: string,
+) {
+  return apiFetch<ConfirmConsultationSummaryResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/summary/confirm`,
+    {
+      method: "POST",
     },
   );
 }

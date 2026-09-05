@@ -79,6 +79,7 @@ export type FollowUpStateResponse = {
     | FollowUpQuestionResponse
     | null;
 
+  // 사용자가 질문 상태면 1,2,3 같은 number
   currentQuestionNumber:
     | number
     | null;
@@ -90,6 +91,24 @@ export type FollowUpStateResponse = {
   savedAnswer:
     | string
     | null;
+};
+
+export type ConsultationSummaryPayload = {
+  headline: string;
+  summaryText: string;
+  keyPoints: string[];
+};
+
+export type ConsultationSummaryStateResponse = {
+  kind: "ready" | "not-prepared";
+  summary:
+    | ConsultationSummaryPayload
+    | null;
+};
+
+export type ConfirmConsultationSummaryResponse = {
+  consultationId: string;
+  nextStep: "ANALYSIS";
 };
 
 export type ApiFieldError = {

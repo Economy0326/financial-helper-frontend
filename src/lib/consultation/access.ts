@@ -94,3 +94,24 @@ export function getFollowUpPageAccess(
     currentStep,
   };
 }
+
+export function getSummaryPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (currentStep === "SUMMARY") {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}
