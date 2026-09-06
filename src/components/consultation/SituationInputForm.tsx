@@ -30,6 +30,10 @@ import {
   ApiNetworkError,
 } from "@/lib/api/errors";
 
+import type {
+  ConsultationCategory,
+} from "@/lib/api/types";
+
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
@@ -42,6 +46,28 @@ import {
 } from "@/lib/consultation/navigation";
 
 const MAX_SITUATION_LENGTH = 1000;
+
+function getSituationPlaceholder(
+  category:
+    | ConsultationCategory
+    | null
+    | undefined,
+) {
+  switch (category) {
+    case "INSURANCE":
+      return "예) 보험금을 청구했는데 지급되지 않았어요.";
+
+    case "LOAN":
+      return "예) 대출 상환 금액이 예상과 달라서 확인하고 싶어요.";
+
+    case "CARD":
+      return "예) 취소한 카드 결제가 아직 환불되지 않았어요.";
+
+    case "UNKNOWN":
+    default:
+      return "예) 금융회사와 거래하면서 어떤 문제가 있었는지 적어 주세요.";
+  }
+}
 
 // RHF와 Zod를 사용하여 폼의 유효성 검사
 const situationSchema = z.object({
@@ -540,9 +566,10 @@ router.push(
             maxLength={
               MAX_SITUATION_LENGTH
             }
-            placeholder={
-              "예) 보험금이 지급되지 않았어요.\n대출 금리가 갑자기 올랐어요."
-            }
+            placeholder={getSituationPlaceholder(
+              activeConsultationQuery.data
+                ?.category,
+            )}
             disabled={isSubmitPending}
             aria-invalid={
               errorMessage

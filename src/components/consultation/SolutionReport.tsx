@@ -836,12 +836,31 @@ export default function SolutionReport() {
                       <span
                         aria-hidden="true"
                         className={[
-                          "mt-1 h-5 w-5",
-                          "shrink-0 rounded",
-                          "border border-border-strong",
-                          "bg-surface",
+                          "mt-0.5 flex h-9 w-9 shrink-0",
+                          "items-center justify-center rounded-control",
+                          "bg-primary-subtle text-primary",
                         ].join(" ")}
-                      />
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-5 w-5"
+                          fill="none"
+                        >
+                          <path
+                            d="M7 3.75h6.5L18 8.25v12H7z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M13.5 3.75v4.5H18M9.5 12h6M9.5 15.5h6"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
 
                       <div>
                         <p className="font-bold text-foreground">
