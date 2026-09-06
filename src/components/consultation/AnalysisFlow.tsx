@@ -30,6 +30,10 @@ import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
 
+import {
+  ApiResponseError,
+} from "@/lib/api/errors";
+
 export default function AnalysisFlow() {
   const router =
     useRouter();
@@ -92,6 +96,12 @@ export default function AnalysisFlow() {
       canLoadAnalysis &&
       analysisQuery.isLoading
     );
+
+  const retryLimitReached =
+    retryMutation.error instanceof
+      ApiResponseError &&
+    retryMutation.error.code ===
+      "ANALYSIS_RETRY_LIMIT_EXCEEDED";
 
   if (isInitialLoading) {
     return (
@@ -347,7 +357,27 @@ export default function AnalysisFlow() {
               role="alert"
               className="mx-auto mt-6 max-w-md rounded-control border border-danger bg-surface p-4"
             >
-              다시 분석을 시작하지 못했어요.
+              {retryLimitReached ? (
+                <>
+                  <p className="font-semibold text-danger">
+                    분석 재시도 횟수를 모두 사용했어요.
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-foreground-muted">
+                    같은 상담으로 분석을 계속 반복하지 않을게요.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-danger">
+                    다시 분석을 시작하지 못했어요.
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-foreground-muted">
+                    잠시 후 다시 시도해 주세요.
+                  </p>
+                </>
+              )}
             </div>
           ) : null}
 
@@ -356,6 +386,7 @@ export default function AnalysisFlow() {
             className="mx-auto mt-8 w-full max-w-sm"
             disabled={
               retryMutation.isPending ||
+              retryLimitReached ||
               !consultationId
             }
             onClick={() => {
