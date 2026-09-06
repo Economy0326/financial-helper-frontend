@@ -9,13 +9,17 @@ import {
   getActiveConsultation,
   getConsultation,
   getConsultationSummary,
+  getConsultationAnalysis,
   getFollowUpState,
   prepareConsultationSummary,
   prepareFollowUp,
   startConsultation,
+  startConsultationAnalysis,
   updateConsultationCategory,
   updateConsultationSituation,
   updateFollowUpAnswer,
+  reopenConsultationAnalysis,
+  retryConsultationAnalysis,
 } from "@/lib/api/consultation";
 
 import type {
@@ -517,6 +521,174 @@ export function useConfirmConsultationSummaryMutation() {
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.summary(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useAnalysisStateQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.analysis(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationAnalysis(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+
+    // Polling은 QUEUED, PROCESSING일 때만 2초마다 진행
+    // 상태가 바뀔 가능성이 있을 때만 Polling 진행
+    refetchInterval: (query) => {
+      const status =
+        query.state.data?.status;
+
+      if (
+        status === "QUEUED" ||
+        status === "PROCESSING"
+      ) {
+        return 2_000;
+      }
+
+      return false;
+    },
+
+    refetchIntervalInBackground:
+      false,
+  });
+}
+
+type AnalysisMutationVariables = {
+  consultationId: string;
+};
+
+export function useStartAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      startConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.analysis(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey:
+          queryKeys.consultations.active(),
+      });
+    },
+  });
+}
+
+export function useRetryAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      retryConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.analysis(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey:
+          queryKeys.consultations.active(),
+      });
+    },
+  });
+}
+
+export function useReopenAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      reopenConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      _data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .analysisRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .summaryRoot(
+              variables.consultationId,
+            ),
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
               variables.consultationId,
             ),
         }),

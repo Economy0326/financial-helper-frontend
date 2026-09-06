@@ -19,6 +19,7 @@ import {
   useConfirmConsultationSummaryMutation,
   useConsultationSummaryQuery,
   usePrepareConsultationSummaryMutation,
+  useStartAnalysisMutation,
 } from "@/lib/query/consultation";
 
 import {
@@ -78,6 +79,9 @@ export default function SummaryConfirmationFlow() {
 
   const confirmSummaryMutation =
     useConfirmConsultationSummaryMutation();
+
+  const startAnalysisMutation =
+    useStartAnalysisMutation();
 
   useEffect(() => {
     if (
@@ -298,7 +302,7 @@ export default function SummaryConfirmationFlow() {
   }
 
   const isPending =
-    confirmSummaryMutation.isPending;
+    confirmSummaryMutation.isPending || startAnalysisMutation.isPending;
 
   return (
     <>
@@ -351,17 +355,21 @@ export default function SummaryConfirmationFlow() {
         </div>
       </section>
 
-      {confirmSummaryMutation.isError ? (
+      {(
+        confirmSummaryMutation.isError ||
+        startAnalysisMutation.isError
+      ) ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"
         >
           <p className="font-semibold text-danger">
-            요약 확인을 완료하지 못했어요.
+            분석 시작 상태를 확인해 주세요.
           </p>
 
           <p className="mt-1 text-sm leading-6 text-foreground-muted">
-            잠시 후 다시 시도해 주세요.
+            상담 요약은 저장되어 있어요.
+            분석 화면에서 현재 상태를 다시 확인할 수 있습니다.
           </p>
         </div>
       ) : null}
@@ -376,18 +384,28 @@ export default function SummaryConfirmationFlow() {
               return;
             }
 
-            confirmSummaryMutation.mutate(
-              {
-                consultationId,
-              },
-              {
-                onSuccess: () => {
-                  router.push(
-                    "/consultation/analysis",
-                  );
-                },
-              },
-            );
+            void (async () => {
+              try {
+                await confirmSummaryMutation
+                  .mutateAsync({
+                    consultationId,
+                  });
+
+                // Analysis 시작은 Summary Confirm이라는 사용자 Action에서 명시적으로 발생
+                // Analysis Page mount에서는 시작하지 않는다.
+                await startAnalysisMutation
+                  .mutateAsync({
+                    consultationId,
+                  });
+
+              } finally {
+                // Start request의 Network Response가 끊겨도 실제 서버에서 Job이 만들어졌을 수 있다.
+                // Analysis Page에서 GET status를 통해 Server Truth를 다시 확인한다.
+                router.push(
+                  "/consultation/analysis",
+                );
+              }
+            })();
           }}
         >
           {isPending

@@ -111,6 +111,31 @@ export type ConfirmConsultationSummaryResponse = {
   nextStep: "ANALYSIS";
 };
 
+export type AnalysisStatus =
+  | "NOT_STARTED"
+  | "QUEUED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "NEEDS_MORE_INFO"
+  | "FAILED";
+
+export type AnalysisAdditionalInformation = {
+  topic: string;
+  reason: string;
+};
+
+export type AnalysisStateResponse = {
+  status: AnalysisStatus;
+  attemptCount: number;
+  additionalInformationNeeded:
+    AnalysisAdditionalInformation[];
+};
+
+export type ReopenAnalysisResponse = {
+  consultationId: string;
+  nextStep: "SITUATION";
+};
+
 export type ApiFieldError = {
   field: string;
   reason: string;

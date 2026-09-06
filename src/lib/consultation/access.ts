@@ -115,3 +115,26 @@ export function getSummaryPageAccess(
     currentStep,
   };
 }
+
+export function getAnalysisPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "ANALYSIS"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}

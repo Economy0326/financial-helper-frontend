@@ -57,5 +57,24 @@ export const queryKeys = {
         consultationId,
         "current",
       ] as const,
+
+    analysisRoot: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "analysis",
+        consultationId,
+      ] as const,
+
+    analysis: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "analysis",
+        consultationId,
+        "current",
+      ] as const,
   },
 } as const;

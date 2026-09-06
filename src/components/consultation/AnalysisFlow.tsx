@@ -1,153 +1,95 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+  useRouter,
+} from "next/navigation";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
 import PrimaryButton from "@/components/ui/PrimaryButton";
-import SecondaryButton from "@/components/ui/SecondaryButton";
 
 import {
-  getAnalysisStatusFixture,
-  retryAnalysisFixture,
-} from "@/lib/fixtures/consultation";
+  useActiveConsultationQuery,
+  useAnalysisStateQuery,
+  useReopenAnalysisMutation,
+  useRetryAnalysisMutation,
+  useStartAnalysisMutation,
+} from "@/lib/query/consultation";
 
-const analysisQueryKey = [
-  "consultation",
-  "analysis",
-] as const;
+import {
+  useSessionQuery,
+} from "@/lib/query/session";
 
-const analysisSteps = [
-  {
-    title: "상황 정리",
-    description:
-      "입력하신 내용을 정리하고 핵심 내용을 파악해요.",
-  },
-  {
-    title: "관련 규정 확인",
-    description:
-      "해당 문제와 관련된 공식 자료와 기준을 확인해요.",
-  },
-  {
-    title: "유사 사례 비교",
-    description:
-      "비슷한 상황의 사례와 해결 과정을 비교해요.",
-  },
-  {
-    title: "해결 방법 정리",
-    description:
-      "확인한 내용을 바탕으로 필요한 행동을 정리해요.",
-  },
-] as const;
+import {
+  getAnalysisPageAccess,
+} from "@/lib/consultation/access";
 
-function AnalysisProcess() {
-  return (
-    <section
-      aria-labelledby="analysis-process-heading"
-      className="rounded-card border border-border bg-surface p-5 shadow-card sm:p-7"
-    >
-      <h2
-        id="analysis-process-heading"
-        className="text-lg font-bold text-foreground"
-      >
-        분석 과정
-      </h2>
-
-      <ol className="mt-6 space-y-6">
-        {analysisSteps.map((step, index) => (
-          <li
-            key={step.title}
-            className="flex gap-4"
-          >
-            <span
-              aria-hidden="true"
-              className={[
-                "flex h-11 w-11 shrink-0 items-center justify-center",
-                "rounded-full bg-primary-subtle font-bold text-primary",
-              ].join(" ")}
-            >
-              {index + 1}
-            </span>
-
-            <div>
-              <h3 className="font-bold text-foreground sm:text-lg">
-                {index + 1}. {step.title}
-              </h3>
-
-              <p className="mt-1 leading-7 text-foreground-muted">
-                {step.description}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function AnalysisHeader({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <header className="mt-10 text-center sm:mt-12">
-      <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-        {title}
-      </h1>
-
-      <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
-        {description}
-      </p>
-    </header>
-  );
-}
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 
 export default function AnalysisFlow() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const router =
+    useRouter();
 
-  const analysisQuery = useQuery({
-    queryKey: analysisQueryKey,
-    queryFn: getAnalysisStatusFixture,
-    retry: false,
+  const sessionQuery =
+    useSessionQuery();
 
-    // 분석 중에는 1.5초마다 Server State를 자동으로 polling하고,
-    // 분석완료시 polling을 중단
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
+  const hasActiveConsultation =
+    sessionQuery.isSuccess &&
+    sessionQuery.data
+      .hasActiveConsultation;
 
-      if (
-        status === "STARTING" ||
-        status === "ANALYZING"
-      ) {
-        return 1500;
-      }
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      hasActiveConsultation,
+    );
 
-      return false;
-    },
-  });
+  const consultationId =
+    activeConsultationQuery.data
+      ?.consultationId ?? null;
 
-  const retryMutation = useMutation({
-    mutationFn: retryAnalysisFixture,
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
 
-    onSuccess: (nextState) => {
-      queryClient.setQueryData(
-        analysisQueryKey,
-        nextState,
-      );
-    },
-  });
+  const pageAccess =
+    getAnalysisPageAccess(
+      currentStep,
+    );
 
-  const isRetrying = retryMutation.isPending;
+  const canLoadAnalysis =
+    pageAccess.status === "allowed" &&
+    Boolean(consultationId);
 
-  if (analysisQuery.isLoading) {
+  const analysisQuery =
+    useAnalysisStateQuery(
+      consultationId,
+      canLoadAnalysis,
+    );
+
+  const startMutation =
+    useStartAnalysisMutation();
+
+  const retryMutation =
+    useRetryAnalysisMutation();
+
+  const reopenMutation =
+    useReopenAnalysisMutation();
+
+  const isInitialLoading =
+    sessionQuery.isLoading ||
+    (
+      hasActiveConsultation &&
+      activeConsultationQuery.isLoading
+    ) ||
+    (
+      canLoadAnalysis &&
+      analysisQuery.isLoading
+    );
+
+  if (isInitialLoading) {
     return (
       <>
         <ConsultationProgress
@@ -164,18 +106,72 @@ export default function AnalysisFlow() {
           <p className="text-lg font-semibold text-foreground">
             분석 상태를 확인하고 있어요.
           </p>
-
-          <p className="mt-2 text-foreground-muted">
-            잠시만 기다려 주세요.
-          </p>
         </div>
       </>
     );
   }
 
-   // Network Error
-  // 네트워크 오류에서는 분석을 새로 시작하지 않고,
-  // 이미 실행 중인 분석의 현재 상태만 서버에 다시 조회한다.  
+  if (
+    sessionQuery.isSuccess &&
+    !hasActiveConsultation
+  ) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          진행 중인 상담이 없어요.
+        </h1>
+
+        <Link
+          href="/consultation/problem-category"
+          className={[
+            "mx-auto mt-8 inline-flex min-h-12 items-center justify-center",
+            "rounded-control bg-primary px-5 py-3",
+            "font-bold text-primary-foreground",
+            "focus-visible:outline-none focus-visible:ring-2",
+            "focus-visible:ring-focus focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          상담 시작하기
+        </Link>
+      </div>
+    );
+  }
+
+  if (
+    pageAccess.status ===
+      "wrong-step"
+  ) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          현재 상담 단계와 맞지 않는 화면이에요.
+        </h1>
+
+        <p className="mt-3 leading-7 text-foreground-muted">
+          저장된 상담 단계에서 계속 진행해 주세요.
+        </p>
+
+        <Link
+          href={getConsultationStepHref(
+            pageAccess.currentStep,
+          )}
+          className={[
+            "mx-auto mt-8 inline-flex min-h-12 items-center justify-center",
+            "rounded-control bg-primary px-5 py-3",
+            "font-bold text-primary-foreground",
+            "focus-visible:outline-none focus-visible:ring-2",
+            "focus-visible:ring-focus focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          현재 단계로 이동
+        </Link>
+      </div>
+    );
+  }
+
+  // Network Error
+  // 서버에서는 분석이 계속 진행 중일 수도 있으니, 여기서는 Analysis Retry를 호출하면 안 된다.
+  // 따라서 GET status만 다시 조회한다.
   if (analysisQuery.isError) {
     return (
       <>
@@ -185,94 +181,27 @@ export default function AnalysisFlow() {
           label="AI 분석"
         />
 
-        <div className="py-14 text-center sm:py-20">
-          <div
-            aria-hidden="true"
-            className={[
-              "mx-auto flex h-28 w-28 items-center justify-center",
-              "rounded-full bg-primary-subtle text-5xl",
-            ].join(" ")}
-          >
-            ◌
-          </div>
-
-          <AnalysisHeader
-            title="인터넷 연결을 확인해 주세요"
-            description="연결이 불안정해 분석 상태를 확인하지 못했어요."
-          />
-
-          <aside className="mt-8 rounded-card border border-primary bg-primary-subtle p-5 text-left sm:p-6">
-            <p className="font-bold text-primary">
-              안심하세요
-            </p>
-
-            <p className="mt-2 leading-7 text-foreground">
-              입력하신 내용은 사라지지 않았어요.
-            </p>
-          </aside>
-
-          <div className="mt-8 space-y-3">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() => analysisQuery.refetch()}
-            >
-              다시 시도하기
-            </PrimaryButton>
-
-            <SecondaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push("/consultation/summary")
-              }
-            >
-              이전으로
-            </SecondaryButton>
-          </div>
-
-          <p className="mt-6 rounded-card border border-border bg-surface p-5 leading-7 text-foreground-muted">
-            인터넷 연결을 확인한 뒤 다시 시도해 주세요.
-          </p>
-        </div>
-      </>
-    );
-  }
-
-  const analysisState = analysisQuery.data;
-
-  if (!analysisState) {
-    return null;
-  }
-
-   // 직접 URL로 진입했거나 Start Mutation이 아직 수행되지 않은 경우.
-   // Page Mount에서 Start하지 않고 Summary로 돌려보낸다.
-  if (analysisState.status === "NOT_STARTED") {
-    return (
-      <>
-        <ConsultationProgress
-          currentStep={5}
-          totalSteps={6}
-          label="AI 분석"
-        />
-
         <div className="py-16 text-center">
-          <AnalysisHeader
-            title="분석을 시작할 준비가 필요해요"
-            description="상담 내용을 먼저 확인한 뒤 분석을 시작해 주세요."
-          />
+          <h1 className="text-2xl font-bold text-foreground">
+            분석 상태를 확인하지 못했어요.
+          </h1>
+
+          <p className="mt-3 leading-7 text-foreground-muted">
+            분석이 중단됐다는 뜻은 아니에요.
+            <br />
+            서버의 현재 상태를 다시 확인해 주세요.
+          </p>
 
           <div className="mx-auto mt-8 max-w-sm">
             <PrimaryButton
               type="button"
               className="w-full"
-              onClick={() =>
-                router.replace(
-                  "/consultation/summary",
-                )
-              }
+              onClick={() => {
+                void analysisQuery
+                  .refetch();
+              }}
             >
-              내용 확인하기
+              다시 확인하기
             </PrimaryButton>
           </div>
         </div>
@@ -280,9 +209,17 @@ export default function AnalysisFlow() {
     );
   }
 
+  const state =
+    analysisQuery.data;
+
+  if (!state) {
+    return null;
+  }
+
+  // Summary Confirm은 됐지만 Start request가 Network Error 등으로 실제로 서버에 도착하지 않은 경우
+  // Page mount로 자동 실행하지 않고 명시적 사용자 Action을 제공한다. 
   if (
-    analysisState.status === "STARTING" ||
-    analysisState.status === "ANALYZING"
+    state.status === "NOT_STARTED"
   ) {
     return (
       <>
@@ -292,46 +229,55 @@ export default function AnalysisFlow() {
           label="AI 분석"
         />
 
-        <AnalysisHeader
-          title="AI가 분석하고 있어요"
-          description="공식 자료와 관련 정보를 바탕으로 꼼꼼하게 확인하고 있습니다."
-        />
+        <div className="py-16 text-center">
+          <h1 className="text-3xl font-bold text-foreground">
+            분석을 시작할 준비가 됐어요.
+          </h1>
 
-        <aside
-          className={[
-            "mt-8 rounded-card border border-primary",
-            "bg-primary-subtle p-5 sm:p-6",
-          ].join(" ")}
-          aria-live="polite"
-        >
-          <p className="text-lg font-bold text-primary">
-            안심하고 기다려주세요
+          <p className="mt-4 leading-7 text-foreground-muted">
+            확인하신 상담 내용을 바탕으로
+            핵심 쟁점을 정리할게요.
           </p>
 
-          <p className="mt-2 leading-7 text-foreground">
-            분석이 완료되면 결과를 확인할 수 있어요.
-          </p>
-        </aside>
+          {startMutation.isError ? (
+            <div
+              role="alert"
+              className="mx-auto mt-6 max-w-md rounded-control border border-danger bg-surface p-4"
+            >
+              분석을 시작하지 못했어요.
+            </div>
+          ) : null}
 
-        <div className="mt-5">
-          <AnalysisProcess />
+          <PrimaryButton
+            type="button"
+            className="mx-auto mt-8 w-full max-w-sm"
+            disabled={
+              startMutation.isPending ||
+              !consultationId
+            }
+            onClick={() => {
+              if (!consultationId) {
+                return;
+              }
+
+              startMutation.mutate({
+                consultationId,
+              });
+            }}
+          >
+            {startMutation.isPending
+              ? "시작 중..."
+              : "분석 시작하기"}
+          </PrimaryButton>
         </div>
-
-        <aside className="mt-5 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6">
-          <p className="font-bold text-primary">
-            잠시만 기다려주세요
-          </p>
-
-          <p className="mt-2 leading-7 text-foreground">
-            현재 분석이 진행 중이에요. 정확한 완료 시간을
-            알 수 없어 임의의 진행률은 표시하지 않습니다.
-          </p>
-        </aside>
       </>
     );
   }
 
-  if (analysisState.status === "FAILED") {
+  if (
+    state.status === "QUEUED" ||
+    state.status === "PROCESSING"
+  ) {
     return (
       <>
         <ConsultationProgress
@@ -340,87 +286,39 @@ export default function AnalysisFlow() {
           label="AI 분석"
         />
 
-        <div className="py-12 text-center">
+        <div
+          className="py-16 text-center"
+          aria-live="polite"
+          aria-busy="true"
+        >
           <div
             aria-hidden="true"
-            className={[
-              "mx-auto flex h-28 w-28 items-center justify-center",
-              "rounded-full bg-surface-subtle text-5xl text-danger",
-            ].join(" ")}
-          >
-            !
-          </div>
-
-          <AnalysisHeader
-            title="분석을 완료하지 못했어요"
-            description="입력하신 내용은 그대로 보관되어 있어요. 잠시 후 다시 분석해 주세요."
+            className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary motion-reduce:animate-none"
           />
 
-          <aside className="mt-8 rounded-card border border-danger bg-surface p-5 text-left sm:p-6">
-            <p className="font-bold text-danger">
-              안심하세요
-            </p>
+          <h1 className="mt-8 text-3xl font-bold text-foreground">
+            상담 내용을 분석하고 있어요
+          </h1>
 
-            <p className="mt-2 leading-7 text-foreground">
-              처음부터 다시 입력하지 않아도 돼요.
-            </p>
-          </aside>
+          <p className="mt-4 leading-7 text-foreground-muted">
+            핵심 쟁점과 필요한 다음 행동을
+            정리하고 있어요.
+            <br />
+            잠시만 기다려 주세요.
+          </p>
 
-          {retryMutation.isError ? (
-            <div
-              role="alert"
-              className="mt-5 rounded-control border border-danger bg-surface p-4 text-left"
-            >
-              <p className="font-semibold text-danger">
-                다시 분석 요청을 완료하지 못했어요.
-              </p>
-
-              <p className="mt-1 text-sm text-foreground-muted">
-                잠시 후 다시 시도해 주세요.
-              </p>
-            </div>
-          ) : null}
-
-          <div className="mt-8 space-y-3">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              disabled={isRetrying}
-              onClick={() =>
-                retryMutation.mutate()
-              }
-            >
-              {isRetrying
-                ? "다시 분석하고 있어요..."
-                : "다시 분석하기"}
-            </PrimaryButton>
-
-            <SecondaryButton
-              type="button"
-              className="w-full"
-              disabled={isRetrying}
-              onClick={() =>
-                router.push("/consultation/summary")
-              }
-            >
-              내용 확인하기
-            </SecondaryButton>
-
-            <SecondaryButton
-              type="button"
-              className="w-full"
-              disabled={isRetrying}
-              onClick={() => router.push("/")}
-            >
-              나중에 이어하기
-            </SecondaryButton>
-          </div>
+          <p className="mt-6 text-sm text-foreground-muted">
+            정확한 진행률을 알 수 없어
+            임의의 퍼센트는 표시하지 않아요.
+          </p>
         </div>
       </>
     );
   }
 
-  if (analysisState.status === "NEEDS_MORE_INFO") {
+  if (
+    state.status === "FAILED"
+  ) {
     return (
       <>
         <ConsultationProgress
@@ -430,44 +328,145 @@ export default function AnalysisFlow() {
         />
 
         <div className="py-16 text-center">
-          <AnalysisHeader
-            title="추가 정보가 필요해요"
-            description={
-              analysisState.message ??
-              "분석을 계속하기 위해 몇 가지 내용을 더 확인해야 해요."
+          <h1 className="text-3xl font-bold text-foreground">
+            분석을 완료하지 못했어요
+          </h1>
+
+          <p className="mt-4 leading-7 text-foreground-muted">
+            입력하신 상담 내용은 그대로 저장되어 있어요.
+            <br />
+            다시 시도하면 같은 상담 정보로 분석을 시작합니다.
+          </p>
+
+          {retryMutation.isError ? (
+            <div
+              role="alert"
+              className="mx-auto mt-6 max-w-md rounded-control border border-danger bg-surface p-4"
+            >
+              다시 분석을 시작하지 못했어요.
+            </div>
+          ) : null}
+
+          <PrimaryButton
+            type="button"
+            className="mx-auto mt-8 w-full max-w-sm"
+            disabled={
+              retryMutation.isPending ||
+              !consultationId
             }
-          />
-
-          <div className="mx-auto mt-8 max-w-sm space-y-3">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push(
-                  analysisState.nextPath ??
-                    "/consultation/follow-up",
-                )
+            onClick={() => {
+              if (!consultationId) {
+                return;
               }
-            >
-              추가 질문 확인하기
-            </PrimaryButton>
 
-            <SecondaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push("/consultation/summary")
-              }
-            >
-              이전으로
-            </SecondaryButton>
-          </div>
+              retryMutation.mutate({
+                consultationId,
+              });
+            }}
+          >
+            {retryMutation.isPending
+              ? "다시 시작 중..."
+              : "다시 시도"}
+          </PrimaryButton>
         </div>
       </>
     );
   }
 
-  // 분석 완료
+  if (
+    state.status ===
+      "NEEDS_MORE_INFO"
+  ) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={5}
+          totalSteps={6}
+          label="AI 분석"
+        />
+
+        <div className="py-12">
+          <header className="text-center">
+            <h1 className="text-3xl font-bold text-foreground">
+              조금 더 확인할 정보가 있어요
+            </h1>
+
+            <p className="mt-4 leading-7 text-foreground-muted">
+              현재 정보만으로 단정하지 않고,
+              필요한 내용을 먼저 보완할게요.
+            </p>
+          </header>
+
+          <section className="mx-auto mt-8 max-w-xl rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
+            <h2 className="text-lg font-bold text-foreground">
+              추가로 확인하면 좋은 정보
+            </h2>
+
+            <ul className="mt-4 space-y-4">
+              {state.additionalInformationNeeded.map(
+                (item) => (
+                  <li
+                    key={item.topic}
+                    className="rounded-control bg-surface-subtle p-4"
+                  >
+                    <p className="font-bold text-foreground">
+                      {item.topic}
+                    </p>
+
+                    <p className="mt-1 leading-6 text-foreground-muted">
+                      {item.reason}
+                    </p>
+                  </li>
+                ),
+              )}
+            </ul>
+          </section>
+
+          {reopenMutation.isError ? (
+            <div
+              role="alert"
+              className="mx-auto mt-6 max-w-xl rounded-control border border-danger bg-surface p-4"
+            >
+              정보 수정 화면으로 이동하지 못했어요.
+            </div>
+          ) : null}
+
+          <PrimaryButton
+            type="button"
+            className="mx-auto mt-8 w-full max-w-sm"
+            disabled={
+              reopenMutation.isPending ||
+              !consultationId
+            }
+            onClick={() => {
+              if (!consultationId) {
+                return;
+              }
+
+              reopenMutation.mutate(
+                {
+                  consultationId,
+                },
+                {
+                  onSuccess: () => {
+                    router.push(
+                      "/consultation/situation",
+                    );
+                  },
+                },
+              );
+            }}
+          >
+            {reopenMutation.isPending
+              ? "이동 중..."
+              : "정보 보완하기"}
+          </PrimaryButton>
+        </div>
+      </>
+    );
+  }
+
+  // COMPLETED
   return (
     <>
       <ConsultationProgress
@@ -476,35 +475,38 @@ export default function AnalysisFlow() {
         label="AI 분석"
       />
 
-      <div className="py-12 text-center">
+      <div
+        className="py-16 text-center"
+        aria-live="polite"
+      >
         <div
           aria-hidden="true"
-          className={[
-            "mx-auto flex h-24 w-24 items-center justify-center",
-            "rounded-full bg-primary-subtle text-4xl font-bold text-primary",
-          ].join(" ")}
+          className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-subtle text-2xl font-bold text-primary"
         >
           ✓
         </div>
 
-        <AnalysisHeader
-          title="분석이 완료되었어요"
-          description="확인한 내용을 바탕으로 해결 방법을 정리했어요."
-        />
+        <h1 className="mt-6 text-3xl font-bold text-foreground">
+          분석이 완료됐어요
+        </h1>
 
-        <div className="mt-8">
-          <PrimaryButton
-            type="button"
-            className="w-full"
-            onClick={() =>
-              router.push(
-                "/consultation/report",
-              )
-            }
-          >
-            결과 보기
-          </PrimaryButton>
-        </div>
+        <p className="mt-4 leading-7 text-foreground-muted">
+          확인하신 상담 내용을 바탕으로
+          핵심 쟁점 분석이 끝났어요.
+        </p>
+
+        <PrimaryButton
+          type="button"
+          className="mx-auto mt-8 w-full max-w-sm"
+          onClick={() => {
+            // 아직 fixture
+            router.push(
+              "/consultation/report",
+            );
+          }}
+        >
+          결과 보기
+        </PrimaryButton>
       </div>
     </>
   );

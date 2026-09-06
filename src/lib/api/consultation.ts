@@ -2,6 +2,7 @@ import { apiFetch } from "./client";
 
 import type {
   ActiveConsultationResponse,
+  AnalysisStateResponse,
   ConfirmConsultationSummaryResponse,
   ConsultationCategory,
   ConsultationCreateResponse,
@@ -10,6 +11,7 @@ import type {
   FollowUpStateResponse,
   UpdateCategoryResponse,
   UpdateSituationResponse,
+  ReopenAnalysisResponse,
 } from "./types";
 
 export function startConsultation() {
@@ -152,6 +154,55 @@ export function confirmConsultationSummary(
     `/consultations/${encodeURIComponent(
       consultationId,
     )}/summary/confirm`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function startConsultationAnalysis(
+  consultationId: string,
+) {
+  return apiFetch<AnalysisStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/analysis/start`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function getConsultationAnalysis(
+  consultationId: string,
+) {
+  return apiFetch<AnalysisStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/analysis`,
+  );
+}
+
+export function retryConsultationAnalysis(
+  consultationId: string,
+) {
+  return apiFetch<AnalysisStateResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/analysis/retry`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function reopenConsultationAnalysis(
+  consultationId: string,
+) {
+  return apiFetch<ReopenAnalysisResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/analysis/reopen`,
     {
       method: "POST",
     },
