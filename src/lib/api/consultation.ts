@@ -9,6 +9,7 @@ import type {
   ConsultationDetailResponse,
   ConsultationSummaryStateResponse,
   FollowUpStateResponse,
+  InformationSupplementContextResponse,
   UpdateCategoryResponse,
   UpdateSituationResponse,
   ReopenAnalysisResponse,
@@ -206,5 +207,15 @@ export function reopenConsultationAnalysis(
     {
       method: "POST",
     },
+  );
+}
+
+export function getInformationSupplementContext(
+  consultationId: string,
+) {
+  return apiFetch<InformationSupplementContextResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/analysis/supplement-context`,
   );
 }

@@ -17,6 +17,7 @@ import { z } from "zod";
 import {
   useActiveConsultationQuery,
   useConsultationDetailQuery,
+  useInformationSupplementContextQuery,
   usePrepareFollowUpMutation,
   useUpdateSituationMutation,
 } from "@/lib/query/consultation";
@@ -180,6 +181,15 @@ export default function SituationInputForm() {
   const situationMutation =
     useUpdateSituationMutation();
 
+  const supplementContextQuery =
+    useInformationSupplementContextQuery(
+      consultationId,
+      Boolean(consultationId),
+    );
+
+  const supplementContext =
+    supplementContextQuery.data;
+
   const isSubmitPending =
     situationMutation.isPending ||
     followUpPreparationMutation.isPending;
@@ -317,13 +327,6 @@ router.push(
             type: "server",
             message: fieldMessage,
           });
-        }
-
-        if (
-          error.code ===
-          "INVALID_CONSULTATION_STATE"
-        ) {
-          void activeConsultationQuery.refetch();
         }
 
         if (
@@ -479,6 +482,48 @@ router.push(
             현재 단계로 이동
           </Link>
         </div>
+      ) : null}
+
+      {supplementContext?.active ? (
+        <section
+          aria-labelledby="supplement-information-title"
+          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        >
+          <h2
+            id="supplement-information-title"
+            className="text-lg font-bold text-foreground"
+          >
+            분석을 위해 아래 내용을 조금 더 알려주세요
+          </h2>
+
+          <p className="mt-2 leading-6 text-foreground-muted">
+            기존에 입력하신 내용은 그대로 유지되어 있어요.
+            아래 정보를 기존 내용에 덧붙여 주세요.
+          </p>
+
+          <ul className="mt-4 space-y-3">
+            {supplementContext.neededInformation.map(
+              (item) => (
+                <li
+                  key={item.topic}
+                  className="rounded-control bg-surface p-4"
+                >
+                  <p className="font-bold text-foreground">
+                    {item.topic}
+                  </p>
+
+                  <p className="mt-1 leading-6 text-foreground-muted">
+                    {item.reason}
+                  </p>
+                </li>
+              ),
+            )}
+          </ul>
+
+          <p className="mt-4 text-sm font-medium text-foreground-muted">
+            추가 정보 보완은 한 번만 가능합니다.
+          </p>
+        </section>
       ) : null}
 
       <div>

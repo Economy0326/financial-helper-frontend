@@ -11,6 +11,7 @@ import {
   getConsultationSummary,
   getConsultationAnalysis,
   getFollowUpState,
+  getInformationSupplementContext,
   prepareConsultationSummary,
   prepareFollowUp,
   startConsultation,
@@ -694,5 +695,39 @@ export function useReopenAnalysisMutation() {
         }),
       ]);
     },
+  });
+}
+
+export function useInformationSupplementContextQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.analysisSupplement(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getInformationSupplementContext(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
   });
 }

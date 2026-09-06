@@ -117,6 +117,7 @@ export type AnalysisStatus =
   | "PROCESSING"
   | "COMPLETED"
   | "NEEDS_MORE_INFO"
+  | "INSUFFICIENT_INFORMATION"
   | "FAILED";
 
 export type AnalysisAdditionalInformation = {
@@ -127,6 +128,11 @@ export type AnalysisAdditionalInformation = {
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
   attemptCount: number;
+
+  informationSupplementCount: number;
+
+  canSupplementInformation: boolean;
+
   additionalInformationNeeded:
     AnalysisAdditionalInformation[];
 };
@@ -134,6 +140,16 @@ export type AnalysisStateResponse = {
 export type ReopenAnalysisResponse = {
   consultationId: string;
   nextStep: "SITUATION";
+};
+
+export type InformationSupplementContextResponse = {
+  active: boolean;
+  supplementCount: number;
+
+  neededInformation: {
+    topic: string;
+    reason: string;
+  }[];
 };
 
 export type ApiFieldError = {

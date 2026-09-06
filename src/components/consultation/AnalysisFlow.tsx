@@ -375,6 +375,81 @@ export default function AnalysisFlow() {
 
   if (
     state.status ===
+      "INSUFFICIENT_INFORMATION"
+  ) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={5}
+          totalSteps={6}
+          label="AI 분석"
+        />
+
+        <div className="py-16 text-center">
+          <div
+            aria-hidden="true"
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-subtle text-2xl"
+          >
+            !
+          </div>
+
+          <h1 className="mt-6 text-3xl font-bold text-foreground">
+            현재 정보로는 신뢰할 수 있는 분석이 어려워요
+          </h1>
+
+          <p className="mt-4 leading-7 text-foreground-muted">
+            추가 정보를 한 번 보완했지만,
+            아직 중요한 정보가 충분하지 않아요.
+            <br />
+            확인되지 않은 내용을 추측해서 결과를 만들지 않을게요.
+          </p>
+
+          {state.additionalInformationNeeded.length > 0 ? (
+            <section className="mx-auto mt-8 max-w-xl rounded-card border border-border bg-surface p-5 text-left shadow-card sm:p-6">
+              <h2 className="font-bold text-foreground">
+                아직 확인하기 어려운 정보
+              </h2>
+
+              <ul className="mt-4 space-y-3">
+                {state.additionalInformationNeeded.map(
+                  (item) => (
+                    <li
+                      key={item.topic}
+                      className="rounded-control bg-surface-subtle p-4"
+                    >
+                      <p className="font-bold text-foreground">
+                        {item.topic}
+                      </p>
+
+                      <p className="mt-1 leading-6 text-foreground-muted">
+                        {item.reason}
+                      </p>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </section>
+          ) : null}
+
+          <Link
+            href="/"
+            className={[
+              "mx-auto mt-8 inline-flex min-h-12 w-full max-w-sm",
+              "items-center justify-center rounded-control",
+              "bg-primary px-5 py-3 font-bold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            홈으로
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  if (
+    state.status ===
       "NEEDS_MORE_INFO"
   ) {
     return (
@@ -431,6 +506,10 @@ export default function AnalysisFlow() {
             </div>
           ) : null}
 
+          <p className="mt-4 text-center text-sm font-medium text-foreground-muted">
+            추가 정보 입력 기회는 한 번만 제공됩니다.
+          </p>
+
           <PrimaryButton
             type="button"
             className="mx-auto mt-8 w-full max-w-sm"
@@ -459,7 +538,7 @@ export default function AnalysisFlow() {
           >
             {reopenMutation.isPending
               ? "이동 중..."
-              : "정보 보완하기"}
+              : "추가 정보 입력하기"}
           </PrimaryButton>
         </div>
       </>

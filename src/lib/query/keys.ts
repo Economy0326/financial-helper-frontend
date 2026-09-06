@@ -76,5 +76,15 @@ export const queryKeys = {
         consultationId,
         "current",
       ] as const,
+
+    analysisSupplement: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "analysis",
+        consultationId,
+        "supplement-context",
+      ] as const,
   },
 } as const;
