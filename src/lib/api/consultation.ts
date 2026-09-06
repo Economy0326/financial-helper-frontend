@@ -8,6 +8,7 @@ import type {
   ConsultationCreateResponse,
   ConsultationDetailResponse,
   ConsultationSummaryStateResponse,
+  ConsultationReportResponse,
   FollowUpStateResponse,
   InformationSupplementContextResponse,
   UpdateCategoryResponse,
@@ -217,5 +218,28 @@ export function getInformationSupplementContext(
     `/consultations/${encodeURIComponent(
       consultationId,
     )}/analysis/supplement-context`,
+  );
+}
+
+export function prepareConsultationReport(
+  consultationId: string,
+) {
+  return apiFetch<ConsultationReportResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/report/prepare`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function getConsultationReport(
+  consultationId: string,
+) {
+  return apiFetch<ConsultationReportResponse>(
+    `/consultations/${encodeURIComponent(
+      consultationId,
+    )}/report`,
   );
 }

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
 } from "react";
 
 import Link from "next/link";
@@ -34,7 +35,7 @@ import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
 
-export default function SummaryConfirmationFlow() {
+export default function SummaryConfirmation() {
   const router =
     useRouter();
 
@@ -83,6 +84,17 @@ export default function SummaryConfirmationFlow() {
   const startAnalysisMutation =
     useStartAnalysisMutation();
 
+  /*
+   * 같은 Consultation에서
+   * Summary Prepare를 자동으로 반복 호출하지 않는다.
+   */
+  const autoPrepareConsultationRef =
+    useRef<string | null>(null);
+
+  /*
+   * 이미 서버 단계가 ANALYSIS라면
+   * Summary에 머물지 않고 Analysis로 복구한다.
+   */
   useEffect(() => {
     if (
       currentStep === "ANALYSIS"
@@ -96,16 +108,26 @@ export default function SummaryConfirmationFlow() {
     router,
   ]);
 
+  /*
+   * Summary가 아직 준비되지 않았을 때
+   * Consultation당 한 번만 자동 Prepare한다.
+   */
   useEffect(() => {
     if (
       !consultationId ||
       !canLoadSummary ||
       summaryQuery.data?.kind !==
         "not-prepared" ||
-      prepareSummaryMutation.isPending
+      prepareSummaryMutation.isPending ||
+      prepareSummaryMutation.isError ||
+      autoPrepareConsultationRef.current ===
+        consultationId
     ) {
       return;
     }
+
+    autoPrepareConsultationRef.current =
+      consultationId;
 
     prepareSummaryMutation.mutate({
       consultationId,
@@ -113,7 +135,7 @@ export default function SummaryConfirmationFlow() {
   }, [
     consultationId,
     canLoadSummary,
-    summaryQuery.data,
+    summaryQuery.data?.kind,
     prepareSummaryMutation,
   ]);
 
@@ -221,8 +243,7 @@ export default function SummaryConfirmationFlow() {
   if (
     sessionQuery.isError ||
     activeConsultationQuery.isError ||
-    summaryQuery.isError ||
-    prepareSummaryMutation.isError
+    summaryQuery.isError
   ) {
     return (
       <>
@@ -273,6 +294,70 @@ export default function SummaryConfirmationFlow() {
     );
   }
 
+  /*
+   * 자동 Prepare가 실패한 경우에는
+   * 자동 재호출하지 않고 사용자가 직접 Retry한다.
+   */
+  if (prepareSummaryMutation.isError) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={4}
+          totalSteps={6}
+          label="상담 내용 확인"
+        />
+
+        <div className="py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            상담 요약을 준비하지 못했어요.
+          </h1>
+
+          <p className="mt-3 leading-7 text-foreground-muted">
+            입력하신 상담 내용은 저장되어 있어요.
+            <br />
+            원하실 때 다시 요약 준비를 시도해 주세요.
+          </p>
+
+          <div className="mx-auto mt-8 max-w-sm space-y-3">
+            <PrimaryButton
+              type="button"
+              className="w-full"
+              disabled={!consultationId}
+              onClick={() => {
+                if (!consultationId) {
+                  return;
+                }
+
+                prepareSummaryMutation.reset();
+
+                autoPrepareConsultationRef.current =
+                  consultationId;
+
+                prepareSummaryMutation.mutate({
+                  consultationId,
+                });
+              }}
+            >
+              다시 준비하기
+            </PrimaryButton>
+
+            <SecondaryButton
+              type="button"
+              className="w-full"
+              onClick={() =>
+                router.push(
+                  "/consultation/situation",
+                )
+              }
+            >
+              상황 수정하기
+            </SecondaryButton>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const state =
     summaryQuery.data;
 
@@ -302,7 +387,8 @@ export default function SummaryConfirmationFlow() {
   }
 
   const isPending =
-    confirmSummaryMutation.isPending || startAnalysisMutation.isPending;
+    confirmSummaryMutation.isPending ||
+    startAnalysisMutation.isPending;
 
   return (
     <>
@@ -355,21 +441,18 @@ export default function SummaryConfirmationFlow() {
         </div>
       </section>
 
-      {(
-        confirmSummaryMutation.isError ||
-        startAnalysisMutation.isError
-      ) ? (
+      {confirmSummaryMutation.isError ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"
         >
           <p className="font-semibold text-danger">
-            분석 시작 상태를 확인해 주세요.
+            상담 요약 확인을 저장하지 못했어요.
           </p>
 
           <p className="mt-1 text-sm leading-6 text-foreground-muted">
-            상담 요약은 저장되어 있어요.
-            분석 화면에서 현재 상태를 다시 확인할 수 있습니다.
+            이 화면에 그대로 머물러 있어요.
+            다시 맞아요를 눌러 주세요.
           </p>
         </div>
       ) : null}
@@ -384,23 +467,40 @@ export default function SummaryConfirmationFlow() {
               return;
             }
 
+            confirmSummaryMutation.reset();
+            startAnalysisMutation.reset();
+
             void (async () => {
               try {
+                /*
+                 * 먼저 Summary Confirm.
+                 * Confirm 실패 시 Analysis로 이동하면 안 된다.
+                 */
                 await confirmSummaryMutation
                   .mutateAsync({
                     consultationId,
                   });
+              } catch {
+                return;
+              }
 
-                // Analysis 시작은 Summary Confirm이라는 사용자 Action에서 명시적으로 발생
-                // Analysis Page mount에서는 시작하지 않는다.
+              try {
+                /*
+                 * Analysis 시작은
+                 * "맞아요"라는 명시적 사용자 Action에서만 실행한다.
+                 */
                 await startAnalysisMutation
                   .mutateAsync({
                     consultationId,
                   });
-
               } finally {
-                // Start request의 Network Response가 끊겨도 실제 서버에서 Job이 만들어졌을 수 있다.
-                // Analysis Page에서 GET status를 통해 Server Truth를 다시 확인한다.
+                /*
+                 * Confirm은 이미 성공했다.
+                 *
+                 * Start 응답을 받지 못했더라도
+                 * 서버에는 Job이 생성되었을 수 있으므로
+                 * Analysis 화면의 GET으로 Server Truth를 확인한다.
+                 */
                 router.push(
                   "/consultation/analysis",
                 );

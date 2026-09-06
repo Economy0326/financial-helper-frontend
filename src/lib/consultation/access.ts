@@ -138,3 +138,27 @@ export function getAnalysisPageAccess(
     currentStep,
   };
 }
+
+export function getReportPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "REPORT"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}

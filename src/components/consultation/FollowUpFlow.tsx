@@ -140,19 +140,27 @@ export default function FollowUpFlow() {
 
   if (isLoading) {
     return (
-      <div
-        className="py-20 text-center"
-        aria-live="polite"
-        aria-busy="true"
-      >
-        <p className="text-lg font-semibold text-foreground">
-          추가 질문을 확인하고 있어요.
-        </p>
+      <>
+        <ConsultationProgress
+          currentStep={3}
+          totalSteps={6}
+          label="AI 추가 질문"
+        />
 
-        <p className="mt-2 text-foreground-muted">
-          잠시만 기다려 주세요.
-        </p>
-      </div>
+        <div
+          className="py-20 text-center"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <p className="text-lg font-semibold text-foreground">
+            추가 질문을 확인하고 있어요.
+          </p>
+
+          <p className="mt-2 text-foreground-muted">
+            잠시만 기다려 주세요.
+          </p>
+        </div>
+      </>
     );
   }
 
@@ -227,46 +235,54 @@ export default function FollowUpFlow() {
     followUpQuery.isError
   ) {
     return (
-      <div className="py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">
-          질문을 불러오지 못했어요.
-        </h1>
+      <>
+        <ConsultationProgress
+          currentStep={3}
+          totalSteps={6}
+          label="AI 추가 질문"
+        />
 
-        <p className="mt-3 leading-7 text-foreground-muted">
-          입력하신 내용은 서버에 저장되어 있어요.
-          <br />
-          잠시 후 다시 시도해 주세요.
-        </p>
+        <div className="py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            질문을 불러오지 못했어요.
+          </h1>
 
-        <div className="mx-auto mt-8 max-w-sm space-y-3">
-          <PrimaryButton
-            type="button"
-            className="w-full"
-            onClick={() => {
-              void sessionQuery.refetch();
+          <p className="mt-3 leading-7 text-foreground-muted">
+            입력하신 내용은 서버에 저장되어 있어요.
+            <br />
+            잠시 후 다시 시도해 주세요.
+          </p>
 
-              void activeConsultationQuery
-                .refetch();
+          <div className="mx-auto mt-8 max-w-sm space-y-3">
+            <PrimaryButton
+              type="button"
+              className="w-full"
+              onClick={() => {
+                void sessionQuery.refetch();
 
-              void followUpQuery.refetch();
-            }}
-          >
-            다시 시도
-          </PrimaryButton>
+                void activeConsultationQuery
+                  .refetch();
 
-          <SecondaryButton
-            type="button"
-            className="w-full"
-            onClick={() =>
-              router.push(
-                "/consultation/situation",
-              )
-            }
-          >
-            이전으로
-          </SecondaryButton>
+                void followUpQuery.refetch();
+              }}
+            >
+              다시 시도
+            </PrimaryButton>
+
+            <SecondaryButton
+              type="button"
+              className="w-full"
+              onClick={() =>
+                router.push(
+                  "/consultation/situation",
+                )
+              }
+            >
+              이전으로
+            </SecondaryButton>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -382,14 +398,22 @@ export default function FollowUpFlow() {
     state.totalQuestions == null
   ) {
     return (
-      <div
-        className="py-20 text-center"
-        aria-live="polite"
-      >
-        <p className="font-semibold text-foreground">
-          다음 단계로 이동하고 있어요.
-        </p>
-      </div>
+      <>
+        <ConsultationProgress
+          currentStep={3}
+          totalSteps={6}
+          label="AI 추가 질문"
+        />
+
+        <div
+          className="py-20 text-center"
+          aria-live="polite"
+        >
+          <p className="font-semibold text-foreground">
+            다음 단계로 이동하고 있어요.
+          </p>
+        </div>
+      </>
     );
   }
 

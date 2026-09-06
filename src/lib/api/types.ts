@@ -152,6 +152,61 @@ export type InformationSupplementContextResponse = {
   }[];
 };
 
+export type ConsultationReportResponse = {
+  kind: "ready" | "not-prepared";
+
+  report: {
+    headline: string;
+    caseSummary: string;
+
+    firstAction: {
+      title: string;
+      description: string;
+    };
+
+    keyIssues: {
+      title: string;
+      explanation: string;
+    }[];
+
+    actionSteps: {
+      order: number;
+      title: string;
+      description: string;
+    }[];
+
+    actionConsequences: {
+      action: string;
+      consequence: string;
+    }[];
+
+    requiredDocuments: {
+      name: string;
+      reason: string;
+    }[];
+
+    terms: {
+      term: string;
+      explanation: string;
+    }[];
+
+    complaintDraft: {
+      subject: string;
+      body: string;
+    };
+
+    similarCases: unknown[];
+    citations: unknown[];
+  } | null;
+
+  evidence: {
+    status:
+      | "NOT_AVAILABLE_IN_AI_V1";
+
+    message: string;
+  };
+};
+
 export type ApiFieldError = {
   field: string;
   reason: string;

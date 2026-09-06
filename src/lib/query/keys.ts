@@ -12,13 +12,15 @@ export const queryKeys = {
         "active",
       ] as const,
 
-    detail: (consultationId: string) =>
+    detail: (
+      consultationId: string,
+    ) =>
       [
         "consultations",
         "detail",
         consultationId,
       ] as const,
-      
+
     followUpRoot: (
       consultationId: string,
     ) =>
@@ -85,6 +87,25 @@ export const queryKeys = {
         "analysis",
         consultationId,
         "supplement-context",
+      ] as const,
+
+    reportRoot: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "report",
+        consultationId,
+      ] as const,
+
+    report: (
+      consultationId: string,
+    ) =>
+      [
+        "consultations",
+        "report",
+        consultationId,
+        "current",
       ] as const,
   },
 } as const;

@@ -15,6 +15,7 @@ import {
   useReopenAnalysisMutation,
   useRetryAnalysisMutation,
   useStartAnalysisMutation,
+  usePrepareConsultationReportMutation,
 } from "@/lib/query/consultation";
 
 import {
@@ -77,6 +78,9 @@ export default function AnalysisFlow() {
 
   const reopenMutation =
     useReopenAnalysisMutation();
+
+  const prepareReportMutation =
+    usePrepareConsultationReportMutation();
 
   const isInitialLoading =
     sessionQuery.isLoading ||
@@ -217,7 +221,7 @@ export default function AnalysisFlow() {
   }
 
   // Summary Confirm은 됐지만 Start request가 Network Error 등으로 실제로 서버에 도착하지 않은 경우
-  // Page mount로 자동 실행하지 않고 명시적 사용자 Action을 제공한다. 
+  // Page mount로 자동 실행하지 않고 명시적 사용자 Action을 제공한다.
   if (
     state.status === "NOT_STARTED"
   ) {
@@ -574,17 +578,56 @@ export default function AnalysisFlow() {
           핵심 쟁점 분석이 끝났어요.
         </p>
 
+        {prepareReportMutation.isError ? (
+          <div
+            role="alert"
+            className="mx-auto mt-5 max-w-md rounded-control border border-danger bg-surface p-4"
+          >
+            <p className="font-semibold text-danger">
+              결과 리포트를 준비하지 못했어요.
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-foreground-muted">
+              분석 결과는 저장되어 있어요.
+              다시 결과 보기를 눌러 주세요.
+            </p>
+          </div>
+        ) : null}
+
         <PrimaryButton
           type="button"
           className="mx-auto mt-8 w-full max-w-sm"
+          disabled={
+            prepareReportMutation.isPending
+          }
           onClick={() => {
-            // 아직 fixture
-            router.push(
-              "/consultation/report",
+            if (!consultationId) {
+              return;
+            }
+
+            prepareReportMutation.mutate(
+              {
+                consultationId,
+              },
+              {
+                onSuccess: (
+                  result,
+                ) => {
+                  if (
+                    result.kind === "ready"
+                  ) {
+                    router.push(
+                      "/consultation/report",
+                    );
+                  }
+                },
+              },
             );
           }}
         >
-          결과 보기
+          {prepareReportMutation.isPending
+            ? "결과 준비 중..."
+            : "결과 보기"}
         </PrimaryButton>
       </div>
     </>

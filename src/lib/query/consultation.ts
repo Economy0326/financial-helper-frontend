@@ -12,8 +12,10 @@ import {
   getConsultationAnalysis,
   getFollowUpState,
   getInformationSupplementContext,
+  getConsultationReport,
   prepareConsultationSummary,
   prepareFollowUp,
+  prepareConsultationReport,
   startConsultation,
   startConsultationAnalysis,
   updateConsultationCategory,
@@ -729,5 +731,84 @@ export function useInformationSupplementContextQuery(
 
     retry: shouldRetryQuery,
     retryDelay: queryRetryDelay,
+  });
+}
+
+export function useConsultationReportQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.report(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationReport(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareReportVariables = {
+  consultationId: string;
+};
+
+export function usePrepareConsultationReportMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareReportVariables) =>
+      prepareConsultationReport(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+
+      queryClient.setQueryData(
+        queryKeys.consultations.report(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
   });
 }
