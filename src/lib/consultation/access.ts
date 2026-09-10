@@ -71,3 +71,94 @@ export function getSituationPageAccess(
     currentStep,
   };
 }
+
+export function getFollowUpPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "FOLLOW_UP"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}
+
+export function getSummaryPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (currentStep === "SUMMARY") {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}
+
+export function getAnalysisPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "ANALYSIS"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}
+
+export function getReportPageAccess(
+  currentStep: ConsultationStep | null,
+): ConsultationPageAccess {
+
+  if (!currentStep) {
+    return {
+      status: "no-consultation",
+    };
+  }
+
+  if (
+    currentStep === "REPORT"
+  ) {
+    return {
+      status: "allowed",
+    };
+  }
+
+  return {
+    status: "wrong-step",
+    currentStep,
+  };
+}

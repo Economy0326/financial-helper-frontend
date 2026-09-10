@@ -5,11 +5,24 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  confirmConsultationSummary,
   getActiveConsultation,
   getConsultation,
+  getConsultationSummary,
+  getConsultationAnalysis,
+  getFollowUpState,
+  getInformationSupplementContext,
+  getConsultationReport,
+  prepareConsultationSummary,
+  prepareFollowUp,
+  prepareConsultationReport,
   startConsultation,
+  startConsultationAnalysis,
   updateConsultationCategory,
   updateConsultationSituation,
+  updateFollowUpAnswer,
+  reopenConsultationAnalysis,
+  retryConsultationAnalysis,
 } from "@/lib/api/consultation";
 
 import type {
@@ -217,6 +230,585 @@ export function useUpdateSituationMutation() {
             queryKeys.session.all,
         });
       }
+    },
+  });
+}
+
+// Follow-up 관련
+export function useFollowUpStateQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  questionNumber?: number | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.followUp(
+        consultationId ?? "pending",
+        questionNumber,
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getFollowUpState(
+        consultationId,
+        questionNumber,
+      );
+    },
+
+    // consultationId가 준비되고 조회가 허용된 경우에만 Query 실행
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareFollowUpVariables = {
+  consultationId: string;
+};
+
+export function usePrepareFollowUpMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareFollowUpVariables) =>
+      // prepareFollowUp -> 실제 API 호출
+      prepareFollowUp(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      // variables -> 입력값, data -> API 응답값
+      data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            // Root Query로 전체 캐시 제거
+            .followUpRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.setQueryData(
+        // prepare 응답으로 받은 최신 current Follow-up 상태만 캐시에 저장
+        queryKeys.consultations.followUp(
+          variables.consultationId,
+          null,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+
+    onError: (error) => {
+      if (
+        error instanceof ApiResponseError &&
+        error.code ===
+          "GUEST_SESSION_EXPIRED"
+      ) {
+        queryClient.removeQueries({
+          queryKey:
+            queryKeys.consultations.all,
+        });
+
+        void queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.session.all,
+        });
+      }
+    },
+  });
+}
+
+type UpdateFollowUpAnswerVariables = {
+  consultationId: string;
+  questionId: string;
+  answer: string;
+};
+
+export function useUpdateFollowUpAnswerMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+      questionId,
+      answer,
+    }: UpdateFollowUpAnswerVariables) =>
+      updateFollowUpAnswer(
+        consultationId,
+        questionId,
+        answer,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .followUpRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.setQueryData(
+        queryKeys.consultations.followUp(
+          variables.consultationId,
+          null,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useConsultationSummaryQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.summary(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationSummary(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareConsultationSummaryVariables =
+  {
+    consultationId: string;
+  };
+
+export function usePrepareConsultationSummaryMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareConsultationSummaryVariables) =>
+      prepareConsultationSummary(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.summary(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+// consultationId => 백엔드의 UUID가 프론트/JSON으로 넘어오면 문자열로 표현됨
+type ConfirmConsultationSummaryVariables =
+  {
+    consultationId: string;
+  };
+
+export function useConfirmConsultationSummaryMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: ConfirmConsultationSummaryVariables) =>
+      confirmConsultationSummary(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      _data,
+      variables,
+    ) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.summary(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useAnalysisStateQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.analysis(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationAnalysis(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+
+    // Polling은 QUEUED, PROCESSING일 때만 2초마다 진행
+    // 상태가 바뀔 가능성이 있을 때만 Polling 진행
+    refetchInterval: (query) => {
+      const status =
+        query.state.data?.status;
+
+      if (
+        status === "QUEUED" ||
+        status === "PROCESSING"
+      ) {
+        return 2_000;
+      }
+
+      return false;
+    },
+
+    refetchIntervalInBackground:
+      false,
+  });
+}
+
+type AnalysisMutationVariables = {
+  consultationId: string;
+};
+
+export function useStartAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      startConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.analysis(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey:
+          queryKeys.consultations.active(),
+      });
+    },
+  });
+}
+
+export function useRetryAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      retryConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: (
+      data,
+      variables,
+    ) => {
+      queryClient.setQueryData(
+        queryKeys.consultations.analysis(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey:
+          queryKeys.consultations.active(),
+      });
+    },
+  });
+}
+
+export function useReopenAnalysisMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: AnalysisMutationVariables) =>
+      reopenConsultationAnalysis(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      _data,
+      variables,
+    ) => {
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .analysisRoot(
+              variables.consultationId,
+            ),
+      });
+
+      queryClient.removeQueries({
+        queryKey:
+          queryKeys.consultations
+            .summaryRoot(
+              variables.consultationId,
+            ),
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
+    },
+  });
+}
+
+export function useInformationSupplementContextQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.analysisSupplement(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getInformationSupplementContext(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+export function useConsultationReportQuery(
+  consultationId:
+    | string
+    | null
+    | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      queryKeys.consultations.report(
+        consultationId ?? "pending",
+      ),
+
+    queryFn: () => {
+      if (!consultationId) {
+        throw new Error(
+          "Consultation ID is required.",
+        );
+      }
+
+      return getConsultationReport(
+        consultationId,
+      );
+    },
+
+    enabled:
+      Boolean(consultationId) &&
+      enabled,
+
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
+  });
+}
+
+type PrepareReportVariables = {
+  consultationId: string;
+};
+
+export function usePrepareConsultationReportMutation() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      consultationId,
+    }: PrepareReportVariables) =>
+      prepareConsultationReport(
+        consultationId,
+      ),
+
+    onSuccess: async (
+      data,
+      variables,
+    ) => {
+
+      queryClient.setQueryData(
+        queryKeys.consultations.report(
+          variables.consultationId,
+        ),
+        data,
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey:
+            queryKeys.consultations.detail(
+              variables.consultationId,
+            ),
+        }),
+      ]);
     },
   });
 }

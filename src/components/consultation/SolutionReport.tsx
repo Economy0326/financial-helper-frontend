@@ -1,39 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useState,
+  type ReactNode,
+} from "react";
+
+import Link from "next/link";
+
+import {
+  useRouter,
+} from "next/navigation";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
 import {
-  getSolutionReportFixture,
-  type ReportSourceFixture,
-} from "@/lib/fixtures/consultation";
+  useActiveConsultationQuery,
+  useConsultationReportQuery,
+} from "@/lib/query/consultation";
 
-const reportQueryKey = [
-  "consultation",
-  "solution-report",
-] as const;
+import {
+  useSessionQuery,
+} from "@/lib/query/session";
+
+import {
+  getReportPageAccess,
+} from "@/lib/consultation/access";
+
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 
 const reportSections = [
   {
-    id: "priority",
+    id: "first-action",
     label: "지금 가장 먼저 해야 할 일",
   },
   {
-    id: "summary",
+    id: "overview",
     label: "내 상황 요약",
   },
   {
-    id: "issue",
+    id: "issues",
     label: "핵심 쟁점",
   },
   {
-    id: "procedure",
-    label: "예상 절차",
+    id: "actions",
+    label: "행동 단계",
   },
   {
     id: "documents",
@@ -44,11 +58,15 @@ const reportSections = [
     label: "유사 사례",
   },
   {
-    id: "glossary",
+    id: "terms",
     label: "금융용어",
   },
   {
-    id: "sources",
+    id: "complaint",
+    label: "문의·민원 초안",
+  },
+  {
+    id: "evidence",
     label: "공식 출처",
   },
 ] as const;
@@ -56,95 +74,40 @@ const reportSections = [
 type ReportSectionId =
   (typeof reportSections)[number]["id"];
 
-// 출처 링크 목록
-function SourceLinks({
-  citationIds,
-  sources,
-}: {
-  citationIds: string[];
-  sources: ReportSourceFixture[];
-}) {
-  const matchedSources = citationIds
-    .map((citationId) =>
-      sources.find(
-        (source) => source.id === citationId,
-      ),
-    )
-    .filter(
-      (
-        source,
-      ): source is ReportSourceFixture =>
-        Boolean(source),
-    );
+type ReportSectionProps = {
+  id: ReportSectionId;
+  title: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+};
 
-  if (matchedSources.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {matchedSources.map((source) => (
-        <a
-          key={source.id}
-          href={source.url}
-          target="_blank"
-          rel="noreferrer"
-          className={[
-            "inline-flex min-h-10 items-center rounded-control",
-            "border border-primary px-3 text-sm font-semibold text-primary",
-            "focus-visible:outline-none focus-visible:ring-2",
-            "focus-visible:ring-focus focus-visible:ring-offset-2",
-          ].join(" ")}
-        >
-          {source.organization} 근거 확인
-
-          <span
-            aria-hidden="true"
-            className="ml-1"
-          >
-            ↗
-          </span>
-
-          {/* sr-only => 화면에서는 숨기고, 스크린리더는 읽을 수 있게 */}
-          <span className="sr-only">
-            새 탭에서 열림
-          </span>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-// 실제 리포트 섹션
-// mobile과 desktop에서  report data를 따로 만들지 않는다
+// 모바일에서는 Accordion,
+// 데스크톱에서는 항상 펼쳐진 문서형 Section으로 사용한다.
 function ReportSection({
   id,
   title,
   isExpanded,
   onToggle,
   children,
-}: {
-  id: ReportSectionId;
-  title: string;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const contentId = `${id}-content`;
+}: ReportSectionProps) {
+  const contentId =
+    `${id}-content`;
 
   return (
     <section
       id={id}
+      aria-labelledby={`${id}-heading`}
       className={[
-        "scroll-mt-24 rounded-card border border-border",
+        "scroll-mt-24 rounded-card",
+        "border border-border",
         "bg-surface shadow-card",
       ].join(" ")}
-      aria-labelledby={`${id}-heading`}
     >
-      {/* Mobile accordion header */}
+      {/* Mobile Accordion Header */}
       <h2
         id={`${id}-heading`}
-        className="lg:hidden"
+        className="lg:hidden print:hidden"
       >
         <button
           type="button"
@@ -152,34 +115,51 @@ function ReportSection({
           aria-controls={contentId}
           onClick={onToggle}
           className={[
-            "flex min-h-16 w-full items-center justify-between gap-4",
-            "px-5 py-4 text-left font-bold text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2",
-            "focus-visible:ring-inset focus-visible:ring-focus",
+            "flex min-h-16 w-full",
+            "items-center justify-between",
+            "gap-4 px-5 py-4",
+            "text-left font-bold",
+            "text-foreground",
+            "focus-visible:outline-none",
+            "focus-visible:ring-2",
+            "focus-visible:ring-inset",
+            "focus-visible:ring-focus",
           ].join(" ")}
         >
-          <span>{title}</span>
+          <span>
+            {title}
+          </span>
 
           <span
             aria-hidden="true"
-            className="shrink-0 text-primary"
+            className="shrink-0 text-xl text-primary"
           >
             {isExpanded ? "−" : "+"}
           </span>
         </button>
       </h2>
 
-      {/* Desktop document heading */}
-      <h2 className="hidden px-7 pt-7 text-xl font-bold text-foreground lg:block">
+      {/* Desktop / Print Heading */}
+      <h2
+        id={`${id}-heading-desktop`}
+        className={[
+          "hidden px-7 pt-7",
+          "text-xl font-bold text-foreground",
+          "lg:block print:block",
+        ].join(" ")}
+      >
         {title}
       </h2>
 
       <div
         id={contentId}
         className={[
-          "px-5 pb-5 lg:block lg:px-7 lg:pb-7 lg:pt-5",
-          "print:block",
-          isExpanded ? "block" : "hidden",
+          "px-5 pb-5",
+          "lg:block lg:px-7 lg:pb-7 lg:pt-5",
+          "print:block print:px-7 print:pb-7 print:pt-5",
+          isExpanded
+            ? "block"
+            : "hidden",
         ].join(" ")}
       >
         {children}
@@ -189,49 +169,100 @@ function ReportSection({
 }
 
 export default function SolutionReport() {
-  const router = useRouter();
+  const router =
+    useRouter();
 
-  // 데스크탑 목차에서 현재 활성화되는 섹션에서 사용
-  const [activeSection, setActiveSection] =
-    useState<ReportSectionId>("priority");
+  const [
+    activeSection,
+    setActiveSection,
+  ] =
+    useState<ReportSectionId>(
+      "first-action",
+    );
 
-  // 모바일 아코디언에서 펼쳐진 섹션에서 사용
-  const [expandedSections, setExpandedSections] =
+  // 기존 UX 유지:
+  // 처음에는 모든 Section이 펼쳐진 상태이고
+  // 모바일 사용자가 원하는 Section만 접을 수 있다.
+  const [
+    expandedSections,
+    setExpandedSections,
+  ] =
     useState<Set<ReportSectionId>>(
       () =>
         new Set(
           reportSections.map(
-            (section) => section.id,
+            (section) =>
+              section.id,
           ),
         ),
     );
 
-  const reportQuery = useQuery({
-    queryKey: reportQueryKey,
-    queryFn: getSolutionReportFixture,
-    retry: false,
-  });
+  const sessionQuery =
+    useSessionQuery();
+
+  const hasActiveConsultation =
+    sessionQuery.isSuccess &&
+    sessionQuery.data
+      .hasActiveConsultation;
+
+  const activeConsultationQuery =
+    useActiveConsultationQuery(
+      hasActiveConsultation,
+    );
+
+  const consultationId =
+    activeConsultationQuery.data
+      ?.consultationId ?? null;
+
+  const currentStep =
+    activeConsultationQuery.data
+      ?.currentStep ?? null;
+
+  const pageAccess =
+    getReportPageAccess(
+      currentStep,
+    );
+
+  // Report Page에서는 생성하지 않는다.
+  // 이미 서버에 저장된 Report만 GET으로 조회한다.
+  const reportQuery =
+    useConsultationReportQuery(
+      consultationId,
+      pageAccess.status ===
+        "allowed",
+    );
 
   function toggleSection(
     sectionId: ReportSectionId,
   ) {
-    setExpandedSections((current) => {
-      const next = new Set(current);
+    setExpandedSections(
+      (current) => {
+        const next =
+          new Set(current);
 
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
+        if (
+          next.has(sectionId)
+        ) {
+          next.delete(
+            sectionId,
+          );
+        } else {
+          next.add(
+            sectionId,
+          );
+        }
 
-      return next;
-    });
+        return next;
+      },
+    );
   }
 
   function moveToSection(
     sectionId: ReportSectionId,
   ) {
-    setActiveSection(sectionId);
+    setActiveSection(
+      sectionId,
+    );
 
     const prefersReducedMotion =
       window.matchMedia(
@@ -239,16 +270,31 @@ export default function SolutionReport() {
       ).matches;
 
     document
-      .getElementById(sectionId)
+      .getElementById(
+        sectionId,
+      )
       ?.scrollIntoView({
-        behavior: prefersReducedMotion
-          ? "auto"
-          : "smooth",
+        behavior:
+          prefersReducedMotion
+            ? "auto"
+            : "smooth",
         block: "start",
       });
   }
 
-  if (reportQuery.isLoading) {
+  const isLoading =
+    sessionQuery.isLoading ||
+    (
+      hasActiveConsultation &&
+      activeConsultationQuery.isLoading
+    ) ||
+    (
+      pageAccess.status ===
+        "allowed" &&
+      reportQuery.isLoading
+    );
+
+  if (isLoading) {
     return (
       <>
         <ConsultationProgress
@@ -263,7 +309,7 @@ export default function SolutionReport() {
           aria-busy="true"
         >
           <p className="text-lg font-semibold text-foreground">
-            해결 리포트를 불러오고 있어요.
+            저장된 해결 리포트를 불러오고 있어요.
           </p>
 
           <p className="mt-2 text-foreground-muted">
@@ -274,9 +320,127 @@ export default function SolutionReport() {
     );
   }
 
+  if (
+    sessionQuery.isError ||
+    (
+      hasActiveConsultation &&
+      activeConsultationQuery.isError
+    )
+  ) {
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={6}
+          totalSteps={6}
+          label="해결 리포트"
+        />
 
-  // Report 조회 실패
-  // 다시 시도는 Analysis Retry가 아니라 Report Query만 다시 조회한다.
+        <div className="py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            상담 상태를 확인하지 못했어요.
+          </h1>
+
+          <p className="mt-4 leading-7 text-foreground-muted">
+            인터넷 연결을 확인한 뒤
+            다시 시도해 주세요.
+          </p>
+
+          <div className="mx-auto mt-8 max-w-sm">
+            <PrimaryButton
+              type="button"
+              className="w-full"
+              onClick={() => {
+                void sessionQuery.refetch();
+
+                if (
+                  hasActiveConsultation
+                ) {
+                  void activeConsultationQuery
+                    .refetch();
+                }
+              }}
+            >
+              다시 시도
+            </PrimaryButton>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (
+    sessionQuery.isSuccess &&
+    !hasActiveConsultation
+  ) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          진행 중인 상담이 없어요.
+        </h1>
+
+        <p className="mt-3 leading-7 text-foreground-muted">
+          먼저 상담을 시작해 주세요.
+        </p>
+
+        <Link
+          href="/"
+          className={[
+            "mx-auto mt-8 inline-flex",
+            "min-h-12 items-center justify-center",
+            "rounded-control bg-primary",
+            "px-5 py-3 font-bold",
+            "text-primary-foreground",
+            "focus-visible:outline-none",
+            "focus-visible:ring-2",
+            "focus-visible:ring-focus",
+            "focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          홈으로
+        </Link>
+      </div>
+    );
+  }
+
+  if (
+    pageAccess.status ===
+      "wrong-step"
+  ) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          아직 해결 리포트를 볼 단계가 아니에요.
+        </h1>
+
+        <p className="mt-3 leading-7 text-foreground-muted">
+          저장된 상담 단계에서
+          계속 진행해 주세요.
+        </p>
+
+        <Link
+          href={getConsultationStepHref(
+            pageAccess.currentStep,
+          )}
+          className={[
+            "mx-auto mt-8 inline-flex",
+            "min-h-12 items-center justify-center",
+            "rounded-control bg-primary",
+            "px-5 py-3 font-bold",
+            "text-primary-foreground",
+            "focus-visible:outline-none",
+            "focus-visible:ring-2",
+            "focus-visible:ring-focus",
+            "focus-visible:ring-offset-2",
+          ].join(" ")}
+        >
+          현재 단계로 이동
+        </Link>
+      </div>
+    );
+  }
+
+  // Report 조회 실패 시 Analysis를 다시 실행하지 않는다.
+  // 저장된 Report GET만 다시 수행한다.
   if (reportQuery.isError) {
     return (
       <>
@@ -287,37 +451,35 @@ export default function SolutionReport() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             해결 리포트를 불러오지 못했어요.
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
             분석을 다시 실행하지 않고
             <br />
-            준비된 리포트를 다시 확인할게요.
+            저장된 리포트만 다시 확인할게요.
           </p>
 
           <div className="mx-auto mt-8 max-w-sm space-y-3">
             <PrimaryButton
               type="button"
               className="w-full"
-              onClick={() =>
-                reportQuery.refetch()
-              }
+              onClick={() => {
+                void reportQuery.refetch();
+              }}
             >
-              다시 시도
+              다시 불러오기
             </PrimaryButton>
 
             <SecondaryButton
               type="button"
               className="w-full"
-              onClick={() =>
-                router.push(
-                  "/consultation/analysis",
-                )
-              }
+              onClick={() => {
+                router.push("/");
+              }}
             >
-              분석 상태로 돌아가기
+              홈으로
             </SecondaryButton>
           </div>
         </div>
@@ -325,13 +487,18 @@ export default function SolutionReport() {
     );
   }
 
-  const state = reportQuery.data;
+  const state =
+    reportQuery.data;
 
   if (!state) {
     return null;
   }
 
-  if (state.kind === "not-ready") {
+  if (
+    state.kind ===
+      "not-prepared" ||
+    !state.report
+  ) {
     return (
       <>
         <ConsultationProgress
@@ -341,79 +508,38 @@ export default function SolutionReport() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
-            아직 리포트가 준비되지 않았어요.
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            아직 준비된 해결 리포트가 없어요.
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            분석 상태를 다시 확인해 주세요.
+            분석 결과 화면에서
+            결과 보기를 다시 눌러 주세요.
           </p>
 
-          <div className="mx-auto mt-8 max-w-sm space-y-3">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push(
-                  "/consultation/analysis",
-                )
-              }
-            >
-              분석 상태 확인
-            </PrimaryButton>
-
-            <SecondaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                reportQuery.refetch()
-              }
-            >
-              리포트 다시 확인
-            </SecondaryButton>
-          </div>
+          <Link
+            href="/consultation/analysis"
+            className={[
+              "mx-auto mt-8 inline-flex",
+              "min-h-12 items-center justify-center",
+              "rounded-control bg-primary",
+              "px-5 py-3 font-bold",
+              "text-primary-foreground",
+              "focus-visible:outline-none",
+              "focus-visible:ring-2",
+              "focus-visible:ring-focus",
+              "focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            분석 결과로 돌아가기
+          </Link>
         </div>
       </>
     );
   }
 
-  if (state.kind === "unavailable") {
-    return (
-      <>
-        <ConsultationProgress
-          currentStep={6}
-          totalSteps={6}
-          label="해결 리포트"
-        />
-
-        <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
-            리포트를 제공하기 어려워요.
-          </h1>
-
-          <p className="mt-4 leading-7 text-foreground-muted">
-            {state.message}
-          </p>
-
-          <div className="mx-auto mt-8 max-w-sm">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push(
-                  "/consultation/summary",
-                )
-              }
-            >
-              상담 내용 확인
-            </PrimaryButton>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  const { report } = state;
+  const report =
+    state.report;
 
   return (
     <>
@@ -426,13 +552,19 @@ export default function SolutionReport() {
       </div>
 
       <header className="mt-10 text-center sm:mt-12">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-          {report.title}
+        <p className="text-sm font-semibold text-primary">
+          AI 해결 리포트
+        </p>
+
+        <h1 className="mt-3 break-keep text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+          {report.headline}
         </h1>
 
-        <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
-          {report.description}
-        </p>
+        <div className="mx-auto mt-6 max-w-2xl rounded-control border border-border bg-surface-subtle p-4 text-left">
+          <p className="text-sm leading-6 text-foreground-muted">
+            {state.evidence.message}
+          </p>
+        </div>
       </header>
 
       <div
@@ -442,11 +574,12 @@ export default function SolutionReport() {
           "lg:items-start lg:gap-6",
         ].join(" ")}
       >
-        {/* Desktop sticky navigation */}
+        {/* Desktop Sticky Navigation */}
         <nav
           aria-label="해결 리포트 목차"
           className={[
-            "hidden lg:sticky lg:top-6 lg:block",
+            "hidden lg:sticky",
+            "lg:top-6 lg:block",
             "print:hidden",
           ].join(" ")}
         >
@@ -454,7 +587,8 @@ export default function SolutionReport() {
             {reportSections.map(
               (section) => {
                 const isActive =
-                  activeSection === section.id;
+                  activeSection ===
+                  section.id;
 
                 return (
                   <li
@@ -462,18 +596,24 @@ export default function SolutionReport() {
                     className="border-b border-border last:border-b-0"
                   >
                     <button
-                      // 스크린리더 사용자를 위해서 aria-current 포함
                       type="button"
                       aria-current={
-                        isActive ? "location" : undefined
+                        isActive
+                          ? "location"
+                          : undefined
                       }
                       onClick={() =>
-                        moveToSection(section.id)
+                        moveToSection(
+                          section.id,
+                        )
                       }
                       className={[
-                        "w-full px-4 py-4 text-left text-sm font-semibold",
-                        "focus-visible:outline-none focus-visible:ring-2",
-                        "focus-visible:ring-inset focus-visible:ring-focus",
+                        "w-full px-4 py-4",
+                        "text-left text-sm font-semibold",
+                        "focus-visible:outline-none",
+                        "focus-visible:ring-2",
+                        "focus-visible:ring-inset",
+                        "focus-visible:ring-focus",
                         isActive
                           ? "bg-primary-subtle text-primary"
                           : "text-foreground hover:bg-surface-subtle",
@@ -490,260 +630,323 @@ export default function SolutionReport() {
 
         <article className="min-w-0 space-y-4">
           <ReportSection
-            id="priority"
+            id="first-action"
             title="지금 가장 먼저 해야 할 일"
-            isExpanded={expandedSections.has(
-              "priority",
-            )}
+            isExpanded={
+              expandedSections.has(
+                "first-action",
+              )
+            }
             onToggle={() =>
-              toggleSection("priority")
+              toggleSection(
+                "first-action",
+              )
             }
           >
-            <ol className="space-y-6">
-              {report.priorityActions.map(
-                (action, index) => (
-                  <li
-                    key={action.id}
-                    className="flex gap-4"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={[
-                        "flex h-9 w-9 shrink-0 items-center justify-center",
-                        "rounded-control bg-primary font-bold text-primary-foreground",
-                      ].join(" ")}
-                    >
-                      {index + 1}
-                    </span>
+            <div className="rounded-control bg-primary-subtle p-4 sm:p-5">
+              <h3 className="text-lg font-bold text-primary">
+                {report.firstAction.title}
+              </h3>
 
-                    <div>
-                      <h3 className="font-bold leading-7 text-foreground">
-                        {action.title}
-                      </h3>
-
-                      <p className="mt-1 leading-7 text-foreground-muted">
-                        {action.description}
-                      </p>
-
-                      <SourceLinks
-                        citationIds={
-                          action.citationIds
-                        }
-                        sources={report.sources}
-                      />
-                    </div>
-                  </li>
-                ),
-              )}
-            </ol>
+              <p className="mt-2 leading-7 text-foreground">
+                {report.firstAction.description}
+              </p>
+            </div>
           </ReportSection>
 
           <ReportSection
-            id="summary"
+            id="overview"
             title="내 상황 요약"
-            isExpanded={expandedSections.has(
-              "summary",
-            )}
+            isExpanded={
+              expandedSections.has(
+                "overview",
+              )
+            }
             onToggle={() =>
-              toggleSection("summary")
+              toggleSection(
+                "overview",
+              )
             }
           >
-            <ul className="space-y-2">
-              {report.situationSummary.map(
-                (item) => (
-                  <li
-                    key={item}
-                    className="flex gap-3 leading-7 text-foreground"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="text-primary"
-                    >
-                      •
-                    </span>
-
-                    <span>{item}</span>
-                  </li>
-                ),
-              )}
-            </ul>
+            <p className="whitespace-pre-line leading-8 text-foreground">
+              {report.caseSummary}
+            </p>
           </ReportSection>
 
           <ReportSection
-            id="issue"
+            id="issues"
             title="핵심 쟁점"
-            isExpanded={expandedSections.has(
-              "issue",
-            )}
+            isExpanded={
+              expandedSections.has(
+                "issues",
+              )
+            }
             onToggle={() =>
-              toggleSection("issue")
+              toggleSection(
+                "issues",
+              )
             }
           >
-            <p className="leading-8 text-foreground">
-              {report.keyIssue}
-            </p>
-          </ReportSection>
-
-          <ReportSection
-            id="procedure"
-            title="예상 절차"
-            isExpanded={expandedSections.has(
-              "procedure",
-            )}
-            onToggle={() =>
-              toggleSection("procedure")
-            }
-          >
-            <ol className="space-y-6">
-              {report.expectedProcedure.map(
-                (procedure) => (
-                  <li
-                    key={procedure.step}
-                    className="flex gap-4"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={[
-                        "flex h-8 w-8 shrink-0 items-center justify-center",
-                        "rounded-full bg-primary text-sm font-bold text-primary-foreground",
-                      ].join(" ")}
-                    >
-                      {procedure.step}
-                    </span>
-
-                    <div>
-                      <h3 className="font-bold text-foreground">
-                        {procedure.title}
-                      </h3>
-
-                      <p className="mt-1 leading-7 text-foreground-muted">
-                        {
-                          procedure.description
-                        }
-                      </p>
-                    </div>
-                  </li>
-                ),
-              )}
-            </ol>
-          </ReportSection>
-
-          <ReportSection
-            id="documents"
-            title="필요한 서류"
-            isExpanded={expandedSections.has(
-              "documents",
-            )}
-            onToggle={() =>
-              toggleSection("documents")
-            }
-          >
-            <p className="mb-4 text-sm text-foreground-muted">
-              준비할 자료를 확인해 보세요.
-            </p>
-
-            <ul className="space-y-3">
-              {report.requiredDocuments.map(
-                (document) => (
-                  <li
-                    key={document}
-                    className="flex items-start gap-3 leading-7 text-foreground"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={[
-                        "mt-1 h-5 w-5 shrink-0 rounded",
-                        "border border-border-strong bg-surface",
-                      ].join(" ")}
-                    />
-
-                    <span>{document}</span>
-                  </li>
-                ),
-              )}
-            </ul>
-          </ReportSection>
-
-          <ReportSection
-            id="cases"
-            title="유사 사례"
-            isExpanded={expandedSections.has(
-              "cases",
-            )}
-            onToggle={() =>
-              toggleSection("cases")
-            }
-          >
-            {report.similarCases.length > 0 ? (
+            {report.keyIssues.length >
+            0 ? (
               <div className="space-y-4">
-                {report.similarCases.map(
-                  (caseItem) => (
-                    <article
-                      key={caseItem.id}
-                      className="rounded-control border border-border bg-surface-subtle p-4"
+                {report.keyIssues.map(
+                  (
+                    issue,
+                    index,
+                  ) => (
+                    <div
+                      key={`${issue.title}-${index}`}
+                      className="rounded-control bg-surface-subtle p-4"
                     >
-                      <h3 className="font-bold text-foreground">
-                        {caseItem.title}
+                      <h3 className="font-bold leading-7 text-foreground">
+                        {issue.title}
                       </h3>
 
                       <p className="mt-2 leading-7 text-foreground-muted">
-                        {caseItem.summary}
+                        {
+                          issue.explanation
+                        }
                       </p>
-
-                      <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="font-semibold text-foreground-muted">
-                            결과
-                          </dt>
-                          <dd className="mt-1 text-foreground">
-                            {caseItem.result}
-                          </dd>
-                        </div>
-
-                        <div>
-                          <dt className="font-semibold text-foreground-muted">
-                            참고
-                          </dt>
-                          <dd className="mt-1 text-foreground">
-                            {
-                              caseItem.duration
-                            }
-                          </dd>
-                        </div>
-                      </dl>
-                    </article>
+                    </div>
                   ),
                 )}
               </div>
             ) : (
-              <p className="rounded-control bg-surface-subtle p-4 leading-7 text-foreground-muted">
-                현재 이 리포트에 포함된 유사 사례는
-                없어요.
+              <p className="text-foreground-muted">
+                별도로 정리된 핵심 쟁점이 없어요.
               </p>
             )}
           </ReportSection>
 
           <ReportSection
-            id="glossary"
-            title="금융용어"
-            isExpanded={expandedSections.has(
-              "glossary",
-            )}
+            id="actions"
+            title="행동 단계"
+            isExpanded={
+              expandedSections.has(
+                "actions",
+              )
+            }
             onToggle={() =>
-              toggleSection("glossary")
+              toggleSection(
+                "actions",
+              )
             }
           >
-            {report.glossary.length > 0 ? (
-              <dl className="space-y-5">
-                {report.glossary.map(
-                  (item) => (
-                    <div key={item.term}>
+            <ol className="space-y-6">
+              {report.actionSteps.map(
+                (step) => (
+                  <li
+                    key={step.order}
+                    className="flex gap-4"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={[
+                        "flex h-9 w-9 shrink-0",
+                        "items-center justify-center",
+                        "rounded-full bg-primary",
+                        "text-sm font-bold",
+                        "text-primary-foreground",
+                      ].join(" ")}
+                    >
+                      {step.order}
+                    </span>
+
+                    <div className="min-w-0">
+                      <h3 className="font-bold leading-7 text-foreground">
+                        {step.title}
+                      </h3>
+
+                      <p className="mt-1 leading-7 text-foreground-muted">
+                        {
+                          step.description
+                        }
+                      </p>
+                    </div>
+                  </li>
+                ),
+              )}
+            </ol>
+
+            {report.actionConsequences
+              .length > 0 ? (
+              <div className="mt-8">
+                <h3 className="font-bold text-foreground">
+                  행동 전에 함께 확인할 점
+                </h3>
+
+                <div className="mt-4 space-y-3">
+                  {report.actionConsequences.map(
+                    (
+                      item,
+                      index,
+                    ) => (
+                      <div
+                        key={`${item.action}-${index}`}
+                        className="rounded-control border border-border bg-surface-subtle p-4"
+                      >
+                        <p className="font-bold text-foreground">
+                          {item.action}
+                        </p>
+
+                        <p className="mt-1 leading-7 text-foreground-muted">
+                          {
+                            item.consequence
+                          }
+                        </p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </ReportSection>
+
+          <ReportSection
+            id="documents"
+            title="필요한 서류"
+            isExpanded={
+              expandedSections.has(
+                "documents",
+              )
+            }
+            onToggle={() =>
+              toggleSection(
+                "documents",
+              )
+            }
+          >
+            <p className="mb-4 text-sm leading-6 text-foreground-muted">
+              상담이나 문의 전에 준비하면 좋은 자료예요.
+            </p>
+
+            {report.requiredDocuments
+              .length > 0 ? (
+              <ul className="space-y-3">
+                {report.requiredDocuments.map(
+                  (
+                    document,
+                    index,
+                  ) => (
+                    <li
+                      key={`${document.name}-${index}`}
+                      className="flex gap-3 rounded-control bg-surface-subtle p-4"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          "mt-0.5 flex h-9 w-9 shrink-0",
+                          "items-center justify-center rounded-control",
+                          "bg-primary-subtle text-primary",
+                        ].join(" ")}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-5 w-5"
+                          fill="none"
+                        >
+                          <path
+                            d="M7 3.75h6.5L18 8.25v12H7z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M13.5 3.75v4.5H18M9.5 12h6M9.5 15.5h6"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {
+                            document.name
+                          }
+                        </p>
+
+                        <p className="mt-1 leading-6 text-foreground-muted">
+                          {
+                            document.reason
+                          }
+                        </p>
+                      </div>
+                    </li>
+                  ),
+                )}
+              </ul>
+            ) : (
+              <p className="rounded-control bg-surface-subtle p-4 leading-7 text-foreground-muted">
+                현재 추가로 제안할 자료는 없어요.
+              </p>
+            )}
+          </ReportSection>
+
+          <ReportSection
+            id="cases"
+            title="유사 사례"
+            isExpanded={
+              expandedSections.has(
+                "cases",
+              )
+            }
+            onToggle={() =>
+              toggleSection(
+                "cases",
+              )
+            }
+          >
+            <div className="rounded-control bg-surface-subtle p-4">
+              <p className="leading-7 text-foreground-muted">
+                현재 AI V1에서는 검증된
+                유사 분쟁 사례를 제공하지 않아요.
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-foreground-muted">
+                공식 자료 검색 기능이 연결된 뒤
+                검증된 사례만 표시할 예정이에요.
+              </p>
+            </div>
+          </ReportSection>
+
+          <ReportSection
+            id="terms"
+            title="금융용어"
+            isExpanded={
+              expandedSections.has(
+                "terms",
+              )
+            }
+            onToggle={() =>
+              toggleSection(
+                "terms",
+              )
+            }
+          >
+            {report.terms.length >
+            0 ? (
+              <dl className="space-y-4">
+                {report.terms.map(
+                  (
+                    item,
+                    index,
+                  ) => (
+                    <div
+                      key={`${item.term}-${index}`}
+                      className="rounded-control bg-surface-subtle p-4"
+                    >
                       <dt className="font-bold text-foreground">
                         {item.term}
                       </dt>
 
                       <dd className="mt-1 leading-7 text-foreground-muted">
-                        {item.description}
+                        {
+                          item.explanation
+                        }
                       </dd>
                     </div>
                   ),
@@ -751,71 +954,84 @@ export default function SolutionReport() {
               </dl>
             ) : (
               <p className="text-foreground-muted">
-                추가로 설명할 금융용어가 없어요.
+                별도로 설명할 금융용어가 없어요.
               </p>
             )}
           </ReportSection>
 
           <ReportSection
-            id="sources"
-            title="공식 출처"
-            isExpanded={expandedSections.has(
-              "sources",
-            )}
+            id="complaint"
+            title="문의·민원 초안"
+            isExpanded={
+              expandedSections.has(
+                "complaint",
+              )
+            }
             onToggle={() =>
-              toggleSection("sources")
+              toggleSection(
+                "complaint",
+              )
             }
           >
-            <p className="mb-5 leading-7 text-foreground-muted">
-              리포트 작성에 사용된 공식 자료를
-              확인할 수 있어요.
-            </p>
+            <div className="rounded-control border border-border bg-surface-subtle p-4 sm:p-5">
+              <p className="text-sm leading-6 text-foreground-muted">
+                아래 내용은 참고용 초안이에요.
+                실제 제출 전 사실관계를 다시 확인해 주세요.
+              </p>
 
-            <ul className="space-y-4">
-              {report.sources.map(
-                (source) => (
-                  <li
-                    key={source.id}
-                    className="rounded-control border border-border bg-surface-subtle p-4"
-                  >
-                    <p className="text-sm font-semibold text-primary">
-                      {source.organization}
-                    </p>
+              <div className="mt-5">
+                <h3 className="font-bold text-foreground">
+                  제목
+                </h3>
 
-                    <p className="mt-1 font-bold leading-7 text-foreground">
-                      {source.title}
-                    </p>
+                <p className="mt-2 leading-7 text-foreground">
+                  {
+                    report.complaintDraft
+                      .subject
+                  }
+                </p>
+              </div>
 
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={[
-                        "mt-4 inline-flex min-h-11 items-center",
-                        "rounded-control border border-primary px-4",
-                        "font-semibold text-primary",
-                        "focus-visible:outline-none focus-visible:ring-2",
-                        "focus-visible:ring-focus focus-visible:ring-offset-2",
-                      ].join(" ")}
-                    >
-                      공식 원문 확인
+              <div className="mt-6">
+                <h3 className="font-bold text-foreground">
+                  내용
+                </h3>
 
-                      <span
-                        aria-hidden="true"
-                        className="ml-1"
-                      >
-                        ↗
-                      </span>
+                <p className="mt-2 whitespace-pre-wrap leading-7 text-foreground">
+                  {
+                    report.complaintDraft
+                      .body
+                  }
+                </p>
+              </div>
+            </div>
+          </ReportSection>
 
-                      {/* sr-only => 화면에서는 숨기고, 스크린리더는 읽을 수 있게 */}
-                      <span className="sr-only">
-                        새 탭에서 열림
-                      </span>
-                    </a>
-                  </li>
-                ),
-              )}
-            </ul>
+          <ReportSection
+            id="evidence"
+            title="공식 출처"
+            isExpanded={
+              expandedSections.has(
+                "evidence",
+              )
+            }
+            onToggle={() =>
+              toggleSection(
+                "evidence",
+              )
+            }
+          >
+            <div className="rounded-control bg-surface-subtle p-4">
+              <p className="leading-7 text-foreground-muted">
+                {state.evidence.message}
+              </p>
+
+              <p className="mt-3 text-sm leading-6 text-foreground-muted">
+                확인되지 않은 법령, 판례,
+                기관 URL이나 유사 사례를
+                임의로 표시하지 않습니다.
+              </p>
+            </div>
           </ReportSection>
 
           <section
@@ -830,18 +1046,25 @@ export default function SolutionReport() {
             </h2>
 
             <p className="mt-2 leading-7 text-foreground">
-              중요한 결정을 내리기 전에는 공식 기관의
-              원문과 안내를 함께 확인해 주세요.
+              이 리포트는 입력하신 내용을
+              이해하고 다음 행동을 정리하기 위한
+              참고 자료예요.
+            </p>
+
+            <p className="mt-2 leading-7 text-foreground">
+              중요한 금융·법률 판단을 하기 전에는
+              관련 금융회사나 공식 기관의 안내를
+              함께 확인해 주세요.
             </p>
           </section>
 
-          <div className="grid gap-3 pt-2 print:hidden sm:grid-cols-2">
+          <div className="grid gap-3 pb-8 pt-2 print:hidden sm:grid-cols-2">
             <SecondaryButton
               type="button"
               className="w-full"
-              onClick={() =>
-                router.push("/")
-              }
+              onClick={() => {
+                router.push("/");
+              }}
             >
               홈으로 돌아가기
             </SecondaryButton>
@@ -849,7 +1072,9 @@ export default function SolutionReport() {
             <PrimaryButton
               type="button"
               className="w-full"
-              onClick={() => window.print()}
+              onClick={() => {
+                window.print();
+              }}
             >
               인쇄하기
             </PrimaryButton>

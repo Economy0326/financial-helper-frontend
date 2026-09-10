@@ -17,6 +17,8 @@ import { z } from "zod";
 import {
   useActiveConsultationQuery,
   useConsultationDetailQuery,
+  useInformationSupplementContextQuery,
+  usePrepareFollowUpMutation,
   useUpdateSituationMutation,
 } from "@/lib/query/consultation";
 
@@ -27,6 +29,10 @@ import {
   ApiContractError,
   ApiNetworkError,
 } from "@/lib/api/errors";
+
+import type {
+  ConsultationCategory,
+} from "@/lib/api/types";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
@@ -40,6 +46,28 @@ import {
 } from "@/lib/consultation/navigation";
 
 const MAX_SITUATION_LENGTH = 1000;
+
+function getSituationPlaceholder(
+  category:
+    | ConsultationCategory
+    | null
+    | undefined,
+) {
+  switch (category) {
+    case "INSURANCE":
+      return "예) 보험금을 청구했는데 지급되지 않았어요.";
+
+    case "LOAN":
+      return "예) 대출 상환 금액이 예상과 달라서 확인하고 싶어요.";
+
+    case "CARD":
+      return "예) 취소한 카드 결제가 아직 환불되지 않았어요.";
+
+    case "UNKNOWN":
+    default:
+      return "예) 금융회사와 거래하면서 어떤 문제가 있었는지 적어 주세요.";
+  }
+}
 
 // RHF와 Zod를 사용하여 폼의 유효성 검사
 const situationSchema = z.object({
@@ -173,8 +201,24 @@ export default function SituationInputForm() {
       consultationId,
     );
 
+  const followUpPreparationMutation =
+    usePrepareFollowUpMutation();
+
   const situationMutation =
     useUpdateSituationMutation();
+
+  const supplementContextQuery =
+    useInformationSupplementContextQuery(
+      consultationId,
+      Boolean(consultationId),
+    );
+
+  const supplementContext =
+    supplementContextQuery.data;
+
+  const isSubmitPending =
+    situationMutation.isPending ||
+    followUpPreparationMutation.isPending;
 
   // 치명적 조회 실패 종류 -> 404, 401
   const hasFatalDetailError =
@@ -276,9 +320,25 @@ export default function SituationInputForm() {
           values.content.trim(),
       });
 
-      router.push(
-        "/consultation/follow-up",
-      );
+      const followUpState =
+        await followUpPreparationMutation
+          .mutateAsync({
+            consultationId,
+          });
+
+      if (
+        followUpState.kind === "complete"
+      ) {
+        router.push(
+          "/consultation/summary",
+        );
+
+        return;
+      }
+
+router.push(
+  "/consultation/follow-up",
+);
 
       // 실패해도 form 값은 그대로 남김
     } catch (error) {
@@ -293,13 +353,6 @@ export default function SituationInputForm() {
             type: "server",
             message: fieldMessage,
           });
-        }
-
-        if (
-          error.code ===
-          "INVALID_CONSULTATION_STATE"
-        ) {
-          void activeConsultationQuery.refetch();
         }
 
         if (
@@ -335,9 +388,7 @@ export default function SituationInputForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="mt-8"
       noValidate
-      aria-busy={
-        situationMutation.isPending
-      }
+      aria-busy={isSubmitPending}
     >
       {isConsultationStateLoading ? (
         <p
@@ -459,6 +510,48 @@ export default function SituationInputForm() {
         </div>
       ) : null}
 
+      {supplementContext?.active ? (
+        <section
+          aria-labelledby="supplement-information-title"
+          className="mb-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        >
+          <h2
+            id="supplement-information-title"
+            className="text-lg font-bold text-foreground"
+          >
+            분석을 위해 아래 내용을 조금 더 알려주세요
+          </h2>
+
+          <p className="mt-2 leading-6 text-foreground-muted">
+            기존에 입력하신 내용은 그대로 유지되어 있어요.
+            아래 정보를 기존 내용에 덧붙여 주세요.
+          </p>
+
+          <ul className="mt-4 space-y-3">
+            {supplementContext.neededInformation.map(
+              (item) => (
+                <li
+                  key={item.topic}
+                  className="rounded-control bg-surface p-4"
+                >
+                  <p className="font-bold text-foreground">
+                    {item.topic}
+                  </p>
+
+                  <p className="mt-1 leading-6 text-foreground-muted">
+                    {item.reason}
+                  </p>
+                </li>
+              ),
+            )}
+          </ul>
+
+          <p className="mt-4 text-sm font-medium text-foreground-muted">
+            추가 정보 보완은 한 번만 가능합니다.
+          </p>
+        </section>
+      ) : null}
+
       <div>
         <label
           htmlFor="situation-content"
@@ -473,9 +566,11 @@ export default function SituationInputForm() {
             maxLength={
               MAX_SITUATION_LENGTH
             }
-            placeholder={
-              "예) 보험금이 지급되지 않았어요.\n대출 금리가 갑자기 올랐어요."
-            }
+            placeholder={getSituationPlaceholder(
+              activeConsultationQuery.data
+                ?.category,
+            )}
+            disabled={isSubmitPending}
             aria-invalid={
               errorMessage
                 ? "true"
@@ -507,6 +602,12 @@ export default function SituationInputForm() {
                   situationMutation.isError
                 ) {
                   situationMutation.reset();
+                }
+
+                if (
+                  followUpPreparationMutation.isError
+                ) {
+                  followUpPreparationMutation.reset();
                 }
               },
             })}
@@ -637,6 +738,22 @@ export default function SituationInputForm() {
         </div>
       ) : null}
 
+      {followUpPreparationMutation.error ? (
+        <div
+          role="alert"
+          className="mt-4 rounded-control border border-danger bg-surface p-4"
+        >
+          <p className="font-medium text-danger">
+            추가 질문을 준비하지 못했어요.
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-foreground-muted">
+            입력하신 상황은 이미 저장되어 있어요.
+            잠시 후 다시 다음을 눌러 주세요.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-8 space-y-3">
         <PrimaryButton
           type="submit"
@@ -644,23 +761,25 @@ export default function SituationInputForm() {
           disabled={
             !isValid ||
             !canEditSituation ||
-            situationMutation.isPending ||
+            isSubmitPending ||
             isConsultationStateLoading ||
             sessionQuery.isError ||
             activeConsultationQuery.isError ||
             consultationDetailQuery.isLoading
           }
         >
-          {situationMutation.isPending
-            ? "저장 중..."
-            : "다음"}
+          {followUpPreparationMutation.isPending
+            ? "질문 준비 중..."
+            : situationMutation.isPending
+              ? "저장 중..."
+              : "다음"}
         </PrimaryButton>
 
         <SecondaryButton
           type="button"
           className="w-full"
           disabled={
-            situationMutation.isPending
+            isSubmitPending
           }
           onClick={() =>
             router.push(

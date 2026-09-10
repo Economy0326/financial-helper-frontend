@@ -2,26 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 
 import EmergencyProgress from "@/components/emergency/EmergencyProgress";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
-import {
-  getEmergencyContactEvidenceFixture,
-  type EmergencyContactFixture,
-} from "@/lib/fixtures/emergency";
+import type {
+  EmergencyScenarioContact,
+} from "@/lib/api/types";
 
-const contactEvidenceQueryKey = [
-  "emergency",
-  "contact-evidence",
-] as const;
+import {
+  useEmergencyScenarioQuery,
+} from "@/lib/query/emergency";
 
 function ContactIcon({
   type,
 }: {
-  type: EmergencyContactFixture["icon"];
+  type: EmergencyScenarioContact["icon"];
 }) {
   if (type === "police") {
     return (
@@ -58,7 +55,7 @@ function ContactIcon({
 function ContactRow({
   contact,
 }: {
-  contact: EmergencyContactFixture;
+  contact: EmergencyScenarioContact;
 }) {
   return (
     <li
@@ -132,13 +129,8 @@ export default function EmergencyContactEvidence() {
   const [checkedEvidenceIds, setCheckedEvidenceIds] =
     useState<Set<string>>(() => new Set());
 
-  // 피해 유형에 맞는 공식 연락처와 증거 목록을 Server State로 조회
-  const contactEvidenceQuery = useQuery({
-    queryKey: contactEvidenceQueryKey,
-    queryFn:
-      getEmergencyContactEvidenceFixture,
-    retry: false,
-  });
+  const contactEvidenceQuery =
+    useEmergencyScenarioQuery();
 
   function toggleEvidence(
     evidenceId: string,
@@ -270,42 +262,7 @@ export default function EmergencyContactEvidence() {
     );
   }
 
-  if (state.kind === "unavailable") {
-    return (
-      <>
-        <EmergencyProgress
-          currentStep={3}
-          label="연락 / 증거 보존"
-        />
-
-        <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
-            안내 정보를 확인하기 어려워요.
-          </h1>
-
-          <p className="mt-4 leading-7 text-foreground-muted">
-            {state.message}
-          </p>
-
-          <div className="mx-auto mt-8 max-w-sm">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push(
-                  "/emergency/action",
-                )
-              }
-            >
-              이전 단계로 돌아가기
-            </PrimaryButton>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  const { data } = state;
+  const data = state.scenario;
 
   return (
     <>
