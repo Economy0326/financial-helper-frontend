@@ -2,24 +2,26 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
+import type {
+  EmergencyType,
+  EmergencyTypeIcon as EmergencyTypeIconName,
+} from "@/lib/api/types";
+
 import {
-  emergencyTypesFixture,
-  selectEmergencyTypeFixture,
-  type EmergencyType,
-  type EmergencyTypeFixture,
-} from "@/lib/fixtures/emergency";
+  useEmergencyTypesQuery,
+  useSelectEmergencyTypeMutation,
+} from "@/lib/query/emergency";
 
 // Emergency Type도 Navigation이 아님
 // 따라서 link가 아닌 button을 사용해야 함
 function EmergencyTypeIcon({
   type,
 }: {
-  type: EmergencyTypeFixture["icon"];
+  type: EmergencyTypeIconName;
 }) {
   if (type === "transfer") {
     return (
@@ -212,37 +214,17 @@ function EmergencyTypeIcon({
 export default function EmergencyTypeForm() {
   const router = useRouter();
 
-  const queryClient = useQueryClient();
+  const typesQuery =
+    useEmergencyTypesQuery();
+
+  const selectMutation =
+    useSelectEmergencyTypeMutation();
 
   // 서버에 저장하기 전, 사용자가 현재 선택 중인 피해 유형  
   const [
     selectedEmergencyType,
     setSelectedEmergencyType,
   ] = useState<EmergencyType | null>(null);
-
-  // 현재 선택값을 저장하는 요청의 pending/error/success 상태를 관리
-  const selectMutation = useMutation({
-    mutationFn: selectEmergencyTypeFixture,
-
-    onSuccess: () => {
-      // 피해 유형이 바뀌면 이전 유형 기준의 즉시 대응 캐시는 더 이상 유효하지 않으므로 제거
-      queryClient.removeQueries({
-        queryKey: [
-          "emergency",
-          "immediate-action",
-        ],
-      });
-      // 피해 유형이 바뀌면 이전 유형 기준의 연락처/증거 캐시도 함께 무효화
-      queryClient.removeQueries({
-        queryKey: [
-          "emergency",
-          "contact-evidence",
-        ],
-      });
-
-      router.push("/emergency/action");
-    },
-  });
 
   function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -256,7 +238,73 @@ export default function EmergencyTypeForm() {
       return;
     }
 
-    selectMutation.mutate(selectedEmergencyType);
+    selectMutation.mutate(
+      selectedEmergencyType,
+      {
+        onSuccess: () => {
+          router.push("/emergency/action");
+        },
+      },
+    );
+  }
+
+  if (typesQuery.isLoading) {
+    return (
+      <div
+        className="mt-8 py-12 text-center"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <p className="text-lg font-semibold text-foreground">
+          피해 유형을 불러오고 있어요.
+        </p>
+
+        <p className="mt-2 text-foreground-muted">
+          잠시만 기다려 주세요.
+        </p>
+      </div>
+    );
+  }
+
+  if (
+    typesQuery.isError ||
+    !typesQuery.data ||
+    typesQuery.data.length === 0
+  ) {
+    return (
+      <div className="mt-8 py-8 text-center">
+        <div
+          role="alert"
+          className="rounded-card border border-danger bg-surface p-5"
+        >
+          <p className="font-semibold text-danger">
+            피해 유형을 불러오지 못했어요.
+          </p>
+
+          <p className="mt-2 leading-6 text-foreground-muted">
+            잠시 후 다시 확인해 주세요.
+          </p>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <PrimaryButton
+            type="button"
+            className="w-full"
+            onClick={() => typesQuery.refetch()}
+          >
+            다시 시도
+          </PrimaryButton>
+
+          <SecondaryButton
+            type="button"
+            className="w-full"
+            onClick={() => router.push("/")}
+          >
+            홈으로
+          </SecondaryButton>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -271,7 +319,7 @@ export default function EmergencyTypeForm() {
         </legend>
 
         <div className="space-y-3 sm:space-y-4">
-          {emergencyTypesFixture.map(
+          {typesQuery.data.map(
             (emergencyType) => {
               const isSelected =
                 selectedEmergencyType ===

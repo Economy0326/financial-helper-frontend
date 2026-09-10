@@ -3,6 +3,22 @@ export const queryKeys = {
     all: ["session"] as const,
   },
 
+  emergency: {
+    all: ["emergency"] as const,
+
+    types: () =>
+      [
+        "emergency",
+        "types",
+      ] as const,
+
+    scenario: () =>
+      [
+        "emergency",
+        "scenario",
+      ] as const,
+  },
+
   consultations: {
     all: ["consultations"] as const,
 

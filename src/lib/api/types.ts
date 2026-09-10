@@ -220,3 +220,75 @@ export type ApiErrorResponse = {
     requestId: string;
   };
 };
+
+export type EmergencyType =
+  | "TRANSFER"
+  | "UNKNOWN_PAYMENT"
+  | "SUSPICIOUS_APP"
+  | "PERSONAL_INFO"
+  | "UNKNOWN";
+
+export type EmergencyTypeIcon =
+  | "transfer"
+  | "payment"
+  | "app"
+  | "personal-info"
+  | "unknown";
+
+export type EmergencyTypeOptionResponse = {
+  value: EmergencyType;
+  title: string;
+  description: string;
+  icon: EmergencyTypeIcon;
+};
+
+export type EmergencySelectionResponse = {
+  selectedType: EmergencyType;
+  scenarioKey: string;
+};
+
+export type EmergencyScenarioActionItem = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+export type EmergencyScenarioContact = {
+  id: string;
+  name: string;
+  description: string;
+  phoneLabel: string | null;
+  phoneHref: string | null;
+  icon:
+    | "police"
+    | "financial-company"
+    | "card-company"
+    | "official";
+};
+
+export type EmergencyScenarioEvidence = {
+  id: string;
+  label: string;
+};
+
+export type EmergencyScenario = {
+  scenarioId: string;
+  type: EmergencyType;
+  scenarioKey: string;
+  title: string;
+  description: string;
+  actionsToDo: EmergencyScenarioActionItem[];
+  actionsToAvoid: EmergencyScenarioActionItem[];
+  contacts: EmergencyScenarioContact[];
+  evidence: EmergencyScenarioEvidence[];
+};
+
+export type EmergencyScenarioStateResponse =
+  | {
+      kind: "not-selected";
+      scenario: null;
+    }
+  | {
+      kind: "ready";
+      scenario: EmergencyScenario;
+    };

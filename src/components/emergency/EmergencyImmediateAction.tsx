@@ -2,21 +2,18 @@
 
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 
 import EmergencyProgress from "@/components/emergency/EmergencyProgress";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
-import {
-  getEmergencyImmediateActionFixture,
-  type EmergencyActionItemFixture,
-} from "@/lib/fixtures/emergency";
+import type {
+  EmergencyScenarioActionItem,
+} from "@/lib/api/types";
 
-const emergencyActionQueryKey = [
-  "emergency",
-  "immediate-action",
-] as const;
+import {
+  useEmergencyScenarioQuery,
+} from "@/lib/query/emergency";
 
 function ActionCard({
   title,
@@ -26,7 +23,7 @@ function ActionCard({
 }: {
   title: string;
   tone: "primary" | "danger";
-  items: EmergencyActionItemFixture[];
+  items: EmergencyScenarioActionItem[];
   icon: ReactNode;
 }) {
   const isDanger = tone === "danger";
@@ -109,13 +106,8 @@ function ActionCard({
 export default function EmergencyImmediateAction() {
   const router = useRouter();
 
-  // 이전 단계에서 확정된 피해 유형을 기준으로 해야 할 행동 / 하지 말아야 할 행동 데이터를 Server State로 조회
-  // Emergency Type을 저장하는 Query는 아님
-  const actionQuery = useQuery({
-    queryKey: emergencyActionQueryKey,
-    queryFn: getEmergencyImmediateActionFixture,
-    retry: false,
-  });
+  const actionQuery =
+    useEmergencyScenarioQuery();
 
   if (actionQuery.isLoading) {
     return (
@@ -156,7 +148,8 @@ export default function EmergencyImmediateAction() {
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            잠시 후 다시 확인해 주세요.
+            안전한 안내를 확인할 수 있을 때까지
+            임의의 대응 정보를 대신 보여드리지 않아요.
           </p>
 
           <div className="mx-auto mt-8 max-w-sm space-y-3">
@@ -227,40 +220,7 @@ export default function EmergencyImmediateAction() {
     );
   }
 
-  if (state.kind === "unavailable") {
-    return (
-      <>
-        <EmergencyProgress
-          currentStep={2}
-          label="즉시 대응"
-        />
-
-        <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
-            긴급 대응 정보를 확인하기 어려워요.
-          </h1>
-
-          <p className="mt-4 leading-7 text-foreground-muted">
-            {state.message}
-          </p>
-
-          <div className="mx-auto mt-8 max-w-sm">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() =>
-                router.push("/emergency/type")
-              }
-            >
-              피해 유형 다시 선택
-            </PrimaryButton>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  const { data } = state;
+  const data = state.scenario;
 
   return (
     <>
