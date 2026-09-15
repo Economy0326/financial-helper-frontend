@@ -160,6 +160,7 @@ export type ConsultationReportResponse = {
     caseSummary: string;
 
     firstAction: {
+      actionId?: string | null;
       title: string;
       description: string;
     };
@@ -170,6 +171,7 @@ export type ConsultationReportResponse = {
     }[];
 
     actionSteps: {
+      actionId?: string | null;
       order: number;
       title: string;
       description: string;
@@ -181,6 +183,7 @@ export type ConsultationReportResponse = {
     }[];
 
     requiredDocuments: {
+      documentId?: string | null;
       name: string;
       reason: string;
     }[];
@@ -196,12 +199,17 @@ export type ConsultationReportResponse = {
     };
 
     similarCases: unknown[];
-    citations: unknown[];
+    citations: {
+      evidenceId: string;
+      locator: string;
+      label?: string | null;
+    }[];
   } | null;
 
   evidence: {
     status:
-      | "NOT_AVAILABLE_IN_AI_V1";
+      | "NOT_AVAILABLE_IN_AI_V1"
+      | "GROUNDED_CARD";
 
     message: string;
   };

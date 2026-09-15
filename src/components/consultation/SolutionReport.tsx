@@ -69,6 +69,10 @@ const reportSections = [
     id: "evidence",
     label: "공식 출처",
   },
+  {
+    id: "citations",
+    label: "이번 답변의 근거",
+  },
 ] as const;
 
 type ReportSectionId =
@@ -885,6 +889,31 @@ export default function SolutionReport() {
               </p>
             )}
           </ReportSection>
+
+          {report.citations.length > 0 ? (
+            <ReportSection
+              id="citations"
+              title="공식 근거"
+              isExpanded={expandedSections.has("citations")}
+              onToggle={() => toggleSection("citations")}
+            >
+              <ul className="space-y-3">
+                {report.citations.map((citation) => (
+                  <li
+                    key={`${citation.evidenceId}-${citation.locator}`}
+                    className="rounded-control bg-surface-subtle p-4"
+                  >
+                    <p className="font-bold text-foreground">
+                      {citation.label ?? citation.evidenceId}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-foreground-muted">
+                      {citation.locator}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </ReportSection>
+          ) : null}
 
           <ReportSection
             id="cases"
