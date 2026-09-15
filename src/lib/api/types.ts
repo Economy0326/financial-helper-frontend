@@ -9,6 +9,7 @@ export type ConsultationStatus =
   | "ANALYZING"
   | "NEEDS_MORE_INFO"
   | "COMPLETED"
+  | "ABANDONED"
   | "FAILED";
 
 export type ConsultationStep =
@@ -22,6 +23,50 @@ export type ConsultationStep =
 export type SessionResponse = {
   guest: boolean;
   hasActiveConsultation: boolean;
+  authenticated?: boolean;
+  accountId?: string | null;
+  provider?: "KAKAO" | "NAVER" | null;
+};
+
+export type AccountOverviewResponse = {
+  accountId: string;
+  provider: "KAKAO" | "NAVER";
+  displayName: string | null;
+  activeConsultation: {
+    consultationId: string;
+    category: ConsultationCategory | null;
+    status: ConsultationStatus;
+    currentStep: ConsultationStep;
+    updatedAt: string;
+  } | null;
+  quota: { used: number; limit: number; nextAvailableAt: string | null };
+};
+
+export type AccountConsultationHistoryItem = {
+  consultationId: string;
+  category: ConsultationCategory | null;
+  status: ConsultationStatus;
+  createdAt: string;
+  updatedAt: string;
+  reportId: string | null;
+  reportGeneratedAt: string | null;
+};
+
+export type AccountEmergencyHistoryItem = {
+  id: string;
+  emergencyType: EmergencyType;
+  scenarioVersion: string;
+  viewedAt: string;
+};
+
+export type PageResponse<T> = {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 };
 
 export type ConsultationCreateResponse = {
@@ -226,6 +271,7 @@ export type ApiErrorResponse = {
     message: string;
     fieldErrors: ApiFieldError[];
     requestId: string;
+    nextAvailableAt?: string | null;
   };
 };
 

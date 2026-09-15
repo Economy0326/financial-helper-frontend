@@ -21,6 +21,7 @@ export type HomeResumeState =
         stepLabel: string;
         updatedAtLabel: string;
         href: string;
+        newHref?: string;
       };
     };
 
@@ -128,6 +129,14 @@ export default function HomeResumeSection({
         >
           이어서 하기
         </Link>
+        {consultation.newHref ? (
+          <Link
+            href={consultation.newHref}
+            className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-control border border-primary px-6 font-semibold text-primary"
+          >
+            새 상담 시작하기
+          </Link>
+        ) : null}
       </div>
     </section>
   );

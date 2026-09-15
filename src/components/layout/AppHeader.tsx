@@ -19,11 +19,12 @@ export function AppHeader({
           금융도우미
         </Link>
 
-        {rightSlot ? (
-          <div className="flex items-center gap-2">
-            {rightSlot}
-          </div>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <Link href="/account" className="rounded-control px-3 py-2 text-sm font-semibold text-primary">
+            내 상담
+          </Link>
+          {rightSlot ? rightSlot : null}
+        </div>
       </div>
     </header>
   );

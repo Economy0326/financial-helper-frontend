@@ -16,9 +16,9 @@ import type {
   ReopenAnalysisResponse,
 } from "./types";
 
-export function startConsultation() {
+export function startConsultation(startNew = false) {
   return apiFetch<ConsultationCreateResponse>(
-    "/consultations",
+    `/consultations${startNew ? "?new=true" : ""}`,
     {
       method: "POST",
     },

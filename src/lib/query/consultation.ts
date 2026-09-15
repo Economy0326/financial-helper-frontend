@@ -27,6 +27,7 @@ import {
 
 import type {
   ConsultationCategory,
+  ConsultationCreateResponse,
 } from "@/lib/api/types";
 
 import { queryKeys } from "./keys";
@@ -90,8 +91,8 @@ export function useConsultationDetailQuery(
 export function useStartConsultationMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: startConsultation,
+  return useMutation<ConsultationCreateResponse, Error, boolean | undefined>({
+    mutationFn: (startNew = false) => startConsultation(startNew),
 
     onSuccess: async () => {
       // 기존 Consultation Cache를 먼저 제거

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
 import ProblemCategoryForm from "@/components/consultation/ProblemCategoryForm";
@@ -37,7 +38,9 @@ export default function ProblemCategoryPage() {
           </p>
         </header>
 
-        <ProblemCategoryForm />
+        <Suspense fallback={<div className="mt-8 min-h-48" aria-label="문제 유형을 불러오는 중" />}>
+          <ProblemCategoryForm />
+        </Suspense>
 
         <p className="mt-8 text-center text-sm text-foreground-muted">
           <span aria-hidden="true">🔒 </span>

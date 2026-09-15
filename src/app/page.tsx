@@ -34,7 +34,7 @@ export default function Home() {
           className="mt-5 grid gap-4 md:grid-cols-2"
         >
           <HomeActionCard
-            href="/consultation/problem-category"
+            href="/auth/login"
             title="금융 문제 해결하기"
             description="보험, 대출, 카드, 계좌 등 궁금한 금융 문제를 해결해요."
             ctaLabel="상담 시작하기"

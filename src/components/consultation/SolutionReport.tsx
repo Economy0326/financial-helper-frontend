@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import {
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
@@ -203,6 +204,8 @@ export default function SolutionReport() {
 
   const sessionQuery =
     useSessionQuery();
+  const searchParams = useSearchParams();
+  const requestedConsultationId = searchParams.get("consultationId");
 
   const hasActiveConsultation =
     sessionQuery.isSuccess &&
@@ -215,12 +218,12 @@ export default function SolutionReport() {
     );
 
   const consultationId =
-    activeConsultationQuery.data
-      ?.consultationId ?? null;
+    requestedConsultationId ?? activeConsultationQuery.data?.consultationId ?? null;
 
   const currentStep =
-    activeConsultationQuery.data
-      ?.currentStep ?? null;
+    requestedConsultationId
+      ? "REPORT"
+      : activeConsultationQuery.data?.currentStep ?? null;
 
   const pageAccess =
     getReportPageAccess(
