@@ -31,6 +31,7 @@ import {
 import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
+import { buildApiUrl } from "@/lib/api/config";
 
 const categories = [
   {
@@ -300,6 +301,13 @@ export default function ProblemCategoryForm() {
         "/consultation/situation",
       );
     } catch (error) {
+      if (
+        error instanceof ApiResponseError &&
+        error.code === "GENERAL_CONSULTATION_LOGIN_REQUIRED"
+      ) {
+        window.location.assign(buildApiUrl("/auth/kakao/start"));
+        return;
+      }
       if (
         error instanceof ApiResponseError &&
         error.code ===
