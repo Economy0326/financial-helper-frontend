@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -14,6 +15,7 @@ import {
   useAccountOverviewQuery,
 } from "@/lib/query/account";
 import { useSessionQuery } from "@/lib/query/session";
+import { queryKeys } from "@/lib/query/keys";
 
 const categoryLabels: Record<string, string> = {
   INSURANCE: "보험",
@@ -84,6 +86,7 @@ function getQuotaMessage(
 
 export default function AccountPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const session = useSessionQuery();
   const authenticated = session.data?.authenticated === true;
   const overview = useAccountOverviewQuery(authenticated);
@@ -152,6 +155,15 @@ export default function AccountPage() {
 
     try {
       await logout();
+      // Do not leave authenticated session/account data in the shared client
+      // while the browser transitions back to the public home page. The next
+      // observer performs one fresh unauthenticated bootstrap.
+      queryClient.removeQueries({
+        queryKey: queryKeys.session.all,
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.account.all,
+      });
       router.replace("/");
     } catch {
       setLogoutPending(false);
