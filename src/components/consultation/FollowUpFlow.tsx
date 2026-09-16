@@ -34,6 +34,13 @@ import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
 
+function getLocalToday() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export default function FollowUpFlow() {
   const router =
     useRouter();
@@ -526,11 +533,11 @@ export default function FollowUpFlow() {
           {totalQuestions}
         </p>
 
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+        <h1 className="mx-auto mt-3 max-w-2xl break-keep text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">
           {question.question}
         </h1>
 
-        <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
+        <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
           {question.description}
         </p>
       </header>
@@ -548,6 +555,63 @@ export default function FollowUpFlow() {
           </legend>
 
           <div className="space-y-3 sm:space-y-4">
+            {question.inputType === "DATE" ? (
+              <div className="rounded-card border border-border bg-surface p-4 shadow-card sm:p-5">
+                <label
+                  htmlFor={`follow-up-${question.id}-date`}
+                  className="block text-lg font-bold text-foreground"
+                >
+                  날짜를 선택해 주세요
+                </label>
+                <input
+                  id={`follow-up-${question.id}-date`}
+                  type="date"
+                  max={getLocalToday()}
+                  value={
+                    selectedOption === "UNKNOWN"
+                      ? ""
+                      : selectedOption ?? ""
+                  }
+                  disabled={isPending}
+                  onChange={(event) =>
+                    setSelection({
+                      questionId: question.id,
+                      optionValue: event.target.value,
+                    })
+                  }
+                  className="mt-3 min-h-12 w-full rounded-control border border-border-strong bg-surface px-4 text-lg text-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+                />
+              </div>
+            ) : null}
+
+            {question.inputType === "SHORT_TEXT" ? (
+              <div className="rounded-card border border-border bg-surface p-4 shadow-card sm:p-5">
+                <label
+                  htmlFor={`follow-up-${question.id}-text`}
+                  className="block text-lg font-bold text-foreground"
+                >
+                  내용을 짧게 입력해 주세요
+                </label>
+                <input
+                  id={`follow-up-${question.id}-text`}
+                  type="text"
+                  maxLength={64}
+                  value={selectedOption ?? ""}
+                  disabled={isPending}
+                  onChange={(event) =>
+                    setSelection({
+                      questionId: question.id,
+                      optionValue: event.target.value,
+                    })
+                  }
+                  className="mt-3 min-h-12 w-full rounded-control border border-border-strong bg-surface px-4 text-lg text-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+                />
+                <p className="mt-2 text-sm leading-6 text-foreground-muted">
+                  카드번호, 계좌번호, 비밀번호 등 민감정보는 입력하지 마세요.
+                </p>
+              </div>
+            ) : null}
+
             {question.options.map(
               (option, index) => {
                 const isSelected =
@@ -593,11 +657,11 @@ export default function FollowUpFlow() {
                     <label
                       htmlFor={inputId}
                       className={[
-                        "flex min-h-28 cursor-pointer items-center gap-4 rounded-card",
-                        "border bg-surface p-4 shadow-card transition",
+                        "box-border flex min-h-28 w-full max-w-full min-w-0 cursor-pointer items-center gap-3 rounded-card",
+                        "border bg-surface p-3 shadow-card transition",
                         "peer-focus-visible:ring-2 peer-focus-visible:ring-focus",
                         "peer-focus-visible:ring-offset-2",
-                        "sm:min-h-32 sm:p-5",
+                        "sm:min-h-32 sm:gap-4 sm:p-5",
                         isSelected
                           ? "border-primary bg-primary-subtle"
                           : "border-border hover:border-border-strong",
@@ -606,7 +670,7 @@ export default function FollowUpFlow() {
                       <span
                         aria-hidden="true"
                         className={[
-                          "flex h-14 w-14 shrink-0 items-center justify-center",
+                          "flex h-12 w-12 shrink-0 items-center justify-center sm:h-14 sm:w-14",
                           "rounded-full text-xl font-bold",
                           isSelected
                             ? "bg-primary text-primary-foreground"
@@ -621,7 +685,7 @@ export default function FollowUpFlow() {
                             1}
                       </span>
 
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 flex-1 break-keep break-words">
                         <span className="block text-lg font-bold text-foreground sm:text-xl">
                           {
                             option.label
@@ -638,7 +702,7 @@ export default function FollowUpFlow() {
                       <span
                         aria-hidden="true"
                         className={[
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8",
                           "border-2 font-bold",
                           isSelected
                             ? "border-primary bg-primary text-primary-foreground"

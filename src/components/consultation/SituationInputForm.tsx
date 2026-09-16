@@ -3,7 +3,10 @@
 import { useEffect } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -137,6 +140,9 @@ type SituationFormValues =
 
 export default function SituationInputForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editFromSummary =
+    searchParams.get("edit") === "true";
 
   // useForm이 반환하는 Form 제어 함수와 상태 중 현재 화면에 필요한 값만 구조분해
   const {
@@ -188,6 +194,7 @@ export default function SituationInputForm() {
   const pageAccess =
     getSituationPageAccess(
       currentStep,
+      editFromSummary,
     );
 
   const consultationId =
@@ -318,6 +325,7 @@ export default function SituationInputForm() {
         consultationId,
         situationText:
           values.content.trim(),
+        editFromSummary,
       });
 
       const followUpState =

@@ -94,7 +94,7 @@ export default function HomeResumeSection({
       className="rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2
               id="resume-consultation-heading"
@@ -108,7 +108,7 @@ export default function HomeResumeSection({
             </span>
           </div>
 
-          <p className="mt-3 font-semibold text-foreground">
+          <p className="mt-3 break-keep font-semibold text-foreground">
             {consultation.title}
           </p>
 
@@ -119,25 +119,33 @@ export default function HomeResumeSection({
           </div>
         </div>
 
-        <Link
-          href={consultation.href}
-          className={[
-            "inline-flex min-h-12 shrink-0 items-center justify-center rounded-control",
-            "bg-primary px-6 font-semibold text-primary-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
-          ].join(" ")}
-        >
-          이어서 하기
-        </Link>
-        {consultation.newHref ? (
+        <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
           <Link
-            href={consultation.newHref}
-            className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-control border border-primary px-6 font-semibold text-primary"
+            href={consultation.href}
+            className={[
+              "inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control",
+              "bg-primary px-6 font-semibold text-primary-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+              "md:w-auto",
+            ].join(" ")}
           >
-            새 상담 시작하기
+            이어서 하기
           </Link>
-        ) : null}
+          {consultation.newHref ? (
+            <Link
+              href={consultation.newHref}
+              className="inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control border border-primary px-6 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 md:w-auto"
+            >
+              새 상담 시작하기
+            </Link>
+          ) : null}
+        </div>
       </div>
+      {consultation.newHref ? (
+        <p className="mt-4 break-keep text-sm leading-6 text-foreground-muted">
+          새 상담을 시작하면 현재 진행 중인 상담은 종료돼요.
+        </p>
+      ) : null}
     </section>
   );
 }

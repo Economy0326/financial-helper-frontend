@@ -282,7 +282,7 @@ export default function SummaryConfirmation() {
               className="w-full"
               onClick={() =>
                 router.push(
-                  "/consultation/situation",
+                  "/consultation/situation?edit=true",
                 )
               }
             >
@@ -346,7 +346,7 @@ export default function SummaryConfirmation() {
               className="w-full"
               onClick={() =>
                 router.push(
-                  "/consultation/situation",
+                  "/consultation/situation?edit=true",
                 )
               }
             >
@@ -403,11 +403,11 @@ export default function SummaryConfirmation() {
           상담 내용 확인
         </p>
 
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        <h1 className="mt-3 break-keep text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           제가 이해한 내용이 맞는지 확인해 주세요
         </h1>
 
-        <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
+        <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
           아래 요약은 입력하신 상담 내용과 추가 질문 답변을 바탕으로 정리한 내용이에요.
         </p>
       </header>
@@ -519,7 +519,7 @@ export default function SummaryConfirmation() {
           disabled={isPending}
           onClick={() =>
             router.push(
-              "/consultation/situation",
+              "/consultation/situation?edit=true",
             )
           }
         >

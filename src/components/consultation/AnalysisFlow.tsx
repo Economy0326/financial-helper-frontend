@@ -244,7 +244,7 @@ export default function AnalysisFlow() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="break-keep text-3xl font-bold text-foreground">
             분석을 시작할 준비가 됐어요.
           </h1>
 
@@ -310,7 +310,7 @@ export default function AnalysisFlow() {
             className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary motion-reduce:animate-none"
           />
 
-          <h1 className="mt-8 text-3xl font-bold text-foreground">
+          <h1 className="mt-8 break-keep text-3xl font-bold text-foreground">
             상담 내용을 분석하고 있어요
           </h1>
 
@@ -342,7 +342,7 @@ export default function AnalysisFlow() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="break-keep text-3xl font-bold text-foreground">
             분석을 완료하지 못했어요
           </h1>
 
@@ -428,7 +428,7 @@ export default function AnalysisFlow() {
             !
           </div>
 
-          <h1 className="mt-6 text-3xl font-bold text-foreground">
+          <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
             현재 정보로는 신뢰할 수 있는 분석이 어려워요
           </h1>
 
@@ -497,7 +497,7 @@ export default function AnalysisFlow() {
 
         <div className="py-12">
           <header className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="break-keep text-3xl font-bold text-foreground">
               조금 더 확인할 정보가 있어요
             </h1>
 
@@ -600,7 +600,7 @@ export default function AnalysisFlow() {
           ✓
         </div>
 
-        <h1 className="mt-6 text-3xl font-bold text-foreground">
+        <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
           분석이 완료됐어요
         </h1>
 

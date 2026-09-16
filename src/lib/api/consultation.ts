@@ -61,11 +61,12 @@ export function updateConsultationCategory(
 export function updateConsultationSituation(
   consultationId: string,
   situationText: string,
+  editFromSummary = false,
 ) {
   return apiFetch<UpdateSituationResponse>(
     `/consultations/${encodeURIComponent(
       consultationId,
-    )}/situation`,
+    )}/situation${editFromSummary ? "?edit=true" : ""}`,
     {
       method: "PUT",
       body: {

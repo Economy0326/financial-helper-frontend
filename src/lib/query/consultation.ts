@@ -180,6 +180,7 @@ export function useUpdateCategoryMutation() {
 type UpdateSituationVariables = {
   consultationId: string;
   situationText: string;
+  editFromSummary?: boolean;
 };
 
 export function useUpdateSituationMutation() {
@@ -189,10 +190,12 @@ export function useUpdateSituationMutation() {
     mutationFn: ({
       consultationId,
       situationText,
+      editFromSummary,
     }: UpdateSituationVariables) =>
       updateConsultationSituation(
         consultationId,
         situationText,
+        editFromSummary,
       ),
 
     onSuccess: async (_data, variables) => {

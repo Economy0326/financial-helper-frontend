@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import Link from "next/link";
 
 import type {
@@ -333,6 +335,19 @@ export default function ProblemCategoryForm() {
 
   return (
     <>
+      {startNew && activeConsultationQuery.data ? (
+        <aside
+          role="note"
+          className="mt-6 rounded-control border border-primary bg-primary-subtle p-4 sm:mt-8 sm:p-5"
+        >
+          <p className="break-keep font-semibold text-foreground">
+            새 상담을 시작하면 현재 진행 중인 상담은 종료돼요.
+          </p>
+          <p className="mt-1 break-keep text-sm leading-6 text-foreground-muted">
+            아래에서 새 상담의 문제 유형을 선택해 주세요.
+          </p>
+        </aside>
+      ) : null}
       {pageAccess.status === "wrong-step" ? (
         <div
           role="alert"
@@ -416,7 +431,7 @@ export default function ProblemCategoryForm() {
                       <CategoryIcon type={category.icon} />
                     </span>
 
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 break-keep">
                       <span className="block text-lg font-bold text-foreground sm:text-xl">
                         {category.title}
                       </span>

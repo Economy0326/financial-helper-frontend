@@ -111,6 +111,13 @@ export type FollowUpQuestionResponse = {
   id: string;
   question: string;
   description: string;
+  inputType?:
+    | "YES_NO"
+    | "YES_NO_UNKNOWN"
+    | "INSTITUTION_SELECT"
+    | "ENUM_SELECT"
+    | "DATE"
+    | "SHORT_TEXT";
   options: FollowUpOptionResponse[];
 };
 

@@ -51,6 +51,7 @@ export function getCategoryPageAccess(
 
 export function getSituationPageAccess(
   currentStep: ConsultationStep | null,
+  editFromSummary = false,
 ): ConsultationPageAccess {
   if (!currentStep) {
     return {
@@ -59,7 +60,8 @@ export function getSituationPageAccess(
   }
 
   if (
-    situationEditableSteps.has(currentStep)
+    situationEditableSteps.has(currentStep) ||
+    (editFromSummary && currentStep === "SUMMARY")
   ) {
     return {
       status: "allowed",

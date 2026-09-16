@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
 import SituationInputForm from "@/components/consultation/SituationInputForm";
@@ -41,7 +42,9 @@ export default function SituationPage() {
           </p>
         </header>
 
-        <SituationInputForm />
+        <Suspense fallback={<div className="mt-8 min-h-72" aria-label="상담 내용을 불러오는 중" />}>
+          <SituationInputForm />
+        </Suspense>
       </div>
     </main>
   );
