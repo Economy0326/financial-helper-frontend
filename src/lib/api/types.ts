@@ -177,6 +177,12 @@ export type AnalysisAdditionalInformation = {
   reason: string;
 };
 
+export type AnalysisSafeAction = {
+  actionId: string;
+  title: string;
+  description: string;
+};
+
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
   attemptCount: number;
@@ -187,6 +193,8 @@ export type AnalysisStateResponse = {
 
   additionalInformationNeeded:
     AnalysisAdditionalInformation[];
+
+  safeActions: AnalysisSafeAction[];
 };
 
 export type ReopenAnalysisResponse = {

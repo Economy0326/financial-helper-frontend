@@ -507,6 +507,30 @@ export default function AnalysisFlow() {
             </p>
           </header>
 
+          {state.safeActions.length > 0 ? (
+            <section className="mx-auto mt-8 max-w-xl rounded-card border border-primary/30 bg-primary-subtle p-5 text-left shadow-card sm:p-6">
+              <h2 className="font-bold text-foreground">
+                현재 확인된 내용으로 안내드릴게요
+              </h2>
+
+              <ol className="mt-4 space-y-3">
+                {state.safeActions.map((action) => (
+                  <li
+                    key={action.actionId}
+                    className="rounded-control bg-surface p-4"
+                  >
+                    <p className="font-bold text-foreground">
+                      {action.title}
+                    </p>
+                    <p className="mt-1 leading-6 text-foreground-muted">
+                      {action.description}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
           <section className="mx-auto mt-8 max-w-xl rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
             <h2 className="text-lg font-bold text-foreground">
               추가로 확인하면 좋은 정보
