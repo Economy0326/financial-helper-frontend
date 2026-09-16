@@ -244,7 +244,7 @@ export default function AnalysisFlow() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="break-keep text-3xl font-bold text-foreground">
             분석을 시작할 준비가 됐어요.
           </h1>
 
@@ -310,7 +310,7 @@ export default function AnalysisFlow() {
             className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary motion-reduce:animate-none"
           />
 
-          <h1 className="mt-8 text-3xl font-bold text-foreground">
+          <h1 className="mt-8 break-keep text-3xl font-bold text-foreground">
             상담 내용을 분석하고 있어요
           </h1>
 
@@ -342,7 +342,7 @@ export default function AnalysisFlow() {
         />
 
         <div className="py-16 text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="break-keep text-3xl font-bold text-foreground">
             분석을 완료하지 못했어요
           </h1>
 
@@ -428,7 +428,7 @@ export default function AnalysisFlow() {
             !
           </div>
 
-          <h1 className="mt-6 text-3xl font-bold text-foreground">
+          <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
             현재 정보로는 신뢰할 수 있는 분석이 어려워요
           </h1>
 
@@ -497,7 +497,7 @@ export default function AnalysisFlow() {
 
         <div className="py-12">
           <header className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="break-keep text-3xl font-bold text-foreground">
               조금 더 확인할 정보가 있어요
             </h1>
 
@@ -506,6 +506,30 @@ export default function AnalysisFlow() {
               필요한 내용을 먼저 보완할게요.
             </p>
           </header>
+
+          {state.safeActions.length > 0 ? (
+            <section className="mx-auto mt-8 max-w-xl rounded-card border border-primary/30 bg-primary-subtle p-5 text-left shadow-card sm:p-6">
+              <h2 className="font-bold text-foreground">
+                현재 확인된 내용으로 안내드릴게요
+              </h2>
+
+              <ol className="mt-4 space-y-3">
+                {state.safeActions.map((action) => (
+                  <li
+                    key={action.actionId}
+                    className="rounded-control bg-surface p-4"
+                  >
+                    <p className="font-bold text-foreground">
+                      {action.title}
+                    </p>
+                    <p className="mt-1 leading-6 text-foreground-muted">
+                      {action.description}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
           <section className="mx-auto mt-8 max-w-xl rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
             <h2 className="text-lg font-bold text-foreground">
@@ -600,7 +624,7 @@ export default function AnalysisFlow() {
           ✓
         </div>
 
-        <h1 className="mt-6 text-3xl font-bold text-foreground">
+        <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
           분석이 완료됐어요
         </h1>
 

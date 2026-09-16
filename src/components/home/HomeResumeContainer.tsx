@@ -123,6 +123,9 @@ export default function HomeResumeContainer() {
             consultation.updatedAt,
           ),
         href: step.href,
+        newHref: sessionQuery.data?.authenticated
+          ? "/consultation/problem-category?new=true"
+          : undefined,
       },
     };
   }

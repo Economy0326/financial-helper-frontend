@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import Link from "next/link";
 
 import type {
@@ -206,6 +209,17 @@ function getCategorySubmitErrorMessage(
       case "VALIDATION_ERROR":
         return "선택 내용을 확인해 주세요.";
 
+      case "ACCOUNT_NEW_CONSULTATION_QUOTA_EXHAUSTED": {
+        const nextAvailableAt = error.response?.error.nextAvailableAt;
+        if (nextAvailableAt) {
+          const date = new Date(nextAvailableAt);
+          if (!Number.isNaN(date.getTime())) {
+            return `최근 7일 새 상담 한도에 도달했어요. ${new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium" }).format(date)}부터 새 상담을 시작할 수 있어요. 기존 상담은 계속 이용할 수 있어요.`;
+          }
+        }
+        return "최근 7일 새 상담 한도에 도달했어요. 기존 상담은 계속 이용할 수 있어요.";
+      }
+
       default:
         if (error.status >= 500) {
           return "서버에서 요청을 처리하지 못했어요. 선택은 유지되어 있으니 잠시 후 다시 시도해 주세요.";
@@ -219,6 +233,8 @@ function getCategorySubmitErrorMessage(
 // 카드를 클릭 후 바로 Navigation이 아니라 다음 버튼을 눌러야 이동 => UX 원칙
 export default function ProblemCategoryForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const startNew = searchParams.get("new") === "true";
 
   // 사용자가 현재 화면에서 직접 선택한 Category
   const [
@@ -286,7 +302,7 @@ export default function ProblemCategoryForm() {
     try {
       const consultation =
         await startConsultationMutation
-          .mutateAsync();
+          .mutateAsync(startNew);
 
       await updateCategoryMutation.mutateAsync({
         consultationId:
@@ -302,6 +318,13 @@ export default function ProblemCategoryForm() {
     } catch (error) {
       if (
         error instanceof ApiResponseError &&
+        error.code === "GENERAL_CONSULTATION_LOGIN_REQUIRED"
+      ) {
+        router.push("/auth/login");
+        return;
+      }
+      if (
+        error instanceof ApiResponseError &&
         error.code ===
           "INVALID_CONSULTATION_STATE"
       ) {
@@ -312,6 +335,19 @@ export default function ProblemCategoryForm() {
 
   return (
     <>
+      {startNew && activeConsultationQuery.data ? (
+        <aside
+          role="note"
+          className="mt-6 rounded-control border border-primary bg-primary-subtle p-4 sm:mt-8 sm:p-5"
+        >
+          <p className="break-keep font-semibold text-foreground">
+            새 상담을 시작하면 현재 진행 중인 상담은 종료돼요.
+          </p>
+          <p className="mt-1 break-keep text-sm leading-6 text-foreground-muted">
+            아래에서 새 상담의 문제 유형을 선택해 주세요.
+          </p>
+        </aside>
+      ) : null}
       {pageAccess.status === "wrong-step" ? (
         <div
           role="alert"
@@ -395,7 +431,7 @@ export default function ProblemCategoryForm() {
                       <CategoryIcon type={category.icon} />
                     </span>
 
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 break-keep">
                       <span className="block text-lg font-bold text-foreground sm:text-xl">
                         {category.title}
                       </span>

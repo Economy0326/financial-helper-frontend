@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import SolutionReport from "@/components/consultation/SolutionReport";
 
@@ -24,7 +25,9 @@ export default function SolutionReportPage() {
           </Link>
         </div>
 
-        <SolutionReport />
+        <Suspense fallback={<div className="py-20 text-center">리포트를 불러오고 있어요.</div>}>
+          <SolutionReport />
+        </Suspense>
       </div>
     </main>
   );

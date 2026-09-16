@@ -12,6 +12,10 @@ const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 // Local Storage에 저장 x -> 새로고침 시 사라짐
 let csrfToken: string | null = null;
 
+// 페이지의 여러 Query가 동시에 Session을 읽어도
+// CSRF 쿠키와 응답 헤더가 서로 다른 발급분으로 어긋나지 않게 한다.
+let sessionBootstrapPromise: Promise<unknown> | null = null;
+
 type ApiFetchOptions = Omit<
   RequestInit,
   "body" | "credentials"
@@ -27,8 +31,29 @@ function isUnsafeMethod(method: string) {
   );
 }
 
+function readCsrfCookie() {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const entry = document.cookie
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith("XSRF-TOKEN="));
+
+  return entry
+    ? decodeURIComponent(entry.slice("XSRF-TOKEN=".length))
+    : null;
+}
+
 // Local Storage에 안 넣기 때문에 JS 메모리에 따로 기억
 function rememberCsrfToken(response: Response) {
+  const cookieToken = readCsrfCookie();
+  if (cookieToken) {
+    csrfToken = cookieToken;
+    return;
+  }
+
   const token = response.headers.get(
     CSRF_HEADER_NAME,
   );
@@ -59,15 +84,22 @@ async function parseApiError(
 }
 
 async function ensureCsrfToken() {
-  if (csrfToken) {
-    return csrfToken;
-  }
+  // XSRF-TOKEN cookie는 브라우저에서 삭제되거나 OAuth navigation으로
+  // 교체될 수 있으므로, 메모리의 이전 값을 쿠키의 존재로 간주하지 않는다.
+  // 매 unsafe request 전에 bootstrap을 완료해 cookie/header 쌍을 맞춘다.
+  csrfToken = null;
+  await requestSessionBootstrap();
 
-  await apiFetch("/session", {
-    method: "GET",
-    // CSRF Token을 얻기 위한 내부 요청 중복 방지
-    skipCsrfBootstrap: true,
-  });
+  // CookieCsrfTokenRepository validates the double-submit pair. Prefer the
+  // browser cookie after bootstrap so a stale in-memory response header is
+  // never sent with a different cookie. A second bootstrap is only a
+  // preflight for browsers that have not committed Set-Cookie yet; no failed
+  // mutation is retried.
+  csrfToken = readCsrfCookie() ?? csrfToken;
+  if (!readCsrfCookie()) {
+    await requestSessionBootstrap();
+    csrfToken = readCsrfCookie() ?? csrfToken;
+  }
 
   if (!csrfToken) {
     throw new ApiContractError(
@@ -76,6 +108,20 @@ async function ensureCsrfToken() {
   }
 
   return csrfToken;
+}
+
+async function requestSessionBootstrap<T = unknown>() {
+  if (!sessionBootstrapPromise) {
+    sessionBootstrapPromise = apiFetch<T>("/session", {
+      method: "GET",
+      // CSRF Token을 얻기 위한 내부 요청 중복 방지
+      skipCsrfBootstrap: true,
+    }).finally(() => {
+      sessionBootstrapPromise = null;
+    });
+  }
+
+  return (await sessionBootstrapPromise) as T;
 }
 
 export async function apiFetch<T>(
@@ -87,6 +133,14 @@ export async function apiFetch<T>(
   ).toUpperCase();
 
   const headers = new Headers(options.headers);
+
+  if (
+    path === "/session" &&
+    method === "GET" &&
+    !options.skipCsrfBootstrap
+  ) {
+    return requestSessionBootstrap<T>();
+  }
 
   headers.set("Accept", "application/json");
 

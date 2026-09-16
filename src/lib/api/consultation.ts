@@ -16,9 +16,9 @@ import type {
   ReopenAnalysisResponse,
 } from "./types";
 
-export function startConsultation() {
+export function startConsultation(startNew = false) {
   return apiFetch<ConsultationCreateResponse>(
-    "/consultations",
+    `/consultations${startNew ? "?new=true" : ""}`,
     {
       method: "POST",
     },
@@ -61,11 +61,12 @@ export function updateConsultationCategory(
 export function updateConsultationSituation(
   consultationId: string,
   situationText: string,
+  editFromSummary = false,
 ) {
   return apiFetch<UpdateSituationResponse>(
     `/consultations/${encodeURIComponent(
       consultationId,
-    )}/situation`,
+    )}/situation${editFromSummary ? "?edit=true" : ""}`,
     {
       method: "PUT",
       body: {

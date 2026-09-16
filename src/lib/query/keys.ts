@@ -1,4 +1,10 @@
 export const queryKeys = {
+  account: {
+    all: ["account"] as const,
+    overview: () => ["account", "overview"] as const,
+    consultations: (page: number) => ["account", "consultations", page] as const,
+    emergencyHistory: (page: number) => ["account", "emergency-history", page] as const,
+  },
   session: {
     all: ["session"] as const,
   },

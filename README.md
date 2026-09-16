@@ -92,6 +92,19 @@ npm run dev
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
+### Vercel Production
+
+Set the same public variable in the Vercel Preview and Production
+environments, using the selected Backend origin:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://<api-domain>/api/v1
+```
+
+Do not add OpenAI, Korean Law, database, KURE, OAuth client secrets, or
+session credentials to `NEXT_PUBLIC_*` variables. OAuth success redirects and
+Backend CORS must use the same final app/API domains configured on the server.
+
 ## Links
 
 - [Backend Repository](https://github.com/Economy0326/financial-helper-backend)

@@ -9,6 +9,7 @@ export type ConsultationStatus =
   | "ANALYZING"
   | "NEEDS_MORE_INFO"
   | "COMPLETED"
+  | "ABANDONED"
   | "FAILED";
 
 export type ConsultationStep =
@@ -22,6 +23,50 @@ export type ConsultationStep =
 export type SessionResponse = {
   guest: boolean;
   hasActiveConsultation: boolean;
+  authenticated?: boolean;
+  accountId?: string | null;
+  provider?: "KAKAO" | "NAVER" | null;
+};
+
+export type AccountOverviewResponse = {
+  accountId: string;
+  provider: "KAKAO" | "NAVER";
+  displayName: string | null;
+  activeConsultation: {
+    consultationId: string;
+    category: ConsultationCategory | null;
+    status: ConsultationStatus;
+    currentStep: ConsultationStep;
+    updatedAt: string;
+  } | null;
+  quota: { used: number; limit: number; nextAvailableAt: string | null };
+};
+
+export type AccountConsultationHistoryItem = {
+  consultationId: string;
+  category: ConsultationCategory | null;
+  status: ConsultationStatus;
+  createdAt: string;
+  updatedAt: string;
+  reportId: string | null;
+  reportGeneratedAt: string | null;
+};
+
+export type AccountEmergencyHistoryItem = {
+  id: string;
+  emergencyType: EmergencyType;
+  scenarioVersion: string;
+  viewedAt: string;
+};
+
+export type PageResponse<T> = {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 };
 
 export type ConsultationCreateResponse = {
@@ -66,6 +111,13 @@ export type FollowUpQuestionResponse = {
   id: string;
   question: string;
   description: string;
+  inputType?:
+    | "YES_NO"
+    | "YES_NO_UNKNOWN"
+    | "INSTITUTION_SELECT"
+    | "ENUM_SELECT"
+    | "DATE"
+    | "SHORT_TEXT";
   options: FollowUpOptionResponse[];
 };
 
@@ -125,6 +177,12 @@ export type AnalysisAdditionalInformation = {
   reason: string;
 };
 
+export type AnalysisSafeAction = {
+  actionId: string;
+  title: string;
+  description: string;
+};
+
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
   attemptCount: number;
@@ -135,6 +193,8 @@ export type AnalysisStateResponse = {
 
   additionalInformationNeeded:
     AnalysisAdditionalInformation[];
+
+  safeActions: AnalysisSafeAction[];
 };
 
 export type ReopenAnalysisResponse = {
@@ -160,6 +220,7 @@ export type ConsultationReportResponse = {
     caseSummary: string;
 
     firstAction: {
+      actionId?: string | null;
       title: string;
       description: string;
     };
@@ -170,6 +231,7 @@ export type ConsultationReportResponse = {
     }[];
 
     actionSteps: {
+      actionId?: string | null;
       order: number;
       title: string;
       description: string;
@@ -181,6 +243,7 @@ export type ConsultationReportResponse = {
     }[];
 
     requiredDocuments: {
+      documentId?: string | null;
       name: string;
       reason: string;
     }[];
@@ -196,12 +259,17 @@ export type ConsultationReportResponse = {
     };
 
     similarCases: unknown[];
-    citations: unknown[];
+    citations: {
+      evidenceId: string;
+      locator: string;
+      label?: string | null;
+    }[];
   } | null;
 
   evidence: {
     status:
-      | "NOT_AVAILABLE_IN_AI_V1";
+      | "NOT_AVAILABLE_IN_AI_V1"
+      | "GROUNDED_CARD";
 
     message: string;
   };
@@ -218,6 +286,7 @@ export type ApiErrorResponse = {
     message: string;
     fieldErrors: ApiFieldError[];
     requestId: string;
+    nextAvailableAt?: string | null;
   };
 };
 
