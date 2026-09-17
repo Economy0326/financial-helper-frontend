@@ -2,6 +2,14 @@ export type ConsultationCategory =
   | "INSURANCE"
   | "LOAN"
   | "CARD"
+  | "FINANCIAL_FRAUD"
+  | "UNKNOWN";
+
+export type ConsultationScenario =
+  | "CARD_LOSS_UNAUTHORIZED_USE"
+  | "VOICE_PHISHING_SUSPICIOUS_TRANSFER"
+  | "UNAUTHORIZED_ACCOUNT_TRANSFER"
+  | "PERSONAL_INFO_SMISHING_MALICIOUS_APP"
   | "UNKNOWN";
 
 export type ConsultationStatus =
@@ -35,6 +43,7 @@ export type AccountOverviewResponse = {
   activeConsultation: {
     consultationId: string;
     category: ConsultationCategory | null;
+    scenario?: ConsultationScenario | null;
     status: ConsultationStatus;
     currentStep: ConsultationStep;
     updatedAt: string;
@@ -45,6 +54,7 @@ export type AccountOverviewResponse = {
 export type AccountConsultationHistoryItem = {
   consultationId: string;
   category: ConsultationCategory | null;
+  scenario?: ConsultationScenario | null;
   status: ConsultationStatus;
   createdAt: string;
   updatedAt: string;
@@ -78,6 +88,7 @@ export type ConsultationCreateResponse = {
 export type ActiveConsultationResponse = {
   consultationId: string;
   category: ConsultationCategory | null;
+  scenario?: ConsultationScenario | null;
   status: ConsultationStatus;
   currentStep: ConsultationStep;
   updatedAt: string;
@@ -86,6 +97,7 @@ export type ActiveConsultationResponse = {
 export type ConsultationDetailResponse = {
   consultationId: string;
   category: ConsultationCategory | null;
+  scenario?: ConsultationScenario | null;
   situationText: string | null;
   status: ConsultationStatus;
   currentStep: ConsultationStep;

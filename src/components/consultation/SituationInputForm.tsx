@@ -66,6 +66,9 @@ function getSituationPlaceholder(
     case "CARD":
       return "예) 취소한 카드 결제가 아직 환불되지 않았어요.";
 
+    case "FINANCIAL_FRAUD":
+      return "예) 모르는 송금이나 스미싱 피해가 의심돼요.";
+
     case "UNKNOWN":
     default:
       return "예) 금융회사와 거래하면서 어떤 문제가 있었는지 적어 주세요.";

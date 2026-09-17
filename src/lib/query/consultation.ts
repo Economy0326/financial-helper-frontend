@@ -27,6 +27,7 @@ import {
 
 import type {
   ConsultationCategory,
+  ConsultationScenario,
   ConsultationCreateResponse,
 } from "@/lib/api/types";
 
@@ -121,6 +122,7 @@ export function useStartConsultationMutation() {
 type UpdateCategoryVariables = {
   consultationId: string;
   category: ConsultationCategory;
+  scenario?: ConsultationScenario;
 };
 
 export function useUpdateCategoryMutation() {
@@ -130,10 +132,12 @@ export function useUpdateCategoryMutation() {
     mutationFn: ({
       consultationId,
       category,
+      scenario,
     }: UpdateCategoryVariables) =>
       updateConsultationCategory(
         consultationId,
         category,
+        scenario,
       ),
 
     onSuccess: async (_data, variables) => {

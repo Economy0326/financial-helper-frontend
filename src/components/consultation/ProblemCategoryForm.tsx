@@ -55,6 +55,12 @@ const categories = [
     icon: "card",
   },
   {
+    value: "FINANCIAL_FRAUD",
+    title: "송금·사기·개인정보",
+    description: "의심 송금 · 무단이체 · 스미싱 문제",
+    icon: "shield",
+  },
+  {
     value: "UNKNOWN",
     title: "잘 모르겠어요",
     description: "어떤 유형인지 모르겠다면 여기서 시작하세요",
