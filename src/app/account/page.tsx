@@ -21,6 +21,7 @@ const categoryLabels: Record<string, string> = {
   INSURANCE: "보험",
   LOAN: "대출",
   CARD: "카드",
+  FINANCIAL_FRAUD: "송금·사기·개인정보",
   UNKNOWN: "금융 문제",
 };
 

@@ -5,6 +5,7 @@ import type {
   AnalysisStateResponse,
   ConfirmConsultationSummaryResponse,
   ConsultationCategory,
+  ConsultationScenario,
   ConsultationCreateResponse,
   ConsultationDetailResponse,
   ConsultationSummaryStateResponse,
@@ -44,6 +45,7 @@ export function getConsultation(
 export function updateConsultationCategory(
   consultationId: string,
   category: ConsultationCategory,
+  scenario?: ConsultationScenario,
 ) {
   return apiFetch<UpdateCategoryResponse>(
     `/consultations/${encodeURIComponent(
@@ -53,6 +55,7 @@ export function updateConsultationCategory(
       method: "PUT",
       body: {
         category,
+        ...(scenario ? { scenario } : {}),
       },
     },
   );
