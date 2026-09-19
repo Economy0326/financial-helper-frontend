@@ -103,6 +103,29 @@ export default function AnalysisFlow() {
     retryMutation.error.code ===
       "ANALYSIS_RETRY_LIMIT_EXCEEDED";
 
+  const failedGuidance = (() => {
+    switch (analysisQuery.data?.failureCode) {
+      case "RETRIEVAL_UNAVAILABLE":
+        return "검색 근거를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      case "LAW_EVIDENCE_UNAVAILABLE":
+        return "법령 근거를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      case "FAP_UNAVAILABLE":
+      case "PROCEDURE_UNAVAILABLE":
+      case "NO_APPROVED_EVIDENCE":
+        return "현재 확인된 정보와 검토된 근거만으로는 분석을 준비하지 못했어요. 내용을 확인해 주세요.";
+      case "RETRIEVAL_GENERATION_MISMATCH":
+      case "RETRIEVAL_MAPPING_MISSING":
+        return "검색 근거를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      case "SNAPSHOT_UNAVAILABLE":
+      case "STALE_REVISION":
+        return "상담 내용이 바뀌어 근거를 다시 확인해야 해요. 내용을 확인해 주세요.";
+      case "AI_VALIDATION_FAILED":
+        return "분석 결과를 안전하게 확인하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      default:
+        return "입력하신 상담 내용은 그대로 저장되어 있어요. 다시 시도하면 같은 상담 정보로 분석을 시작합니다.";
+    }
+  })();
+
   if (isInitialLoading) {
     return (
       <>
@@ -187,6 +210,17 @@ export default function AnalysisFlow() {
   // 서버에서는 분석이 계속 진행 중일 수도 있으니, 여기서는 Analysis Retry를 호출하면 안 된다.
   // 따라서 GET status만 다시 조회한다.
   if (analysisQuery.isError) {
+    const responseError =
+      analysisQuery.error instanceof ApiResponseError
+        ? analysisQuery.error
+        : null;
+    const consultationMissing =
+      responseError?.code === "CONSULTATION_NOT_FOUND";
+    const ownershipFailure =
+      responseError?.status === 401 || responseError?.status === 403;
+    const endpointMissing =
+      responseError?.status === 404 && !consultationMissing;
+
     return (
       <>
         <ConsultationProgress
@@ -197,26 +231,54 @@ export default function AnalysisFlow() {
 
         <div className="py-16 text-center">
           <h1 className="text-2xl font-bold text-foreground">
-            분석 상태를 확인하지 못했어요.
+            {consultationMissing
+              ? "현재 상담을 찾지 못했어요."
+              : ownershipFailure
+                ? "상담 접근 권한을 다시 확인해 주세요."
+                : endpointMissing
+                  ? "분석 기능을 사용할 수 없는 상태예요."
+                  : "분석 상태를 확인하지 못했어요."}
           </h1>
 
           <p className="mt-3 leading-7 text-foreground-muted">
-            분석이 중단됐다는 뜻은 아니에요.
-            <br />
-            서버의 현재 상태를 다시 확인해 주세요.
+            {consultationMissing || ownershipFailure || endpointMissing ? (
+              "저장된 상담 단계에서 다시 시작해 주세요."
+            ) : (
+              <>
+                분석이 중단됐다는 뜻은 아니에요.
+                <br />
+                서버의 현재 상태를 다시 확인해 주세요.
+              </>
+            )}
           </p>
 
           <div className="mx-auto mt-8 max-w-sm">
-            <PrimaryButton
-              type="button"
-              className="w-full"
-              onClick={() => {
-                void analysisQuery
-                  .refetch();
-              }}
-            >
-              다시 확인하기
-            </PrimaryButton>
+            {consultationMissing || ownershipFailure || endpointMissing ? (
+              <div className="space-y-3">
+                <Link
+                  href={ownershipFailure ? "/auth/login" : "/consultation/entry"}
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                >
+                  상담 상태 확인하기
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                >
+                  홈으로
+                </Link>
+              </div>
+            ) : (
+              <PrimaryButton
+                type="button"
+                className="w-full"
+                onClick={() => {
+                  void analysisQuery.refetch();
+                }}
+              >
+                다시 확인하기
+              </PrimaryButton>
+            )}
           </div>
         </div>
       </>
@@ -347,9 +409,7 @@ export default function AnalysisFlow() {
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            입력하신 상담 내용은 그대로 저장되어 있어요.
-            <br />
-            다시 시도하면 같은 상담 정보로 분석을 시작합니다.
+            {failedGuidance}
           </p>
 
           {retryMutation.isError ? (
@@ -403,6 +463,32 @@ export default function AnalysisFlow() {
               ? "다시 시작 중..."
               : "다시 시도"}
           </PrimaryButton>
+
+          <Link
+            href="/consultation/summary?review=true"
+            className={[
+              "mx-auto mt-3 inline-flex min-h-12 w-full max-w-sm",
+              "items-center justify-center rounded-control border border-border",
+              "bg-surface px-5 py-3 font-bold text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            내용 확인하기
+          </Link>
+
+          <Link
+            href="/"
+            className={[
+              "mx-auto mt-3 inline-flex min-h-12 w-full max-w-sm",
+              "items-center justify-center rounded-control border border-border",
+              "bg-surface px-5 py-3 font-bold text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            홈으로
+          </Link>
         </div>
       </>
     );
@@ -672,7 +758,7 @@ export default function AnalysisFlow() {
                     result.kind === "ready"
                   ) {
                     router.push(
-                      "/consultation/report",
+                      `/consultation/report?consultationId=${encodeURIComponent(consultationId)}`,
                     );
                   }
                 },

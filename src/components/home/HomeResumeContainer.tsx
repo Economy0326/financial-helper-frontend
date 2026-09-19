@@ -125,7 +125,7 @@ export default function HomeResumeContainer() {
           ),
         href: step.href,
         newHref: sessionQuery.data?.authenticated
-          ? "/consultation/problem-category?new=true"
+          ? "/consultation/entry"
           : undefined,
       },
     };

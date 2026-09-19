@@ -151,7 +151,7 @@ export default function FollowUpFlow() {
         <ConsultationProgress
           currentStep={3}
           totalSteps={6}
-          label="AI 추가 질문"
+          label="추가 질문"
         />
 
         <div
@@ -246,7 +246,7 @@ export default function FollowUpFlow() {
         <ConsultationProgress
           currentStep={3}
           totalSteps={6}
-          label="AI 추가 질문"
+          label="추가 질문"
         />
 
         <div className="py-16 text-center">
@@ -308,7 +308,7 @@ export default function FollowUpFlow() {
         <ConsultationProgress
           currentStep={3}
           totalSteps={6}
-          label="AI 추가 질문"
+          label="추가 질문"
         />
 
         <div className="py-16 text-center">
@@ -409,7 +409,7 @@ export default function FollowUpFlow() {
         <ConsultationProgress
           currentStep={3}
           totalSteps={6}
-          label="AI 추가 질문"
+          label="추가 질문"
         />
 
         <div
@@ -523,14 +523,12 @@ export default function FollowUpFlow() {
       <ConsultationProgress
         currentStep={3}
         totalSteps={6}
-        label="AI 추가 질문"
+        label="추가 질문"
       />
 
       <header className="mt-10 text-center sm:mt-12">
         <p className="text-sm font-semibold text-primary">
-          추가 질문{" "}
-          {currentQuestionNumber}/
-          {totalQuestions}
+          추가 질문
         </p>
 
         <h1 className="mx-auto mt-3 max-w-2xl break-keep text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">

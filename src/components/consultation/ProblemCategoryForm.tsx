@@ -37,27 +37,15 @@ import {
 
 const categories = [
   {
-    value: "INSURANCE",
-    title: "보험",
-    description: "보험금 · 계약 · 해지 문제",
-    icon: "shield",
-  },
-  {
-    value: "LOAN",
-    title: "대출",
-    description: "금리 · 연체 · 상환 문제",
-    icon: "loan",
-  },
-  {
     value: "CARD",
     title: "카드",
-    description: "결제 · 취소 · 수수료 문제",
+    description: "분실·도난 · 모르는 결제",
     icon: "card",
   },
   {
     value: "FINANCIAL_FRAUD",
     title: "송금·사기·개인정보",
-    description: "의심 송금 · 무단이체 · 스미싱 문제",
+    description: "보이스피싱·의심 송금 · 무단이체·모르는 출금 · 스미싱·악성 앱",
     icon: "shield",
   },
   {
@@ -74,7 +62,7 @@ type ProblemCategory =
 function CategoryIcon({
   type,
 }: {
-  type: (typeof categories)[number]["icon"];
+  type: "shield" | "loan" | "card" | "unknown";
 }) {
   if (type === "shield") {
     return (

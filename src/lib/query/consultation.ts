@@ -103,6 +103,10 @@ export function useStartConsultationMutation() {
       })
       // Promise로 session과 active 한 번에 invalidate
       await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.account.all,
+        }),
+
         // 상담 생성 성공하면 데이터가 최신이 아닐 확률이 높으니 성공 이후 invalidate
         queryClient.invalidateQueries({
           queryKey:
@@ -141,6 +145,19 @@ export function useUpdateCategoryMutation() {
       ),
 
     onSuccess: async (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.summaryRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.analysisRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.session.all,
@@ -203,6 +220,19 @@ export function useUpdateSituationMutation() {
       ),
 
     onSuccess: async (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.summaryRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.analysisRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.session.all,
@@ -421,11 +451,13 @@ export function useConsultationSummaryQuery(
     | null
     | undefined,
   enabled = true,
+  review = false,
 ) {
   return useQuery({
     queryKey:
       queryKeys.consultations.summary(
         consultationId ?? "pending",
+        review,
       ),
 
     queryFn: () => {
@@ -437,6 +469,7 @@ export function useConsultationSummaryQuery(
 
       return getConsultationSummary(
         consultationId,
+        review,
       );
     },
 

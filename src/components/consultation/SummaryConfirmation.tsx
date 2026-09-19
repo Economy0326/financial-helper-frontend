@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import {
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
@@ -39,6 +40,12 @@ export default function SummaryConfirmation() {
   const router =
     useRouter();
 
+  const searchParams =
+    useSearchParams();
+
+  const reviewFromAnalysis =
+    searchParams.get("review") === "true";
+
   const sessionQuery =
     useSessionQuery();
 
@@ -59,10 +66,13 @@ export default function SummaryConfirmation() {
   const currentStep =
     activeConsultationQuery.data
       ?.currentStep ?? null;
+  const consultationStatus =
+    activeConsultationQuery.data?.status ?? null;
 
   const pageAccess =
     getSummaryPageAccess(
       currentStep,
+      reviewFromAnalysis,
     );
 
   const canLoadSummary =
@@ -73,6 +83,7 @@ export default function SummaryConfirmation() {
     useConsultationSummaryQuery(
       consultationId,
       canLoadSummary,
+      reviewFromAnalysis,
     );
 
   const prepareSummaryMutation =
@@ -98,6 +109,7 @@ export default function SummaryConfirmation() {
   useEffect(() => {
     if (
       currentStep === "ANALYSIS"
+      && !reviewFromAnalysis
     ) {
       router.replace(
         "/consultation/analysis",
@@ -105,6 +117,7 @@ export default function SummaryConfirmation() {
     }
   }, [
     currentStep,
+    reviewFromAnalysis,
     router,
   ]);
 
@@ -116,6 +129,7 @@ export default function SummaryConfirmation() {
     if (
       !consultationId ||
       !canLoadSummary ||
+      reviewFromAnalysis ||
       summaryQuery.data?.kind !==
         "not-prepared" ||
       prepareSummaryMutation.isPending ||
@@ -135,6 +149,7 @@ export default function SummaryConfirmation() {
   }, [
     consultationId,
     canLoadSummary,
+    reviewFromAnalysis,
     summaryQuery.data?.kind,
     prepareSummaryMutation,
   ]);
@@ -404,11 +419,11 @@ export default function SummaryConfirmation() {
         </p>
 
         <h1 className="mt-3 break-keep text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          제가 이해한 내용이 맞는지 확인해 주세요
+          이렇게 이해했어요
         </h1>
 
         <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
-          아래 요약은 입력하신 상담 내용과 추가 질문 답변을 바탕으로 정리한 내용이에요.
+          맞는지 확인해 주세요.
         </p>
       </header>
 
@@ -417,13 +432,9 @@ export default function SummaryConfirmation() {
           {state.summary.headline}
         </h2>
 
-        <p className="mt-4 whitespace-pre-line leading-7 text-foreground">
-          {state.summary.summaryText}
-        </p>
-
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-foreground-muted">
-            핵심 포인트
+            확인된 내용
           </h3>
 
           <ul className="mt-3 space-y-3">
@@ -439,9 +450,19 @@ export default function SummaryConfirmation() {
             )}
           </ul>
         </div>
+
+        <details className="mt-5 rounded-control border border-border bg-surface-subtle px-4 py-3">
+          <summary className="cursor-pointer font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+            자세한 내용 보기
+          </summary>
+
+          <p className="mt-3 whitespace-pre-line leading-7 text-foreground">
+            {state.summary.summaryText}
+          </p>
+        </details>
       </section>
 
-      {confirmSummaryMutation.isError ? (
+      {confirmSummaryMutation.isError && !reviewFromAnalysis ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"
@@ -457,6 +478,40 @@ export default function SummaryConfirmation() {
         </div>
       ) : null}
 
+      {reviewFromAnalysis ? (
+        <div className="mt-8 space-y-3">
+          {consultationStatus === "FAILED" ? (
+            <Link
+              href="/consultation/situation?edit=true"
+              className={[
+                "inline-flex min-h-12 w-full items-center justify-center",
+                "rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground",
+                "focus-visible:outline-none focus-visible:ring-2",
+                "focus-visible:ring-focus focus-visible:ring-offset-2",
+              ].join(" ")}
+            >
+              상황 수정하기
+            </Link>
+          ) : null}
+          <Link
+            href="/consultation/analysis"
+            className={[
+              "inline-flex min-h-12 w-full items-center justify-center",
+              "rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2",
+              "focus-visible:ring-focus focus-visible:ring-offset-2",
+            ].join(" ")}
+          >
+            분석 화면으로 돌아가기
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex min-h-12 w-full items-center justify-center font-semibold text-foreground-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          >
+            홈으로
+          </Link>
+        </div>
+      ) : (
       <div className="mt-8 space-y-3">
         <PrimaryButton
           type="button"
@@ -526,6 +581,7 @@ export default function SummaryConfirmation() {
           수정할래요
         </SecondaryButton>
       </div>
+      )}
     </>
   );
 }

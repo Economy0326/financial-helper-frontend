@@ -14,6 +14,12 @@ import {
   useAccountEmergencyHistoryQuery,
   useAccountOverviewQuery,
 } from "@/lib/query/account";
+import {
+  useStartConsultationMutation,
+} from "@/lib/query/consultation";
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 import { useSessionQuery } from "@/lib/query/session";
 import { queryKeys } from "@/lib/query/keys";
 
@@ -100,6 +106,8 @@ export default function AccountPage() {
     0,
     authenticated,
   );
+  const startConsultationMutation =
+    useStartConsultationMutation();
   const [logoutPending, setLogoutPending] = useState(false);
 
   if (
@@ -171,6 +179,16 @@ export default function AccountPage() {
     }
   }
 
+  function startNewConsultation(startNew: boolean) {
+    startConsultationMutation.mutate(startNew, {
+      onSuccess: (consultation) => {
+        router.replace(
+          getConsultationStepHref(consultation.currentStep),
+        );
+      },
+    });
+  }
+
   const completedHistory = history.data?.content.filter(
     (item) => Boolean(item.reportId),
   );
@@ -225,17 +243,23 @@ export default function AccountPage() {
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/consultation/problem-category"
+                href={getConsultationStepHref(
+                  data.activeConsultation.currentStep,
+                )}
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
               >
                 이어서 하기
               </Link>
-              <Link
-                href="/consultation/problem-category?new=true"
+              <button
+                type="button"
+                disabled={startConsultationMutation.isPending}
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-control border border-primary px-5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
+                onClick={() => startNewConsultation(true)}
               >
-                새 상담 시작
-              </Link>
+                {startConsultationMutation.isPending
+                  ? "새 상담 준비 중..."
+                  : "새 상담 시작"}
+              </button>
             </div>
           </section>
         ) : (
@@ -244,12 +268,16 @@ export default function AccountPage() {
             <p className="mt-2 text-foreground-muted">
               새로운 금융 상담을 시작해 보세요.
             </p>
-            <Link
-              href="/consultation/problem-category"
+            <button
+              type="button"
+              disabled={startConsultationMutation.isPending}
               className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
+              onClick={() => startNewConsultation(false)}
             >
-              새 상담 시작
-            </Link>
+              {startConsultationMutation.isPending
+                ? "새 상담 준비 중..."
+                : "새 상담 시작"}
+            </button>
           </section>
         )}
 

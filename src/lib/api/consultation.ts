@@ -132,11 +132,16 @@ export function updateFollowUpAnswer(
 
 export function getConsultationSummary(
   consultationId: string,
+  review = false,
 ) {
+  const reviewQuery = review
+    ? "?review=true"
+    : "";
+
   return apiFetch<ConsultationSummaryStateResponse>(
     `/consultations/${encodeURIComponent(
       consultationId,
-    )}/summary`,
+    )}/summary${reviewQuery}`,
   );
 }
 

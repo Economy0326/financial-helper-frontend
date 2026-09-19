@@ -10,7 +10,7 @@ export function getAccountOverview() {
   return apiFetch<AccountOverviewResponse>("/account/me");
 }
 
-export function getAccountConsultationHistory(page = 0, size = 10) {
+export function getAccountConsultationHistory(page = 0, size = 5) {
   return apiFetch<PageResponse<AccountConsultationHistoryItem>>(
     `/account/consultations?page=${page}&size=${size}`,
   );

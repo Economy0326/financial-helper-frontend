@@ -55,10 +55,6 @@ const reportSections = [
     label: "필요한 서류",
   },
   {
-    id: "cases",
-    label: "유사 사례",
-  },
-  {
     id: "terms",
     label: "금융용어",
   },
@@ -212,9 +208,13 @@ export default function SolutionReport() {
     sessionQuery.data
       .hasActiveConsultation;
 
+  const useActiveConsultationFallback =
+    !requestedConsultationId &&
+    hasActiveConsultation;
+
   const activeConsultationQuery =
     useActiveConsultationQuery(
-      hasActiveConsultation,
+      useActiveConsultationFallback,
     );
 
   const consultationId =
@@ -292,7 +292,7 @@ export default function SolutionReport() {
   const isLoading =
     sessionQuery.isLoading ||
     (
-      hasActiveConsultation &&
+      useActiveConsultationFallback &&
       activeConsultationQuery.isLoading
     ) ||
     (
@@ -330,7 +330,7 @@ export default function SolutionReport() {
   if (
     sessionQuery.isError ||
     (
-      hasActiveConsultation &&
+      useActiveConsultationFallback &&
       activeConsultationQuery.isError
     )
   ) {
@@ -359,9 +359,7 @@ export default function SolutionReport() {
               onClick={() => {
                 void sessionQuery.refetch();
 
-                if (
-                  hasActiveConsultation
-                ) {
+                if (useActiveConsultationFallback) {
                   void activeConsultationQuery
                     .refetch();
                 }
@@ -377,6 +375,7 @@ export default function SolutionReport() {
 
   if (
     sessionQuery.isSuccess &&
+    !requestedConsultationId &&
     !hasActiveConsultation
   ) {
     return (
@@ -919,33 +918,6 @@ export default function SolutionReport() {
           ) : null}
 
           <ReportSection
-            id="cases"
-            title="유사 사례"
-            isExpanded={
-              expandedSections.has(
-                "cases",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "cases",
-              )
-            }
-          >
-            <div className="rounded-control bg-surface-subtle p-4">
-              <p className="leading-7 text-foreground-muted">
-                현재 AI V1에서는 검증된
-                유사 분쟁 사례를 제공하지 않아요.
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-foreground-muted">
-                공식 자료 검색 기능이 연결된 뒤
-                검증된 사례만 표시할 예정이에요.
-              </p>
-            </div>
-          </ReportSection>
-
-          <ReportSection
             id="terms"
             title="금융용어"
             isExpanded={
@@ -1059,8 +1031,7 @@ export default function SolutionReport() {
               </p>
 
               <p className="mt-3 text-sm leading-6 text-foreground-muted">
-                확인되지 않은 법령, 판례,
-                기관 URL이나 유사 사례를
+                확인되지 않은 법령, 판례, 기관 URL을
                 임의로 표시하지 않습니다.
               </p>
             </div>

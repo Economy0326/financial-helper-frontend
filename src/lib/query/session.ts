@@ -36,7 +36,7 @@ export function useSessionQuery() {
     ) {
       queryClient.removeQueries({
         queryKey:
-          queryKeys.consultations.all,
+          queryKeys.consultations.active(),
       });
     }
   }, [

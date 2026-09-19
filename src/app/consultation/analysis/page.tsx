@@ -10,7 +10,7 @@ export default function AnalysisPage() {
       <div className="mx-auto w-full max-w-3xl">
         <div className="mb-8">
           <Link
-            href="/consultation/summary"
+            href="/consultation/summary?review=true"
             aria-label="내용 확인으로 돌아가기"
             className={[
               "inline-flex h-12 w-12 items-center justify-center",

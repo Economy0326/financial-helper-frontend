@@ -197,6 +197,7 @@ export type AnalysisSafeAction = {
 
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
+  failureCode: string | null;
   attemptCount: number;
 
   informationSupplementCount: number;

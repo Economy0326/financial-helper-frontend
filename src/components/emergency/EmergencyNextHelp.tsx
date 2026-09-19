@@ -7,10 +7,10 @@ import EmergencyProgress from "@/components/emergency/EmergencyProgress";
 
 const nextHelpActions = [
   {
-    href: "/consultation/problem-category",
-    title: "금융 문제 상담 계속하기",
+    href: "/consultation/entry",
+    title: "금융 피해 상담하기",
     description:
-      "긴급 대응을 확인했다면 금융 문제를 더 자세히 상담할 수 있어요.",
+      "현재 상황을 정리하고 필요한 다음 행동을 확인해요.",
     icon: "💬",
   },
   {
@@ -61,9 +61,7 @@ export default function EmergencyNextHelp() {
         </h1>
 
         <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
-          지금 필요한 다음 도움을
-          <br className="sm:hidden" />
-          선택해 주세요.
+          필요하면 상담을 이어가거나 대응 내용을 다시 확인할 수 있어요.
         </p>
       </header>
 
@@ -161,8 +159,7 @@ export default function EmergencyNextHelp() {
         </p>
 
         <p className="mt-2 leading-7 text-foreground-muted">
-          긴급 대응을 다시 확인하거나 일반 금융
-          상담으로 이어서 진행할 수 있어요.
+          긴급 대응을 다시 확인하거나 금융 피해 상담으로 이어갈 수 있어요.
         </p>
       </aside>
     </>

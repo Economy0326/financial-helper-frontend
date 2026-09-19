@@ -2,16 +2,8 @@
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import HomeActionCard from "@/components/home/HomeActionCard";
-import HomeResumeContainer from "@/components/home/HomeResumeContainer";
-import { useSessionQuery } from "@/lib/query/session";
 
 export default function Home() {
-  const session = useSessionQuery();
-  const consultationHref =
-    session.data?.authenticated === true
-      ? "/consultation/problem-category"
-      : "/auth/login";
-
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -27,7 +19,7 @@ export default function Home() {
           </h1>
 
           <p className="mt-3 text-xl font-semibold text-foreground sm:text-2xl">
-            금융 문제를 쉽고 안전하게 해결하세요.
+            금융 피해 상황을 쉽게 정리하고 다음 행동을 확인하세요.
           </p>
 
           <p className="mt-5 flex items-center gap-2 text-sm text-foreground-muted sm:text-base">
@@ -43,9 +35,9 @@ export default function Home() {
           className="mt-5 grid gap-4 md:grid-cols-2"
         >
           <HomeActionCard
-            href={consultationHref}
-            title="금융 문제 해결하기"
-            description="보험, 대출, 카드, 계좌 등 궁금한 금융 문제를 해결해요."
+            href="/consultation/entry"
+            title="금융 피해 상담하기"
+            description="카드 피해, 의심 송금, 무단이체, 개인정보 노출을 함께 정리해요."
             ctaLabel="상담 시작하기"
             tone="primary"
             icon="consultation"
@@ -61,10 +53,6 @@ export default function Home() {
           />
         </section>
 
-        <div className="mt-5">
-          <HomeResumeContainer />
-        </div>
-
         <section
           aria-label="서비스 안내"
           className="mt-5 grid gap-4 md:grid-cols-2"
@@ -73,8 +61,8 @@ export default function Home() {
             <h2 className="font-bold text-foreground">믿고 이용하세요</h2>
 
             <p className="mt-2 leading-7 text-foreground-muted">
-              공식 금융기관 자료를 기반으로 분석하며, 근거가 부족할 경우
-              신중하게 안내합니다.
+              검토된 공식 자료와 절차를 바탕으로 안내하며, 근거가 부족하면
+              확인 가능한 범위만 보여드립니다.
             </p>
           </article>
 

@@ -74,12 +74,13 @@ export const queryKeys = {
 
     summary: (
       consultationId: string,
+      review = false,
     ) =>
       [
         "consultations",
         "summary",
         consultationId,
-        "current",
+        review ? "review" : "current",
       ] as const,
 
     analysisRoot: (

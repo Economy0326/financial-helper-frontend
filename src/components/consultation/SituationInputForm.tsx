@@ -64,14 +64,14 @@ function getSituationPlaceholder(
       return "예) 대출 상환 금액이 예상과 달라서 확인하고 싶어요.";
 
     case "CARD":
-      return "예) 취소한 카드 결제가 아직 환불되지 않았어요.";
+      return "예) 카드를 잃어버렸는데 모르는 결제가 있어요.";
 
     case "FINANCIAL_FRAUD":
-      return "예) 모르는 송금이나 스미싱 피해가 의심돼요.";
+      return "예) 모르는 계좌이체가 있거나 스미싱 피해가 의심돼요.";
 
     case "UNKNOWN":
     default:
-      return "예) 금융회사와 거래하면서 어떤 문제가 있었는지 적어 주세요.";
+      return "예) 금융 피해 상황을 어떻게 설명해야 할지 모르겠어요.";
   }
 }
 
@@ -144,7 +144,7 @@ type SituationFormValues =
 export default function SituationInputForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editFromSummary =
+  const explicitEdit =
     searchParams.get("edit") === "true";
 
   // useForm이 반환하는 Form 제어 함수와 상태 중 현재 화면에 필요한 값만 구조분해
@@ -197,7 +197,8 @@ export default function SituationInputForm() {
   const pageAccess =
     getSituationPageAccess(
       currentStep,
-      editFromSummary,
+      explicitEdit,
+      activeConsultationQuery.data?.status,
     );
 
   const consultationId =
@@ -324,12 +325,25 @@ export default function SituationInputForm() {
     situationMutation.reset();
 
     try {
-      await situationMutation.mutateAsync({
+      const updatedSituation =
+        await situationMutation.mutateAsync({
         consultationId,
         situationText:
           values.content.trim(),
-        editFromSummary,
+        editFromSummary: explicitEdit,
       });
+
+      // 동일한 입력은 Backend가 revision을 늘리지 않는 no-op으로
+      // 처리한다. 현재 단계가 그대로라면 그 단계로 복귀한다.
+      if (updatedSituation.currentStep === "SUMMARY") {
+        router.push("/consultation/summary");
+        return;
+      }
+
+      if (updatedSituation.currentStep === "ANALYSIS") {
+        router.push("/consultation/analysis");
+        return;
+      }
 
       const followUpState =
         await followUpPreparationMutation
