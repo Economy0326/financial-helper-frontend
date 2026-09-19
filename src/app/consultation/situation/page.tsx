@@ -38,7 +38,7 @@ export default function SituationPage() {
           <p className="mt-4 text-base leading-7 text-foreground-muted sm:text-lg">
             자유롭게 상황을 입력해 주세요.
             <br />
-            AI가 이해하기 쉬워집니다.
+            확인된 내용을 바탕으로 안내를 준비해요.
           </p>
         </header>
 

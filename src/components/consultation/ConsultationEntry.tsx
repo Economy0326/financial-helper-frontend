@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import SecondaryButton from "@/components/ui/SecondaryButton";
@@ -28,12 +28,11 @@ function entryErrorMessage(error: unknown) {
 export default function ConsultationEntry() {
   const router = useRouter();
   const automaticStartAttempted = useRef(false);
+  const [isRouting, setIsRouting] = useState(false);
   const sessionQuery = useSessionQuery();
   const authenticated = sessionQuery.data?.authenticated === true;
-  const hasActiveConsultation =
-    authenticated && sessionQuery.data?.hasActiveConsultation === true;
   const activeConsultationQuery = useActiveConsultationQuery(
-    hasActiveConsultation,
+    authenticated,
   );
   const startMutation = useStartConsultationMutation();
 
@@ -46,24 +45,38 @@ export default function ConsultationEntry() {
   useEffect(() => {
     if (
       !authenticated ||
-      sessionQuery.data?.hasActiveConsultation !== false ||
+      !activeConsultationQuery.isSuccess ||
+      activeConsultationQuery.isFetching ||
+      activeConsultationQuery.data !== null ||
       automaticStartAttempted.current
     ) {
       return;
     }
 
-    automaticStartAttempted.current = true;
+      automaticStartAttempted.current = true;
     startMutation.mutate(false, {
       onSuccess: (consultation) => {
+        setIsRouting(true);
         router.replace(getConsultationStepHref(consultation.currentStep));
       },
     });
-  }, [authenticated, router, sessionQuery.data?.hasActiveConsultation, startMutation]);
+  }, [
+    authenticated,
+    router,
+    activeConsultationQuery.data,
+    activeConsultationQuery.isFetching,
+    activeConsultationQuery.isSuccess,
+    startMutation,
+  ]);
 
   if (
     sessionQuery.isLoading ||
-    (hasActiveConsultation && activeConsultationQuery.isLoading) ||
+    (authenticated &&
+      !activeConsultationQuery.isSuccess &&
+      !activeConsultationQuery.isError) ||
+    (authenticated && activeConsultationQuery.isFetching) ||
     startMutation.isPending ||
+    isRouting ||
     (sessionQuery.isSuccess && !authenticated)
   ) {
     return (
@@ -77,7 +90,7 @@ export default function ConsultationEntry() {
 
   if (
     sessionQuery.isError ||
-    activeConsultationQuery.isError ||
+    (activeConsultationQuery.isError) ||
     startMutation.isError
   ) {
     const error = startMutation.error ?? activeConsultationQuery.error ?? sessionQuery.error;
@@ -86,7 +99,9 @@ export default function ConsultationEntry() {
     return (
       <div className="py-16 text-center">
         <h1 className="text-2xl font-bold text-foreground">
-          상담 상태를 확인하지 못했어요.
+          {quotaExhausted
+            ? "최근 7일 새 상담 한도를 모두 사용했어요."
+            : "상담 상태를 확인하지 못했어요."}
         </h1>
         <p className="mt-3 leading-7 text-foreground-muted">
           {entryErrorMessage(error)}
@@ -103,7 +118,13 @@ export default function ConsultationEntry() {
 
   const activeConsultation = activeConsultationQuery.data;
   if (!activeConsultation) {
-    return null;
+    return (
+      <div className="py-20 text-center" role="status" aria-live="polite">
+        <p className="text-lg font-semibold text-foreground">
+          새 상담을 준비하고 있어요.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -114,7 +135,6 @@ export default function ConsultationEntry() {
       <p className="mt-4 break-keep leading-7 text-foreground-muted">
         이전 상담을 이어서 진행하거나 새 상담을 시작할 수 있어요.
       </p>
-
       <div className="mx-auto mt-8 max-w-sm space-y-3">
         <Link
           href={getConsultationStepHref(activeConsultation.currentStep)}
@@ -126,21 +146,16 @@ export default function ConsultationEntry() {
           type="button"
           className="w-full border-primary text-primary"
           disabled={startMutation.isPending}
-          onClick={() => {
-            startMutation.mutate(true, {
-              onSuccess: (consultation) => {
-                router.replace(getConsultationStepHref(consultation.currentStep));
-              },
-            });
-          }}
+          onClick={() => startMutation.mutate(true, {
+            onSuccess: (consultation) => {
+              setIsRouting(true);
+              router.replace(getConsultationStepHref(consultation.currentStep));
+            },
+          })}
         >
           {startMutation.isPending ? "새 상담 준비 중..." : "새 상담 시작하기"}
         </SecondaryButton>
       </div>
-
-      <p className="mt-4 break-keep text-sm leading-6 text-foreground-muted">
-        새 상담을 시작하면 현재 진행 중인 상담은 종료돼요.
-      </p>
     </section>
   );
 }

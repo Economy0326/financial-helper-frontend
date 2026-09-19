@@ -9,6 +9,8 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import { logout } from "@/lib/api/auth";
+import { resetClientAuthState } from "@/lib/api/client";
+import { ApiResponseError } from "@/lib/api/errors";
 import {
   useAccountConsultationHistoryQuery,
   useAccountEmergencyHistoryQuery,
@@ -164,6 +166,7 @@ export default function AccountPage() {
 
     try {
       await logout();
+      resetClientAuthState();
       // Do not leave authenticated session/account data in the shared client
       // while the browser transitions back to the public home page. The next
       // observer performs one fresh unauthenticated bootstrap.
@@ -188,6 +191,10 @@ export default function AccountPage() {
       },
     });
   }
+
+  const startError = startConsultationMutation.error;
+  const quotaExhausted = startError instanceof ApiResponseError &&
+    startError.code === "ACCOUNT_NEW_CONSULTATION_QUOTA_EXHAUSTED";
 
   const completedHistory = history.data?.content.filter(
     (item) => Boolean(item.reportId),
@@ -280,6 +287,24 @@ export default function AccountPage() {
             </button>
           </section>
         )}
+
+        {startConsultationMutation.isError ? (
+          <div
+            role="alert"
+            className="mt-5 rounded-control border border-danger bg-surface-subtle p-4"
+          >
+            <p className="font-semibold text-danger">
+              {quotaExhausted
+                ? "최근 7일 새 상담 한도를 모두 사용했어요."
+                : "새 상담을 시작하지 못했어요."}
+            </p>
+            <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
+              {quotaExhausted
+                ? "완료된 상담과 지난 결과는 상담 내역에서 계속 확인할 수 있어요."
+                : "잠시 후 다시 시도해 주세요."}
+            </p>
+          </div>
+        ) : null}
 
         <section
           aria-labelledby="completed-consultations-heading"

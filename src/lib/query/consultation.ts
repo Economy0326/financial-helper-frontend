@@ -38,9 +38,7 @@ import {
   shouldRetryQuery,
 } from "./retry";
 
-import {
-  ApiResponseError,
-} from "@/lib/api/errors";
+import { ApiResponseError } from "@/lib/api/errors";
 
 // 상담이 이미 존재할 경우
 export function useActiveConsultationQuery(
@@ -50,10 +48,14 @@ export function useActiveConsultationQuery(
     queryKey:
       queryKeys.consultations.active(),
 
-    queryFn: getActiveConsultation,
+    queryFn: () => getActiveConsultation(),
 
     // 애초에 Cookie가 없는 첫 방문에서는 Active 호출 무의미
     enabled,
+
+    // Entry와 Home은 이전 화면에서 남은 active cache가 아니라, 마운트 시점의
+    // 서버 상태로 상담 흐름을 결정한다.
+    refetchOnMount: "always",
 
     retry: shouldRetryQuery,
     retryDelay: queryRetryDelay,
@@ -95,14 +97,15 @@ export function useStartConsultationMutation() {
   return useMutation<ConsultationCreateResponse, Error, boolean | undefined>({
     mutationFn: (startNew = false) => startConsultation(startNew),
 
-    onSuccess: async () => {
+    onSuccess: () => {
       // 기존 Consultation Cache를 먼저 제거
       queryClient.removeQueries({
         queryKey:
           queryKeys.consultations.all,
-      })
-      // Promise로 session과 active 한 번에 invalidate
-      await Promise.all([
+      });
+      // 생성 응답으로 즉시 라우팅하는 caller를 막지 않는다. 아래 무효화는
+      // 다음 화면과 계정 표시를 동기화하기 위한 후속 작업이다.
+      void Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.account.all,
         }),
@@ -837,10 +840,25 @@ export function usePrepareConsultationReportMutation() {
         data,
       );
 
+      // Report가 저장된 consultation은 더 이상 ACTIVE가 아니다. Home이 이전
+      // active cache를 잠깐이라도 resume UI로 표시하지 않도록 즉시 동기화한다.
+      queryClient.setQueryData(
+        queryKeys.consultations.active(),
+        null,
+      );
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.session.all,
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.account.all,
         }),
 
         queryClient.invalidateQueries({

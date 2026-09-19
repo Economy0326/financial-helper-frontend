@@ -559,7 +559,7 @@ export default function SolutionReport() {
 
       <header className="mt-10 text-center sm:mt-12">
         <p className="text-sm font-semibold text-primary">
-          AI 해결 리포트
+          해결 리포트
         </p>
 
         <h1 className="mt-3 break-keep text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">

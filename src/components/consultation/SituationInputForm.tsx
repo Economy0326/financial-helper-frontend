@@ -289,6 +289,10 @@ export default function SituationInputForm() {
   const errorMessage =
     errors.content?.message;
 
+  const unsupportedScope =
+    situationMutation.error instanceof ApiResponseError &&
+    situationMutation.error.code === "CONSULTATION_SCOPE_UNSUPPORTED";
+
   function getSituationFieldErrorMessage(
     error: ApiResponseError,
   ) {
@@ -746,7 +750,24 @@ router.push(
         </div>
       ) : null}
 
-      {situationMutation.error ? (
+      {unsupportedScope ? (
+        <div
+          role="status"
+          className="mt-4 rounded-control border border-border bg-surface p-4"
+        >
+          <p className="font-medium text-foreground">
+            현재 지원 범위에서는 이 상황을 상담하기 어려워요.
+          </p>
+          <div className="mt-4 space-y-3">
+            <SecondaryButton type="button" className="w-full" onClick={() => router.push("/consultation/entry")}>
+              새 상담 시작
+            </SecondaryButton>
+            <SecondaryButton type="button" className="w-full" onClick={() => router.push("/")}>
+              홈으로
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : situationMutation.error ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"

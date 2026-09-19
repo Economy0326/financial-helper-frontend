@@ -295,8 +295,15 @@ export default function AnalysisFlow() {
   // Summary Confirm은 됐지만 Start request가 Network Error 등으로 실제로 서버에 도착하지 않은 경우
   // Page mount로 자동 실행하지 않고 명시적 사용자 Action을 제공한다.
   if (
-    state.status === "NOT_STARTED"
+    state.status === "NOT_STARTED" ||
+    state.status === "UNSUPPORTED_SCOPE"
   ) {
+    const unsupportedScope =
+      state.status === "UNSUPPORTED_SCOPE" ||
+      startMutation.error instanceof ApiResponseError &&
+      startMutation.error.code ===
+        "CONSULTATION_SCOPE_UNSUPPORTED";
+
     return (
       <>
         <ConsultationProgress
@@ -307,44 +314,76 @@ export default function AnalysisFlow() {
 
         <div className="py-16 text-center">
           <h1 className="break-keep text-3xl font-bold text-foreground">
-            분석을 시작할 준비가 됐어요.
+            {unsupportedScope
+              ? "현재 상담 범위를 확인했어요"
+              : "분석을 시작할 준비가 됐어요."}
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            확인하신 상담 내용을 바탕으로
-            핵심 쟁점을 정리할게요.
+            {unsupportedScope
+              ? "현재 확인된 상황은 이 상담에서 구체적인 절차까지 안내하지 않아요."
+              : "확인하신 상담 내용을 바탕으로 핵심 쟁점을 정리할게요."}
           </p>
 
-          {startMutation.isError ? (
-            <div
-              role="alert"
-              className="mx-auto mt-6 max-w-md rounded-control border border-danger bg-surface p-4"
-            >
-              분석을 시작하지 못했어요.
+          {unsupportedScope || startMutation.isError ? (
+            <div className="mx-auto mt-6 max-w-md space-y-4">
+              <div
+                role="alert"
+                className="rounded-control border border-danger bg-surface p-4"
+              >
+                {unsupportedScope
+                  ? "상담 내용을 수정하거나 새 상담으로 다시 시작해 주세요."
+                  : "분석을 시작하지 못했어요. 잠시 후 다시 시도해 주세요."}
+              </div>
+
+              {unsupportedScope ? (
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/consultation/situation"
+                    className="inline-flex min-h-12 items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                  >
+                    상담 내용 수정
+                  </Link>
+                  <Link
+                    href="/consultation/entry"
+                    className="inline-flex min-h-12 items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                  >
+                    새 상담 시작
+                  </Link>
+                  <Link
+                    href="/"
+                    className="inline-flex min-h-12 items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                  >
+                    홈으로
+                  </Link>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          <PrimaryButton
-            type="button"
-            className="mx-auto mt-8 w-full max-w-sm"
-            disabled={
-              startMutation.isPending ||
-              !consultationId
-            }
-            onClick={() => {
-              if (!consultationId) {
-                return;
+          {!unsupportedScope ? (
+            <PrimaryButton
+              type="button"
+              className="mx-auto mt-8 w-full max-w-sm"
+              disabled={
+                startMutation.isPending ||
+                !consultationId
               }
+              onClick={() => {
+                if (!consultationId) {
+                  return;
+                }
 
-              startMutation.mutate({
-                consultationId,
-              });
-            }}
-          >
-            {startMutation.isPending
-              ? "시작 중..."
-              : "분석 시작하기"}
-          </PrimaryButton>
+                startMutation.mutate({
+                  consultationId,
+                });
+              }}
+            >
+              {startMutation.isPending
+                ? "시작 중..."
+                : "분석 시작하기"}
+            </PrimaryButton>
+          ) : null}
         </div>
       </>
     );
@@ -384,8 +423,7 @@ export default function AnalysisFlow() {
           </p>
 
           <p className="mt-6 text-sm text-foreground-muted">
-            정확한 진행률을 알 수 없어
-            임의의 퍼센트는 표시하지 않아요.
+            확인된 공식 자료를 바탕으로 안내를 준비하고 있어요.
           </p>
         </div>
       </>
@@ -515,15 +553,40 @@ export default function AnalysisFlow() {
           </div>
 
           <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
-            현재 정보로는 신뢰할 수 있는 분석이 어려워요
+            {state.safeActions.length > 0
+              ? "확인된 정보로 지금 할 수 있는 일을 안내해 드릴게요"
+              : "몇 가지 정보를 확인하면 더 정확한 안내를 받을 수 있어요"}
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            추가 정보를 한 번 보완했지만,
-            아직 중요한 정보가 충분하지 않아요.
-            <br />
-            확인되지 않은 내용을 추측해서 결과를 만들지 않을게요.
+            {state.safeActions.length > 0
+              ? "확인되지 않은 내용에 의존하는 절차는 제외했어요."
+              : "추가 정보를 한 번 보완했지만, 아직 중요한 정보가 충분하지 않아요. 확인되지 않은 내용을 추측해서 결과를 만들지 않을게요."}
           </p>
+
+          {state.safeActions.length > 0 ? (
+            <section className="mx-auto mt-8 max-w-xl rounded-card border border-primary/30 bg-primary-subtle p-5 text-left shadow-card sm:p-6">
+              <h2 className="font-bold text-foreground">
+                지금 할 수 있는 일
+              </h2>
+
+              <ol className="mt-4 space-y-3">
+                {state.safeActions.map((action) => (
+                  <li
+                    key={action.actionId}
+                    className="rounded-control bg-surface p-4"
+                  >
+                    <p className="font-bold text-foreground">
+                      {action.title}
+                    </p>
+                    <p className="mt-1 leading-6 text-foreground-muted">
+                      {action.description}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
           {state.additionalInformationNeeded.length > 0 ? (
             <section className="mx-auto mt-8 max-w-xl rounded-card border border-border bg-surface p-5 text-left shadow-card sm:p-6">
@@ -584,19 +647,22 @@ export default function AnalysisFlow() {
         <div className="py-12">
           <header className="text-center">
             <h1 className="break-keep text-3xl font-bold text-foreground">
-              조금 더 확인할 정보가 있어요
+              {state.safeActions.length > 0
+                ? "확인된 정보로 먼저 안내해 드릴게요"
+                : "조금 더 확인할 정보가 있어요"}
             </h1>
 
             <p className="mt-4 leading-7 text-foreground-muted">
-              현재 정보만으로 단정하지 않고,
-              필요한 내용을 먼저 보완할게요.
+              {state.safeActions.length > 0
+                ? "추가로 확인되지 않은 정보에 의존하는 내용은 제외했어요."
+                : "현재 정보만으로 단정하지 않고, 필요한 내용을 먼저 보완할게요."}
             </p>
           </header>
 
           {state.safeActions.length > 0 ? (
             <section className="mx-auto mt-8 max-w-xl rounded-card border border-primary/30 bg-primary-subtle p-5 text-left shadow-card sm:p-6">
               <h2 className="font-bold text-foreground">
-                현재 확인된 내용으로 안내드릴게요
+                지금 할 수 있는 일
               </h2>
 
               <ol className="mt-4 space-y-3">
@@ -732,6 +798,21 @@ export default function AnalysisFlow() {
               분석 결과는 저장되어 있어요.
               다시 결과 보기를 눌러 주세요.
             </p>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/consultation/summary?review=true"
+                className="inline-flex min-h-12 items-center justify-center rounded-control border border-border px-4 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+              >
+                상담 내용 확인
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex min-h-12 items-center justify-center rounded-control border border-border px-4 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+              >
+                홈으로
+              </Link>
+            </div>
           </div>
         ) : null}
 

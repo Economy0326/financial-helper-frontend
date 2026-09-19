@@ -94,6 +94,11 @@ export type ActiveConsultationResponse = {
   updatedAt: string;
 };
 
+export type ActiveConsultationStateResponse = {
+  active: boolean;
+  consultation: ActiveConsultationResponse | null;
+};
+
 export type ConsultationDetailResponse = {
   consultationId: string;
   category: ConsultationCategory | null;
@@ -177,6 +182,7 @@ export type ConfirmConsultationSummaryResponse = {
 
 export type AnalysisStatus =
   | "NOT_STARTED"
+  | "UNSUPPORTED_SCOPE"
   | "QUEUED"
   | "PROCESSING"
   | "COMPLETED"

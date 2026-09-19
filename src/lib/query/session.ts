@@ -1,18 +1,11 @@
-import { useEffect } from "react";
-
-import {
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { getSession } from "@/lib/api/session";
 
 import { queryKeys } from "./keys";
 
 export function useSessionQuery() {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
+  return useQuery({
     queryKey: queryKeys.session.all,
     queryFn: getSession,
     // Session is the shared auth bootstrap. An auth/ownership response must
@@ -26,24 +19,4 @@ export function useSessionQuery() {
     staleTime: 30_000,
   });
 
-  const hasActiveConsultation =
-    query.data?.hasActiveConsultation;
-
-  useEffect(() => {
-    if (
-      query.isSuccess &&
-      hasActiveConsultation === false
-    ) {
-      queryClient.removeQueries({
-        queryKey:
-          queryKeys.consultations.active(),
-      });
-    }
-  }, [
-    query.isSuccess,
-    hasActiveConsultation,
-    queryClient,
-  ]);
-
-  return query;
 }
