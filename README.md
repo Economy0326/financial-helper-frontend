@@ -1,13 +1,10 @@
-# 고령층 금융 도우미
+# 금융도우미
 
-50~70대 사용자가 금융 문제를 단계적으로 정리하고,
-현재 상황과 다음 행동을 확인할 수 있도록 만든 금융소비자 보호 서비스입니다.
+50~70대 금융소비자가 금융 피해 상황을 단계적으로 정리하고,
+검토된 공식 근거를 바탕으로 지금 해야 할 행동을 확인할 수 있도록 만든 금융소비자 보호 서비스입니다.
 
-한 화면에서 여러 선택을 한꺼번에 요구하기보다,
-가능하면 한 번에 하나의 판단에 집중할 수 있도록 화면 흐름을 구성했습니다.
-
-> 현재 AI V1 상담 흐름과 긴급대응 MVP까지 구현했습니다.  
-> 공식 금융자료 검색과 RAG, 근거 검증, 접근성 QA 및 배포는 다음 단계에서 진행합니다.
+한 화면에서 하나의 판단에 집중하는 키오스크형 UX를 사용하고,
+금융 행동은 Backend가 결정하며 AI는 확인된 내용과 근거를 이해하기 쉬운 표현으로 설명합니다.
 
 ## Screens
 
@@ -21,63 +18,71 @@
   <img src="./docs/images/report.png" width="46%" />
 </p>
 
+### Emergency
+
+<p align="center">
+  <img src="./docs/images/emergency-type.png" width="46%" />
+  <img src="./docs/images/emergency-action.png" width="46%" />
+</p>
+
 ## 상담 흐름
 
 ```text
-문제 유형 선택
+문제 선택
 → 상황 입력
-→ AI 추가 질문
-→ 상담 내용 요약 확인
-→ 분석
-→ 해결 리포트
+→ Backend-driven 추가 질문
+→ 입력 내용 확인
+→ Grounded Analysis
+→ 저장된 결과
 ```
 
-사용자가 입력한 내용을 바로 분석 결과로 넘기지 않고,
-추가 질문을 거친 뒤 AI가 이해한 내용을 사용자가 한 번 확인하도록 구성했습니다.
+추가 질문은 고정된 질문 목록을 순서대로 보여주지 않습니다.
 
-## 구현에서 중요하게 본 부분
+Backend가 현재까지 확인된 사실과 승인된 Procedure를 기준으로
+다음 판단에 필요한 사실 하나를 선택하고,
+이미 확인한 내용은 다시 묻지 않습니다.
 
-### 상담 단계는 Backend를 기준으로 관리
+`잘 모르겠어요`도 정상적인 답변으로 처리하며
+AI가 모르는 값을 임의로 채우지 않습니다.
 
-상담 진행 단계는 Frontend가 따로 판단하지 않고
-Backend의 `currentStep`을 기준으로 이동합니다.
+## UX
 
-새로고침하거나 상담 중간에 다시 접속하더라도
-서버에 저장된 상태를 조회해 진행하던 단계로 돌아갈 수 있도록 했습니다.
+50~70대 사용자를 주요 Persona로 두고 다음 원칙을 적용했습니다.
 
-상담 원문은 LocalStorage에 저장하지 않습니다.
+- 한 화면에서 하나의 판단에 집중
+- 48px 이상의 터치 영역
+- 큰 질문과 명확한 Primary Action
+- 어려운 내부·금융 용어 최소화
+- 색상만으로 선택이나 위험 상태를 표현하지 않음
+- 390×844 모바일 화면을 기준으로 QA
 
-### 상태의 역할 분리
+상담 단계와 완료 여부는 Frontend가 추론하지 않고
+Backend의 `currentStep`과 Server State를 기준으로 처리합니다.
+
+## State
 
 ```text
-Server State         → TanStack Query
-Form State           → React Hook Form + Zod
-Local UI State       → useState
-Consultation Flow    → Backend currentStep
+Server State  → TanStack Query
+Form State    → React Hook Form + Zod
+Local UI      → useState
+Flow          → Backend currentStep
 ```
 
-서버에서 다시 확인해야 하는 데이터와
-현재 화면에서만 필요한 상태를 구분해서 관리했습니다.
+상담 원문과 저장된 상담 상태를 Local Storage에 복제하지 않습니다.
 
-### 긴급 금융 피해 대응
+## Emergency
 
-긴급대응은 AI가 상황에 따라 내용을 새로 생성하지 않습니다.
+긴급 금융 피해 대응은 로그인 없이 사용할 수 있습니다.
 
-사용자가 피해 유형을 선택하면
-Backend에 저장된 `EmergencyScenario`를 조회해
-즉시 행동, 하지 말아야 할 행동, 연락처와 증거 보존 방법을 보여줍니다.
-
-## Emergency Flow
-
-<p align="center">
-  <img src="./docs/images/emergency-action.png" width="46%" />
-  <img src="./docs/images/emergency-contact.png" width="46%" />
-</p>
+OpenAI나 Retrieval 결과를 실시간으로 생성하지 않고,
+Backend에서 검토한 `EmergencyScenario`만 사용해
+즉시 행동, 금지 행동, 공식 연락처와 증거 보존 항목을 안내합니다.
 
 ## Tech Stack
 
-`Next.js` `React` `TypeScript` `Tailwind CSS`  
-`TanStack Query` `React Hook Form` `Zod`
+`Next.js` `TypeScript` `React`  
+`TanStack Query` `React Hook Form` `Zod`  
+`Tailwind CSS`
 
 ## Run
 
@@ -92,25 +97,10 @@ npm run dev
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
-### Vercel Production
-
-Set the same public variable in the Vercel Preview and Production
-environments, using the selected Backend origin:
-
-```env
-NEXT_PUBLIC_API_BASE_URL=https://<api-domain>/api/v1
-```
-
-Do not add OpenAI, Korean Law, database, KURE, OAuth client secrets, or
-session credentials to `NEXT_PUBLIC_*` variables. OAuth success redirects and
-Backend CORS must use the same final app/API domains configured on the server.
+Frontend에는 공개 가능한 API origin만 설정합니다.
+OpenAI, DB, OAuth, Korean Law API 등의 secret은 `NEXT_PUBLIC_*`에 두지 않습니다.
 
 ## Links
 
 - [Backend Repository](https://github.com/Economy0326/financial-helper-backend)
 - [Project Documentation](https://cute-quit-4fd.notion.site/3bd25931ce3580ae8ad8f0fa3acdf41a)
-
-## Next
-
-다음 단계에서는 공식 금융자료를 검색하고
-답변의 근거로 연결할 수 있도록 RAG를 추가할 예정입니다.
