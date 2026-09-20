@@ -271,19 +271,12 @@ export default function EmergencyContactEvidence() {
         label="연락 / 증거 보존"
       />
 
-      <header className="mt-10 text-center sm:mt-12">
-        <div
-          aria-hidden="true"
-          className="text-4xl"
-        >
-          🚨
-        </div>
-
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
+        <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
           연락하고, 증거를 남겨두세요
         </h1>
 
-        <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
+        <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
           필요한 곳에 연락하고,
           <br className="sm:hidden" />
           관련 기록은 삭제하지 말고 보관해 주세요.
@@ -292,7 +285,7 @@ export default function EmergencyContactEvidence() {
 
       <section
         aria-labelledby="emergency-contacts-heading"
-        className="mt-8 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+        className="mt-8 border-y border-border py-6 sm:py-7"
       >
         <h2
           id="emergency-contacts-heading"
@@ -313,19 +306,17 @@ export default function EmergencyContactEvidence() {
 
       <section
         aria-labelledby="emergency-evidence-heading"
-        className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+        className="mt-7 border-b border-border pb-7"
       >
         <h2
           id="emergency-evidence-heading"
           className="text-xl font-bold text-foreground sm:text-2xl"
         >
-          증거를 지우지 마세요
+          가지고 있는 자료를 확인해 보세요
         </h2>
 
-        <p className="mt-2 leading-7 text-foreground-muted">
-          현재 가지고 있는 자료를 확인해
-          보세요. 체크 여부는 서버에 저장되지
-          않습니다.
+        <p className="mt-2 break-keep leading-7 text-foreground-muted">
+          남겨둘 자료를 표시해 보세요. 체크 여부는 저장되지 않아요.
         </p>
 
         <fieldset className="mt-5">
@@ -371,7 +362,7 @@ export default function EmergencyContactEvidence() {
 
                     <label
                       htmlFor={inputId}
-                      className="ml-3 flex min-h-10 cursor-pointer items-center leading-6 text-foreground"
+                      className="ml-3 flex min-h-10 cursor-pointer items-center break-keep leading-6 text-foreground"
                     >
                       {evidence.label}
                     </label>
@@ -382,7 +373,7 @@ export default function EmergencyContactEvidence() {
           </div>
         </fieldset>
 
-        <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-foreground-muted">
+        <p className="mt-4 flex items-start gap-2 break-keep text-sm leading-6 text-foreground-muted">
           <span
             aria-hidden="true"
             className="font-bold text-primary"

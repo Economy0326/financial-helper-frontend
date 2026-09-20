@@ -39,24 +39,24 @@ const reportSections = [
     label: "지금 가장 먼저 해야 할 일",
   },
   {
+    id: "actions",
+    label: "다음 행동",
+  },
+  {
     id: "overview",
-    label: "내 상황 요약",
+    label: "내 상황",
   },
   {
     id: "issues",
-    label: "핵심 쟁점",
-  },
-  {
-    id: "actions",
-    label: "행동 단계",
+    label: "중요한 점",
   },
   {
     id: "documents",
     label: "필요한 서류",
   },
   {
-    id: "cases",
-    label: "유사 사례",
+    id: "citations",
+    label: "공식 근거",
   },
   {
     id: "terms",
@@ -66,15 +66,68 @@ const reportSections = [
     id: "complaint",
     label: "문의·민원 초안",
   },
-  {
-    id: "evidence",
-    label: "공식 출처",
-  },
-  {
-    id: "citations",
-    label: "이번 답변의 근거",
-  },
 ] as const;
+
+function getPublicCitationLocator(locator: string) {
+  const normalized = locator.trim();
+  const isHumanReadableLocator =
+    /제\s*\d+\s*(?:조(?:의\s*\d+)?|항|호)|\d+\s*(?:쪽|페이지)/.test(normalized);
+
+  return isHumanReadableLocator ? normalized : null;
+}
+
+const actionDisplayLabels: Record<string, string> = {
+  "report-loss": "분실·도난 신고",
+  "confirm-unauthorized-payment": "본인이 하지 않은 결제 확인",
+  "confirm-held-card-payment": "본인이 하지 않은 결제 확인",
+  "submit-compensation-request": "보상 신청 접수",
+  "confirm-compensation-application": "보상 신청 절차 확인",
+  "track-compensation-process": "사고 접수와 조사 진행 확인",
+  "review-investigation-result": "조사 결과 확인",
+  "review-compensation-result": "처리 결과 확인",
+  "request-result-review": "결과 재확인 방법 문의",
+  "voice-secure-contact": "금융회사 공식 채널에 문의",
+  "voice-report-financial": "금융회사에 신고",
+  "voice-report-police": "경찰에 신고",
+  "account-transfer-report": "금융회사에 본인 아닌 거래 신고",
+  "account-transfer-protect": "인증수단을 안전하게 보호",
+  "smishing-stop-contact": "의심 링크와 앱 사용 중단",
+  "smishing-report-financial": "금융회사에 금전 피해 신고",
+};
+
+function getUserFacingActionTitle(
+  title: string,
+  actionId?: string | null,
+) {
+  if (actionId && actionDisplayLabels[actionId]) {
+    return actionDisplayLabels[actionId];
+  }
+
+  if (/^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(title)) {
+    return "안내된 절차 확인";
+  }
+
+  return title
+    .replaceAll("미인지 신용판매", "본인이 하지 않은 결제")
+    .replaceAll("미인지 결제", "모르는 결제");
+}
+
+function getUserFacingReportHeadline(headline: string) {
+  return headline
+    .replaceAll("미인지 신용판매", "모르는 카드 결제")
+    .replaceAll("미인지 결제", "모르는 결제")
+    .replaceAll("미인지", "모르는")
+    .replaceAll("대응 리포트", "대응 안내")
+    .replaceAll("리포트", "안내");
+}
+
+function getUserFacingEvidenceMessage(message: string) {
+  if (/(?:CARD|Procedure|FAP|Evidence|AI\s*V?\d|KURE|retrieval)/i.test(message)) {
+    return "검토된 공식 자료와 법령을 바탕으로 정리했어요.";
+  }
+
+  return message;
+}
 
 type ReportSectionId =
   (typeof reportSections)[number]["id"];
@@ -103,13 +156,9 @@ function ReportSection({
     <section
       id={id}
       aria-labelledby={`${id}-heading`}
-      className={[
-        "scroll-mt-24 rounded-card",
-        "border border-border",
-        "bg-surface shadow-card",
-      ].join(" ")}
+      className="mt-8 scroll-mt-24 border-b border-border bg-surface first:mt-0 last:border-b-0"
     >
-      {/* Mobile Accordion Header */}
+      {/* 모바일 Accordion 헤더 */}
       <h2
         id={`${id}-heading`}
         className="lg:hidden print:hidden"
@@ -122,9 +171,9 @@ function ReportSection({
           className={[
             "flex min-h-16 w-full",
             "items-center justify-between",
-            "gap-4 px-5 py-4",
-            "text-left font-bold",
-            "text-foreground",
+            "gap-4 py-5",
+            "rounded-control px-4 text-left text-lg font-bold",
+            isExpanded ? "text-primary" : "text-foreground",
             "focus-visible:outline-none",
             "focus-visible:ring-2",
             "focus-visible:ring-inset",
@@ -144,11 +193,11 @@ function ReportSection({
         </button>
       </h2>
 
-      {/* Desktop / Print Heading */}
+      {/* 데스크톱 / 인쇄용 제목 */}
       <h2
         id={`${id}-heading-desktop`}
         className={[
-          "hidden px-7 pt-7",
+          "hidden pt-7",
           "text-xl font-bold text-foreground",
           "lg:block print:block",
         ].join(" ")}
@@ -159,9 +208,9 @@ function ReportSection({
       <div
         id={contentId}
         className={[
-          "px-5 pb-5",
-          "lg:block lg:px-7 lg:pb-7 lg:pt-5",
-          "print:block print:px-7 print:pb-7 print:pt-5",
+          "px-5 pb-7 pt-4",
+          "lg:block lg:px-5 lg:pb-8 lg:pt-5",
+          "print:block print:px-5 print:pb-8 print:pt-5",
           isExpanded
             ? "block"
             : "hidden",
@@ -185,22 +234,23 @@ export default function SolutionReport() {
       "first-action",
     );
 
-  // 기존 UX 유지:
-  // 처음에는 모든 Section이 펼쳐진 상태이고
-  // 모바일 사용자가 원하는 Section만 접을 수 있다.
+  // 핵심 행동은 바로 읽고, 긴 참고 정보는 필요할 때 펼친다.
   const [
     expandedSections,
     setExpandedSections,
   ] =
     useState<Set<ReportSectionId>>(
-      () =>
-        new Set(
-          reportSections.map(
-            (section) =>
-              section.id,
-          ),
-        ),
+      () => new Set<ReportSectionId>([
+        "first-action",
+        "actions",
+        "overview",
+        "issues",
+        "documents",
+      ]),
     );
+
+  const [expandedTermIndexes, setExpandedTermIndexes] =
+    useState<Set<number>>(() => new Set());
 
   const sessionQuery =
     useSessionQuery();
@@ -212,9 +262,13 @@ export default function SolutionReport() {
     sessionQuery.data
       .hasActiveConsultation;
 
+  const useActiveConsultationFallback =
+    !requestedConsultationId &&
+    hasActiveConsultation;
+
   const activeConsultationQuery =
     useActiveConsultationQuery(
-      hasActiveConsultation,
+      useActiveConsultationFallback,
     );
 
   const consultationId =
@@ -292,7 +346,7 @@ export default function SolutionReport() {
   const isLoading =
     sessionQuery.isLoading ||
     (
-      hasActiveConsultation &&
+      useActiveConsultationFallback &&
       activeConsultationQuery.isLoading
     ) ||
     (
@@ -307,7 +361,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="해결 리포트"
+          label="결과"
         />
 
         <div
@@ -316,7 +370,7 @@ export default function SolutionReport() {
           aria-busy="true"
         >
           <p className="text-lg font-semibold text-foreground">
-            저장된 해결 리포트를 불러오고 있어요.
+            저장된 결과를 불러오고 있어요.
           </p>
 
           <p className="mt-2 text-foreground-muted">
@@ -330,7 +384,7 @@ export default function SolutionReport() {
   if (
     sessionQuery.isError ||
     (
-      hasActiveConsultation &&
+      useActiveConsultationFallback &&
       activeConsultationQuery.isError
     )
   ) {
@@ -339,7 +393,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="해결 리포트"
+          label="결과"
         />
 
         <div className="py-16 text-center">
@@ -359,9 +413,7 @@ export default function SolutionReport() {
               onClick={() => {
                 void sessionQuery.refetch();
 
-                if (
-                  hasActiveConsultation
-                ) {
+                if (useActiveConsultationFallback) {
                   void activeConsultationQuery
                     .refetch();
                 }
@@ -377,6 +429,7 @@ export default function SolutionReport() {
 
   if (
     sessionQuery.isSuccess &&
+    !requestedConsultationId &&
     !hasActiveConsultation
   ) {
     return (
@@ -416,7 +469,7 @@ export default function SolutionReport() {
     return (
       <div className="py-16 text-center">
         <h1 className="text-2xl font-bold text-foreground">
-          아직 해결 리포트를 볼 단계가 아니에요.
+          아직 결과를 볼 단계가 아니에요.
         </h1>
 
         <p className="mt-3 leading-7 text-foreground-muted">
@@ -454,12 +507,12 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="해결 리포트"
+          label="결과"
         />
 
         <div className="py-16 text-center">
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            해결 리포트를 불러오지 못했어요.
+            결과를 불러오지 못했어요.
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
@@ -511,12 +564,12 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="해결 리포트"
+          label="결과"
         />
 
         <div className="py-16 text-center">
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            아직 준비된 해결 리포트가 없어요.
+            아직 준비된 결과가 없어요.
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
@@ -554,22 +607,23 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="해결 리포트"
+          label="결과"
         />
       </div>
 
-      <header className="mt-10 text-center sm:mt-12">
-        <p className="text-sm font-semibold text-primary">
-          AI 해결 리포트
+      <header className="mx-auto mt-9 max-w-3xl text-center sm:mt-12">
+        <p className="text-base font-bold text-primary">
+          결과
         </p>
 
-        <h1 className="mt-3 break-keep text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-          {report.headline}
+        <h1 className="mt-3 break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
+          {getUserFacingReportHeadline(report.headline)}
         </h1>
 
-        <div className="mx-auto mt-6 max-w-2xl rounded-control border border-border bg-surface-subtle p-4 text-left">
-          <p className="text-sm leading-6 text-foreground-muted">
-            {state.evidence.message}
+        <div className="mx-auto mt-5 inline-flex max-w-2xl items-center gap-2 text-left">
+          <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+          <p className="text-[0.9375rem] font-medium leading-6 text-foreground-muted">
+            {getUserFacingEvidenceMessage(state.evidence.message)}
           </p>
         </div>
       </header>
@@ -581,9 +635,9 @@ export default function SolutionReport() {
           "lg:items-start lg:gap-6",
         ].join(" ")}
       >
-        {/* Desktop Sticky Navigation */}
+        {/* 데스크톱 Sticky Navigation */}
         <nav
-          aria-label="해결 리포트 목차"
+          aria-label="결과 목차"
           className={[
             "hidden lg:sticky",
             "lg:top-6 lg:block",
@@ -635,7 +689,7 @@ export default function SolutionReport() {
           </ul>
         </nav>
 
-        <article className="min-w-0 space-y-4">
+        <article className="min-w-0 border-t border-border">
           <ReportSection
             id="first-action"
             title="지금 가장 먼저 해야 할 일"
@@ -650,85 +704,23 @@ export default function SolutionReport() {
               )
             }
           >
-            <div className="rounded-control bg-primary-subtle p-4 sm:p-5">
-              <h3 className="text-lg font-bold text-primary">
-                {report.firstAction.title}
+            <div className="border-l-4 border-primary bg-primary-subtle px-5 py-4">
+              <h3 className="break-keep text-lg font-bold text-primary">
+                {getUserFacingActionTitle(
+                  report.firstAction.title,
+                  report.firstAction.actionId,
+                )}
               </h3>
 
-              <p className="mt-2 leading-7 text-foreground">
+              <p className="mt-2 break-keep leading-7 text-foreground">
                 {report.firstAction.description}
               </p>
             </div>
           </ReportSection>
 
           <ReportSection
-            id="overview"
-            title="내 상황 요약"
-            isExpanded={
-              expandedSections.has(
-                "overview",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "overview",
-              )
-            }
-          >
-            <p className="whitespace-pre-line leading-8 text-foreground">
-              {report.caseSummary}
-            </p>
-          </ReportSection>
-
-          <ReportSection
-            id="issues"
-            title="핵심 쟁점"
-            isExpanded={
-              expandedSections.has(
-                "issues",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "issues",
-              )
-            }
-          >
-            {report.keyIssues.length >
-            0 ? (
-              <div className="space-y-4">
-                {report.keyIssues.map(
-                  (
-                    issue,
-                    index,
-                  ) => (
-                    <div
-                      key={`${issue.title}-${index}`}
-                      className="rounded-control bg-surface-subtle p-4"
-                    >
-                      <h3 className="font-bold leading-7 text-foreground">
-                        {issue.title}
-                      </h3>
-
-                      <p className="mt-2 leading-7 text-foreground-muted">
-                        {
-                          issue.explanation
-                        }
-                      </p>
-                    </div>
-                  ),
-                )}
-              </div>
-            ) : (
-              <p className="text-foreground-muted">
-                별도로 정리된 핵심 쟁점이 없어요.
-              </p>
-            )}
-          </ReportSection>
-
-          <ReportSection
             id="actions"
-            title="행동 단계"
+            title="다음 행동"
             isExpanded={
               expandedSections.has(
                 "actions",
@@ -761,11 +753,14 @@ export default function SolutionReport() {
                     </span>
 
                     <div className="min-w-0">
-                      <h3 className="font-bold leading-7 text-foreground">
-                        {step.title}
+                      <h3 className="break-keep font-bold leading-7 text-foreground">
+                        {getUserFacingActionTitle(
+                          step.title,
+                          step.actionId,
+                        )}
                       </h3>
 
-                      <p className="mt-1 leading-7 text-foreground-muted">
+                      <p className="mt-1 break-keep leading-7 text-foreground-muted">
                         {
                           step.description
                         }
@@ -778,9 +773,9 @@ export default function SolutionReport() {
 
             {report.actionConsequences
               .length > 0 ? (
-              <div className="mt-8">
+              <div className="mt-10 border-t border-border pt-8">
                 <h3 className="font-bold text-foreground">
-                  행동 전에 함께 확인할 점
+                  진행하기 전에 확인해 주세요
                 </h3>
 
                 <div className="mt-4 space-y-3">
@@ -791,13 +786,13 @@ export default function SolutionReport() {
                     ) => (
                       <div
                         key={`${item.action}-${index}`}
-                        className="rounded-control border border-border bg-surface-subtle p-4"
+                        className="border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0"
                       >
-                        <p className="font-bold text-foreground">
-                          {item.action}
+                        <p className="break-keep font-bold text-foreground">
+                          {getUserFacingActionTitle(item.action)}
                         </p>
 
-                        <p className="mt-1 leading-7 text-foreground-muted">
+                        <p className="mt-1 break-keep leading-7 text-foreground-muted">
                           {
                             item.consequence
                           }
@@ -808,6 +803,52 @@ export default function SolutionReport() {
                 </div>
               </div>
             ) : null}
+          </ReportSection>
+
+          <ReportSection
+            id="overview"
+            title="내 상황"
+            isExpanded={expandedSections.has("overview")}
+            onToggle={() => toggleSection("overview")}
+          >
+            <details className="group">
+              <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-control px-4 font-semibold text-foreground group-open:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
+                <span>상황 설명 자세히 보기</span>
+                <span aria-hidden="true" className="text-xl">
+                  <span className="group-open:hidden">+</span>
+                  <span className="hidden group-open:inline">−</span>
+                </span>
+              </summary>
+              <p className="mt-5 whitespace-pre-line border-t border-border pt-5 break-keep leading-8 text-foreground">
+                {report.caseSummary}
+              </p>
+            </details>
+          </ReportSection>
+
+          <ReportSection
+            id="issues"
+            title="중요한 점"
+            isExpanded={expandedSections.has("issues")}
+            onToggle={() => toggleSection("issues")}
+          >
+            {report.keyIssues.length > 0 ? (
+              <div className="divide-y divide-border">
+                {report.keyIssues.map((issue, index) => (
+                  <div key={`${issue.title}-${index}`} className="py-5 first:pt-0 last:pb-0">
+                    <h3 className="break-keep font-bold leading-7 text-foreground">
+                      {issue.title}
+                    </h3>
+                    <p className="mt-2 break-keep leading-7 text-foreground-muted">
+                      {issue.explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-foreground-muted">
+                별도로 정리된 중요한 점이 없어요.
+              </p>
+            )}
           </ReportSection>
 
           <ReportSection
@@ -830,7 +871,7 @@ export default function SolutionReport() {
 
             {report.requiredDocuments
               .length > 0 ? (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-border">
                 {report.requiredDocuments.map(
                   (
                     document,
@@ -838,7 +879,7 @@ export default function SolutionReport() {
                   ) => (
                     <li
                       key={`${document.name}-${index}`}
-                      className="flex gap-3 rounded-control bg-surface-subtle p-4"
+                      className="flex gap-3 border-b border-border py-5 last:border-b-0"
                     >
                       <span
                         aria-hidden="true"
@@ -869,14 +910,14 @@ export default function SolutionReport() {
                         </svg>
                       </span>
 
-                      <div>
-                        <p className="font-bold text-foreground">
+                      <div className="min-w-0">
+                        <p className="break-keep font-bold text-foreground">
                           {
                             document.name
                           }
                         </p>
 
-                        <p className="mt-1 leading-6 text-foreground-muted">
+                        <p className="mt-1 break-keep leading-6 text-foreground-muted">
                           {
                             document.reason
                           }
@@ -887,62 +928,41 @@ export default function SolutionReport() {
                 )}
               </ul>
             ) : (
-              <p className="rounded-control bg-surface-subtle p-4 leading-7 text-foreground-muted">
+              <p className="leading-7 text-foreground-muted">
                 현재 추가로 제안할 자료는 없어요.
               </p>
             )}
           </ReportSection>
 
-          {report.citations.length > 0 ? (
-            <ReportSection
-              id="citations"
-              title="공식 근거"
-              isExpanded={expandedSections.has("citations")}
-              onToggle={() => toggleSection("citations")}
-            >
-              <ul className="space-y-3">
-                {report.citations.map((citation) => (
-                  <li
-                    key={`${citation.evidenceId}-${citation.locator}`}
-                    className="rounded-control bg-surface-subtle p-4"
-                  >
-                    <p className="font-bold text-foreground">
-                      {citation.label ?? citation.evidenceId}
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-foreground-muted">
-                      {citation.locator}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </ReportSection>
-          ) : null}
-
           <ReportSection
-            id="cases"
-            title="유사 사례"
-            isExpanded={
-              expandedSections.has(
-                "cases",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "cases",
-              )
-            }
+            id="citations"
+            title="공식 근거"
+            isExpanded={expandedSections.has("citations")}
+            onToggle={() => toggleSection("citations")}
           >
-            <div className="rounded-control bg-surface-subtle p-4">
-              <p className="leading-7 text-foreground-muted">
-                현재 AI V1에서는 검증된
-                유사 분쟁 사례를 제공하지 않아요.
-              </p>
+            <p className="break-keep leading-7 text-foreground-muted">
+              {getUserFacingEvidenceMessage(state.evidence.message)}
+            </p>
+            {report.citations.length > 0 ? (
+              <ul className="mt-5 divide-y divide-border">
+                {report.citations.map((citation) => {
+                  const publicLocator = getPublicCitationLocator(citation.locator);
 
-              <p className="mt-2 text-sm leading-6 text-foreground-muted">
-                공식 자료 검색 기능이 연결된 뒤
-                검증된 사례만 표시할 예정이에요.
-              </p>
-            </div>
+                  return (
+                    <li key={`${citation.evidenceId}-${citation.locator}`} className="py-5 first:pt-0 last:pb-0">
+                      <p className="break-keep font-bold text-foreground">
+                        {citation.label ?? "검토된 공식 자료"}
+                      </p>
+                      {publicLocator ? (
+                        <p className="mt-1 break-words text-[0.9375rem] leading-6 text-foreground-muted">
+                          {publicLocator}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </ReportSection>
 
           <ReportSection
@@ -961,24 +981,49 @@ export default function SolutionReport() {
           >
             {report.terms.length >
             0 ? (
-              <dl className="space-y-4">
+              <dl className="divide-y divide-border">
                 {report.terms.map(
                   (
                     item,
                     index,
                   ) => (
-                    <div
-                      key={`${item.term}-${index}`}
-                      className="rounded-control bg-surface-subtle p-4"
-                    >
-                      <dt className="font-bold text-foreground">
-                        {item.term}
+                    <div key={`${item.term}-${index}`} className="py-1">
+                      <dt>
+                        <button
+                          type="button"
+                          aria-expanded={expandedTermIndexes.has(index)}
+                          aria-controls={`term-${index}-definition`}
+                          onClick={() => {
+                            setExpandedTermIndexes((current) => {
+                              const next = new Set(current);
+                              if (next.has(index)) next.delete(index);
+                              else next.add(index);
+                              return next;
+                            });
+                          }}
+                          className={[
+                            "flex min-h-14 w-full items-center justify-between gap-4 rounded-control px-4 py-3 text-left font-semibold",
+                            expandedTermIndexes.has(index)
+                              ? "text-primary"
+                              : "text-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+                          ].join(" ")}
+                        >
+                          <span className="break-keep">{item.term}</span>
+                          <span aria-hidden="true" className="text-xl">
+                            {expandedTermIndexes.has(index) ? "−" : "+"}
+                          </span>
+                        </button>
                       </dt>
 
-                      <dd className="mt-1 leading-7 text-foreground-muted">
-                        {
-                          item.explanation
-                        }
+                      <dd
+                        id={`term-${index}-definition`}
+                        className={[
+                          "break-keep px-4 pb-4 pt-2 leading-7 text-foreground-muted",
+                          expandedTermIndexes.has(index) ? "block" : "hidden",
+                        ].join(" ")}
+                      >
+                        {item.explanation}
                       </dd>
                     </div>
                   ),
@@ -991,32 +1036,33 @@ export default function SolutionReport() {
             )}
           </ReportSection>
 
-          <ReportSection
-            id="complaint"
-            title="문의·민원 초안"
-            isExpanded={
-              expandedSections.has(
-                "complaint",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "complaint",
-              )
-            }
-          >
-            <div className="rounded-control border border-border bg-surface-subtle p-4 sm:p-5">
-              <p className="text-sm leading-6 text-foreground-muted">
-                아래 내용은 참고용 초안이에요.
-                실제 제출 전 사실관계를 다시 확인해 주세요.
-              </p>
+          <div className="mt-8 border-t border-border">
+            <ReportSection
+              id="complaint"
+              title="문의·민원 초안"
+              isExpanded={
+                expandedSections.has(
+                  "complaint",
+                )
+              }
+              onToggle={() =>
+                toggleSection(
+                  "complaint",
+                )
+              }
+            >
+              <div>
+                <p className="break-keep text-sm leading-6 text-foreground-muted">
+                  아래 내용은 참고용 초안이에요.
+                  실제 제출 전 사실관계를 다시 확인해 주세요.
+                </p>
 
               <div className="mt-5">
                 <h3 className="font-bold text-foreground">
                   제목
                 </h3>
 
-                <p className="mt-2 leading-7 text-foreground">
+                <p className="mt-2 break-keep leading-7 text-foreground">
                   {
                     report.complaintDraft
                       .subject
@@ -1029,46 +1075,20 @@ export default function SolutionReport() {
                   내용
                 </h3>
 
-                <p className="mt-2 whitespace-pre-wrap leading-7 text-foreground">
+                <p className="mt-2 whitespace-pre-wrap break-keep leading-7 text-foreground">
                   {
                     report.complaintDraft
                       .body
                   }
                 </p>
               </div>
-            </div>
-          </ReportSection>
-
-          <ReportSection
-            id="evidence"
-            title="공식 출처"
-            isExpanded={
-              expandedSections.has(
-                "evidence",
-              )
-            }
-            onToggle={() =>
-              toggleSection(
-                "evidence",
-              )
-            }
-          >
-            <div className="rounded-control bg-surface-subtle p-4">
-              <p className="leading-7 text-foreground-muted">
-                {state.evidence.message}
-              </p>
-
-              <p className="mt-3 text-sm leading-6 text-foreground-muted">
-                확인되지 않은 법령, 판례,
-                기관 URL이나 유사 사례를
-                임의로 표시하지 않습니다.
-              </p>
-            </div>
-          </ReportSection>
+              </div>
+            </ReportSection>
+          </div>
 
           <section
             aria-labelledby="report-disclaimer-heading"
-            className="rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+            className="mt-8 border-t border-border px-5 py-8"
           >
             <h2
               id="report-disclaimer-heading"

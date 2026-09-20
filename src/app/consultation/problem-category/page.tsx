@@ -28,13 +28,13 @@ export default function ProblemCategoryPage() {
           label="문제 선택"
         />
 
-        <header className="mt-10 text-center sm:mt-12">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+        <header className="mx-auto mt-9 max-w-xl text-center sm:mt-12">
+          <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
             무엇을 도와드릴까요?
           </h1>
 
-          <p className="mt-4 text-base leading-7 text-foreground-muted sm:text-lg">
-            상황에 맞는 메뉴를 선택해 주세요.
+          <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-7 text-foreground-muted sm:text-lg">
+            상황에 가장 가까운 항목을 골라주세요.
           </p>
         </header>
 
@@ -42,9 +42,8 @@ export default function ProblemCategoryPage() {
           <ProblemCategoryForm />
         </Suspense>
 
-        <p className="mt-8 text-center text-sm text-foreground-muted">
-          <span aria-hidden="true">🔒 </span>
-          모든 상담 내용은 안전하게 보호됩니다.
+        <p className="mt-8 text-center text-[0.9375rem] leading-6 text-foreground-muted">
+          상담에 필요한 정보만 사용해요.
         </p>
       </div>
     </main>

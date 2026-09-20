@@ -1,7 +1,7 @@
 import { apiFetch } from "./client";
 
 import type {
-  ActiveConsultationResponse,
+  ActiveConsultationStateResponse,
   AnalysisStateResponse,
   ConfirmConsultationSummaryResponse,
   ConsultationCategory,
@@ -27,9 +27,9 @@ export function startConsultation(startNew = false) {
 }
 
 export function getActiveConsultation() {
-  return apiFetch<ActiveConsultationResponse>(
+  return apiFetch<ActiveConsultationStateResponse>(
     "/consultations/active",
-  );
+  ).then((response) => response.active ? response.consultation : null);
 }
 
 export function getConsultation(
@@ -132,11 +132,16 @@ export function updateFollowUpAnswer(
 
 export function getConsultationSummary(
   consultationId: string,
+  review = false,
 ) {
+  const reviewQuery = review
+    ? "?review=true"
+    : "";
+
   return apiFetch<ConsultationSummaryStateResponse>(
     `/consultations/${encodeURIComponent(
       consultationId,
-    )}/summary`,
+    )}/summary${reviewQuery}`,
   );
 }
 

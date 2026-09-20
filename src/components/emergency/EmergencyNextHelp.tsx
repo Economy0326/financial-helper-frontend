@@ -7,10 +7,10 @@ import EmergencyProgress from "@/components/emergency/EmergencyProgress";
 
 const nextHelpActions = [
   {
-    href: "/consultation/problem-category",
-    title: "금융 문제 상담 계속하기",
+    href: "/consultation/entry",
+    title: "금융 피해 상담하기",
     description:
-      "긴급 대응을 확인했다면 금융 문제를 더 자세히 상담할 수 있어요.",
+      "현재 상황을 정리하고 필요한 다음 행동을 확인해요.",
     icon: "💬",
   },
   {
@@ -44,26 +44,13 @@ export default function EmergencyNextHelp() {
         label="다음 도움"
       />
 
-      <header className="mt-10 text-center sm:mt-12">
-        <div
-          aria-hidden="true"
-          className={[
-            "mx-auto flex h-20 w-20 items-center justify-center",
-            "rounded-full bg-primary-subtle",
-            "text-4xl font-bold text-primary",
-          ].join(" ")}
-        >
-          ✓
-        </div>
-
-        <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
+        <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
           긴급 대응을 확인했어요
         </h1>
 
         <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
-          지금 필요한 다음 도움을
-          <br className="sm:hidden" />
-          선택해 주세요.
+          필요하면 상담을 이어가거나 대응 내용을 다시 확인할 수 있어요.
         </p>
       </header>
 
@@ -95,8 +82,8 @@ export default function EmergencyNextHelp() {
                     setPendingHref(action.href);
                   }}
                   className={[
-                    "flex min-h-28 items-center gap-4 rounded-card",
-                    "border bg-surface p-5 shadow-card",
+                    "flex min-h-24 items-center gap-4 rounded-control",
+                    "border bg-surface px-5 py-4",
                     "transition hover:border-primary",
                     "focus-visible:outline-none focus-visible:ring-2",
                     "focus-visible:ring-focus focus-visible:ring-offset-2",
@@ -110,17 +97,6 @@ export default function EmergencyNextHelp() {
                       : "",
                   ].join(" ")}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={[
-                      "flex h-14 w-14 shrink-0 items-center justify-center",
-                      "rounded-full bg-primary-subtle",
-                      "text-2xl text-primary",
-                    ].join(" ")}
-                  >
-                    {action.icon}
-                  </span>
-
                   <span className="min-w-0 flex-1">
                     <span className="block text-lg font-bold text-foreground sm:text-xl">
                       {action.title}
@@ -161,8 +137,7 @@ export default function EmergencyNextHelp() {
         </p>
 
         <p className="mt-2 leading-7 text-foreground-muted">
-          긴급 대응을 다시 확인하거나 일반 금융
-          상담으로 이어서 진행할 수 있어요.
+          긴급 대응을 다시 확인하거나 금융 피해 상담으로 이어갈 수 있어요.
         </p>
       </aside>
     </>

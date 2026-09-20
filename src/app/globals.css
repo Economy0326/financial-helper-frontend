@@ -1,26 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  /* Surface */
-  --background: #f6f8fb;
+  /* 차분하고 대비가 분명한 제품 surface */
+  --background: #f7faf9;
   --surface: #ffffff;
-  --surface-subtle: #f0f4f8;
+  --surface-subtle: #eef5f3;
 
-  /* Text */
-  --foreground: #1f2937;
-  --foreground-muted: #64748b;
+  --foreground: #17252b;
+  --foreground-muted: #52646c;
 
-  /* Border */
-  --border: #d9e1ea;
-  --border-strong: #b8c4d1;
+  --border: #d9e4e1;
+  --border-strong: #aebfba;
 
-  /* Brand / Primary */
-  --primary: #0f766e;
-  --primary-hover: #115e59;
-  --primary-subtle: #ecfdf5;
+  --primary: #087f73;
+  --primary-hover: #06685f;
+  --primary-subtle: #e6f5f1;
   --primary-foreground: #ffffff;
 
-  /* Semantic */
+  /* 의미 기반 색상 */
   --success: #067647;
   --success-surface: #ecfdf3;
 
@@ -28,20 +25,17 @@
   --warning-surface: #fff8db;
 
   --danger: #b42318;
-  --danger-surface: #fff1f0;
+  --danger-surface: #fff3f1;
 
-  /* Focus */
-  --focus: #2563eb;
+  --focus: #087f73;
 
-  /* Shape */
-  --radius-card: 1.25rem;
-  --radius-control: 0.875rem;
+  --radius-card: 1.125rem;
+  --radius-control: 0.75rem;
 
-  /* Shadow */
-  --shadow-card: 0 10px 30px rgb(15 23 42 / 0.08);
+  --shadow-card: 0 8px 24px rgb(23 37 43 / 0.07);
 
-  /* Typography */
   --font-app-sans:
+    "Pretendard Variable",
     "Pretendard",
     "Noto Sans KR",
     "Apple SD Gothic Neo",
@@ -101,6 +95,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-app-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -115,7 +112,33 @@ select {
   outline-offset: 3px;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 ::selection {
   background: var(--primary-subtle);
   color: var(--foreground);
+}
+
+@keyframes entry-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entry-dialog-in {
+  animation: entry-dialog-in 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-dialog-in {
+    animation: none;
+  }
 }

@@ -38,9 +38,7 @@ import {
   shouldRetryQuery,
 } from "./retry";
 
-import {
-  ApiResponseError,
-} from "@/lib/api/errors";
+import { ApiResponseError } from "@/lib/api/errors";
 
 // 상담이 이미 존재할 경우
 export function useActiveConsultationQuery(
@@ -50,10 +48,14 @@ export function useActiveConsultationQuery(
     queryKey:
       queryKeys.consultations.active(),
 
-    queryFn: getActiveConsultation,
+    queryFn: () => getActiveConsultation(),
 
     // 애초에 Cookie가 없는 첫 방문에서는 Active 호출 무의미
     enabled,
+
+    // Entry와 Home은 이전 화면에서 남은 active cache가 아니라, 마운트 시점의
+    // 서버 상태로 상담 흐름을 결정한다.
+    refetchOnMount: "always",
 
     retry: shouldRetryQuery,
     retryDelay: queryRetryDelay,
@@ -95,14 +97,19 @@ export function useStartConsultationMutation() {
   return useMutation<ConsultationCreateResponse, Error, boolean | undefined>({
     mutationFn: (startNew = false) => startConsultation(startNew),
 
-    onSuccess: async () => {
+    onSuccess: () => {
       // 기존 Consultation Cache를 먼저 제거
       queryClient.removeQueries({
         queryKey:
           queryKeys.consultations.all,
-      })
-      // Promise로 session과 active 한 번에 invalidate
-      await Promise.all([
+      });
+      // 생성 응답으로 즉시 라우팅하는 caller를 막지 않는다. 아래 무효화는
+      // 다음 화면과 계정 표시를 동기화하기 위한 후속 작업이다.
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.account.all,
+        }),
+
         // 상담 생성 성공하면 데이터가 최신이 아닐 확률이 높으니 성공 이후 invalidate
         queryClient.invalidateQueries({
           queryKey:
@@ -141,6 +148,19 @@ export function useUpdateCategoryMutation() {
       ),
 
     onSuccess: async (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.summaryRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.analysisRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.session.all,
@@ -203,6 +223,19 @@ export function useUpdateSituationMutation() {
       ),
 
     onSuccess: async (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.summaryRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.analysisRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
+      });
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.session.all,
@@ -421,11 +454,13 @@ export function useConsultationSummaryQuery(
     | null
     | undefined,
   enabled = true,
+  review = false,
 ) {
   return useQuery({
     queryKey:
       queryKeys.consultations.summary(
         consultationId ?? "pending",
+        review,
       ),
 
     queryFn: () => {
@@ -437,6 +472,7 @@ export function useConsultationSummaryQuery(
 
       return getConsultationSummary(
         consultationId,
+        review,
       );
     },
 
@@ -804,10 +840,25 @@ export function usePrepareConsultationReportMutation() {
         data,
       );
 
+      // Report가 저장된 consultation은 더 이상 ACTIVE가 아니다. Home이 이전
+      // active cache를 잠깐이라도 resume UI로 표시하지 않도록 즉시 동기화한다.
+      queryClient.setQueryData(
+        queryKeys.consultations.active(),
+        null,
+      );
+
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey:
             queryKeys.consultations.active(),
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.session.all,
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.account.all,
         }),
 
         queryClient.invalidateQueries({

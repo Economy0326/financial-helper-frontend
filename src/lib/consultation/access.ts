@@ -1,4 +1,5 @@
 import type {
+  ConsultationStatus,
   ConsultationStep,
 } from "@/lib/api/types";
 
@@ -51,7 +52,8 @@ export function getCategoryPageAccess(
 
 export function getSituationPageAccess(
   currentStep: ConsultationStep | null,
-  editFromSummary = false,
+  explicitEdit = false,
+  status?: ConsultationStatus | null,
 ): ConsultationPageAccess {
   if (!currentStep) {
     return {
@@ -61,7 +63,8 @@ export function getSituationPageAccess(
 
   if (
     situationEditableSteps.has(currentStep) ||
-    (editFromSummary && currentStep === "SUMMARY")
+    (explicitEdit && currentStep === "SUMMARY") ||
+    (explicitEdit && currentStep === "ANALYSIS" && status === "FAILED")
   ) {
     return {
       status: "allowed",
@@ -99,6 +102,7 @@ export function getFollowUpPageAccess(
 
 export function getSummaryPageAccess(
   currentStep: ConsultationStep | null,
+  reviewFromAnalysis = false,
 ): ConsultationPageAccess {
   if (!currentStep) {
     return {
@@ -106,7 +110,10 @@ export function getSummaryPageAccess(
     };
   }
 
-  if (currentStep === "SUMMARY") {
+  if (
+    currentStep === "SUMMARY" ||
+    (reviewFromAnalysis && currentStep === "ANALYSIS")
+  ) {
     return {
       status: "allowed",
     };

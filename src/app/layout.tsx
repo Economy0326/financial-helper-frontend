@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | 금융도우미",
   },
   description:
-    "금융 문제 상황을 단계적으로 정리하고 해결 방향을 안내하는 금융소비자 보호 서비스",
+    "금융 피해 상황을 단계적으로 정리하고 다음 행동을 확인하는 금융소비자 보호 서비스",
 };
 
 type RootLayoutProps = Readonly<{

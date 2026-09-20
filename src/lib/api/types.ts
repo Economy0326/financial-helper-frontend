@@ -94,6 +94,11 @@ export type ActiveConsultationResponse = {
   updatedAt: string;
 };
 
+export type ActiveConsultationStateResponse = {
+  active: boolean;
+  consultation: ActiveConsultationResponse | null;
+};
+
 export type ConsultationDetailResponse = {
   consultationId: string;
   category: ConsultationCategory | null;
@@ -161,6 +166,12 @@ export type ConsultationSummaryPayload = {
   headline: string;
   summaryText: string;
   keyPoints: string[];
+  facts: Array<{
+    key: string;
+    label: string | null;
+    value: string;
+    displayValue: string | null;
+  }>;
 };
 
 export type ConsultationSummaryStateResponse = {
@@ -177,6 +188,7 @@ export type ConfirmConsultationSummaryResponse = {
 
 export type AnalysisStatus =
   | "NOT_STARTED"
+  | "UNSUPPORTED_SCOPE"
   | "QUEUED"
   | "PROCESSING"
   | "COMPLETED"
@@ -197,6 +209,7 @@ export type AnalysisSafeAction = {
 
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
+  failureCode: string | null;
   attemptCount: number;
 
   informationSupplementCount: number;

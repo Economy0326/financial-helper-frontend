@@ -64,14 +64,14 @@ function getSituationPlaceholder(
       return "예) 대출 상환 금액이 예상과 달라서 확인하고 싶어요.";
 
     case "CARD":
-      return "예) 취소한 카드 결제가 아직 환불되지 않았어요.";
+      return "예) 카드를 잃어버렸는데 모르는 결제가 있어요.";
 
     case "FINANCIAL_FRAUD":
-      return "예) 모르는 송금이나 스미싱 피해가 의심돼요.";
+      return "예) 모르는 계좌이체가 있거나 스미싱 피해가 의심돼요.";
 
     case "UNKNOWN":
     default:
-      return "예) 금융회사와 거래하면서 어떤 문제가 있었는지 적어 주세요.";
+      return "예) 금융 피해 상황을 어떻게 설명해야 할지 모르겠어요.";
   }
 }
 
@@ -93,11 +93,11 @@ function getSituationSubmitErrorMessage(
   error: Error,
 ) {
   if (error instanceof ApiNetworkError) {
-    return "서버에 연결할 수 없어요. 작성한 내용은 유지되어 있으니 연결을 확인한 뒤 다시 시도해 주세요.";
+    return "연결 상태를 확인하지 못했어요. 작성한 내용은 유지되어 있으니 잠시 후 다시 시도해 주세요.";
   }
 
   if (error instanceof ApiContractError) {
-    return "서버 응답을 확인하지 못했어요. 작성한 내용은 그대로 유지됩니다.";
+    return "요청 결과를 확인하지 못했어요. 작성한 내용은 그대로 유지됩니다.";
   }
 
   if (error instanceof ApiResponseError) {
@@ -116,7 +116,7 @@ function getSituationSubmitErrorMessage(
 
       default:
         if (error.status >= 500) {
-          return "서버에서 내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
+          return "내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
         }
     }
   }
@@ -144,7 +144,7 @@ type SituationFormValues =
 export default function SituationInputForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editFromSummary =
+  const explicitEdit =
     searchParams.get("edit") === "true";
 
   // useForm이 반환하는 Form 제어 함수와 상태 중 현재 화면에 필요한 값만 구조분해
@@ -197,7 +197,8 @@ export default function SituationInputForm() {
   const pageAccess =
     getSituationPageAccess(
       currentStep,
-      editFromSummary,
+      explicitEdit,
+      activeConsultationQuery.data?.status,
     );
 
   const consultationId =
@@ -288,6 +289,10 @@ export default function SituationInputForm() {
   const errorMessage =
     errors.content?.message;
 
+  const unsupportedScope =
+    situationMutation.error instanceof ApiResponseError &&
+    situationMutation.error.code === "CONSULTATION_SCOPE_UNSUPPORTED";
+
   function getSituationFieldErrorMessage(
     error: ApiResponseError,
   ) {
@@ -324,12 +329,25 @@ export default function SituationInputForm() {
     situationMutation.reset();
 
     try {
-      await situationMutation.mutateAsync({
+      const updatedSituation =
+        await situationMutation.mutateAsync({
         consultationId,
         situationText:
           values.content.trim(),
-        editFromSummary,
+        editFromSummary: explicitEdit,
       });
+
+      // 동일한 입력은 Backend가 revision을 늘리지 않는 no-op으로
+      // 처리한다. 현재 단계가 그대로라면 그 단계로 복귀한다.
+      if (updatedSituation.currentStep === "SUMMARY") {
+        router.push("/consultation/summary");
+        return;
+      }
+
+      if (updatedSituation.currentStep === "ANALYSIS") {
+        router.push("/consultation/analysis");
+        return;
+      }
 
       const followUpState =
         await followUpPreparationMutation
@@ -549,7 +567,7 @@ router.push(
                     {item.topic}
                   </p>
 
-                  <p className="mt-1 leading-6 text-foreground-muted">
+                  <p className="mt-1 break-keep leading-6 text-foreground-muted">
                     {item.reason}
                   </p>
                 </li>
@@ -557,7 +575,7 @@ router.push(
             )}
           </ul>
 
-          <p className="mt-4 text-sm font-medium text-foreground-muted">
+          <p className="mt-4 break-keep text-sm font-medium text-foreground-muted">
             추가 정보 보완은 한 번만 가능합니다.
           </p>
         </section>
@@ -591,11 +609,11 @@ router.push(
               descriptionIds
             }
             className={[
-              "min-h-72 w-full resize-y rounded-card border bg-surface",
-              "px-5 pb-14 pt-5 text-base leading-7 text-foreground",
+              "min-h-64 w-full resize-y rounded-control border bg-surface",
+              "px-5 pb-14 pt-5 text-[1.0625rem] leading-8 text-foreground",
               "placeholder:text-foreground-muted",
               "focus:outline-none focus:ring-2 focus:ring-focus",
-              "sm:min-h-80 sm:px-6 sm:pt-6 sm:text-lg",
+              "sm:min-h-72 sm:px-6 sm:pt-6 sm:text-lg",
               errorMessage
                 ? "border-danger"
                 : "border-border-strong",
@@ -659,25 +677,18 @@ router.push(
 
       <aside
         aria-labelledby="sensitive-information-title"
-        className="mt-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        className="mt-5 border-l-2 border-primary px-4 py-2"
       >
-        <div className="flex items-start gap-4">
-          <span
-            aria-hidden="true"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-xl font-bold text-primary"
-          >
-            !
-          </span>
-
+        <div>
           <div>
             <h2
               id="sensitive-information-title"
-              className="font-bold text-primary sm:text-lg"
+              className="font-bold text-foreground sm:text-lg"
             >
               민감정보는 입력하지 마세요
             </h2>
 
-            <p className="mt-2 leading-7 text-foreground">
+            <p className="mt-1 text-[0.9375rem] leading-6 text-foreground-muted">
               계좌번호, 비밀번호, 주민등록번호,
               카드번호 등은 입력하지 말아주세요.
             </p>
@@ -732,7 +743,24 @@ router.push(
         </div>
       ) : null}
 
-      {situationMutation.error ? (
+      {unsupportedScope ? (
+        <div
+          role="status"
+          className="mt-4 rounded-control border border-border bg-surface p-4"
+        >
+          <p className="font-medium text-foreground">
+            현재 지원 범위에서는 이 상황을 상담하기 어려워요.
+          </p>
+          <div className="mt-4 space-y-3">
+            <SecondaryButton type="button" className="w-full" onClick={() => router.push("/consultation/entry")}>
+              새 상담 시작
+            </SecondaryButton>
+            <SecondaryButton type="button" className="w-full" onClick={() => router.push("/")}>
+              홈으로
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : situationMutation.error ? (
         <div
           role="alert"
           className="mt-4 rounded-control border border-danger bg-surface p-4"

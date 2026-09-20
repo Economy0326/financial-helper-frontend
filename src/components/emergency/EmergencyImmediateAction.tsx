@@ -31,11 +31,10 @@ function ActionCard({
   return (
     <section
       className={[
-        "rounded-card border bg-surface p-5 shadow-card",
-        "sm:p-6",
+        "rounded-card border px-5 py-6 sm:px-6 sm:py-7",
         isDanger
-          ? "border-danger"
-          : "border-primary",
+          ? "border-danger/30 bg-danger-surface"
+          : "border-primary/30 bg-primary-subtle",
       ].join(" ")}
     >
       <div className="flex items-center gap-3">
@@ -87,12 +86,12 @@ function ActionCard({
               {isDanger ? "×" : index + 1}
             </span>
 
-            <div>
-              <h3 className="font-bold leading-7 text-foreground sm:text-lg">
+            <div className="min-w-0">
+              <h3 className="break-keep font-bold leading-7 text-foreground sm:text-lg">
                 {item.title}
               </h3>
 
-              <p className="mt-1 leading-7 text-foreground-muted">
+              <p className="mt-1 break-keep leading-7 text-foreground-muted">
                 {item.description}
               </p>
             </div>
@@ -148,8 +147,8 @@ export default function EmergencyImmediateAction() {
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            안전한 안내를 확인할 수 있을 때까지
-            임의의 대응 정보를 대신 보여드리지 않아요.
+            안전한 안내를 불러오지 못했어요.
+            잠시 후 다시 확인해 주세요.
           </p>
 
           <div className="mx-auto mt-8 max-w-sm space-y-3">
@@ -229,22 +228,12 @@ export default function EmergencyImmediateAction() {
         label="즉시 대응"
       />
 
-      <header className="mt-10 text-center sm:mt-12">
-        <div
-          aria-hidden="true"
-          className={[
-            "mx-auto flex h-20 w-20 items-center justify-center",
-            "rounded-full bg-primary-subtle text-4xl text-primary",
-          ].join(" ")}
-        >
-          ✓
-        </div>
-
-        <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
+        <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
           {data.title}
         </h1>
 
-        <p className="mt-4 leading-7 text-foreground-muted sm:text-lg">
+        <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
           {data.description}
         </p>
       </header>
@@ -265,21 +254,9 @@ export default function EmergencyImmediateAction() {
         />
       </div>
 
-      <aside
-        className={[
-          "mt-5 rounded-card border border-border",
-          "bg-surface-subtle p-5 sm:p-6",
-        ].join(" ")}
-      >
-        <h2 className="font-bold text-foreground">
-          다음 단계에서는
-        </h2>
-
-        <p className="mt-2 leading-7 text-foreground-muted">
-          연락해야 할 기관과 보존해야 할 증거를
-          확인할 수 있어요.
-        </p>
-      </aside>
+      <p className="mt-7 text-center text-base font-medium leading-7 text-foreground-muted">
+        다음으로 연락할 곳과 남겨둘 증거를 확인해요.
+      </p>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         <SecondaryButton
@@ -301,7 +278,7 @@ export default function EmergencyImmediateAction() {
             )
           }
         >
-          다음 단계
+          연락할 곳 확인하기
         </PrimaryButton>
       </div>
     </>

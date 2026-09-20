@@ -9,11 +9,19 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import { logout } from "@/lib/api/auth";
+import { resetClientAuthState } from "@/lib/api/client";
+import { ApiResponseError } from "@/lib/api/errors";
 import {
   useAccountConsultationHistoryQuery,
   useAccountEmergencyHistoryQuery,
   useAccountOverviewQuery,
 } from "@/lib/query/account";
+import {
+  useStartConsultationMutation,
+} from "@/lib/query/consultation";
+import {
+  getConsultationStepHref,
+} from "@/lib/consultation/navigation";
 import { useSessionQuery } from "@/lib/query/session";
 import { queryKeys } from "@/lib/query/keys";
 
@@ -100,6 +108,8 @@ export default function AccountPage() {
     0,
     authenticated,
   );
+  const startConsultationMutation =
+    useStartConsultationMutation();
   const [logoutPending, setLogoutPending] = useState(false);
 
   if (
@@ -156,9 +166,10 @@ export default function AccountPage() {
 
     try {
       await logout();
-      // Do not leave authenticated session/account data in the shared client
-      // while the browser transitions back to the public home page. The next
-      // observer performs one fresh unauthenticated bootstrap.
+      resetClientAuthState();
+      // 브라우저가 공개 Home으로 이동하는 동안 공용 client에 인증된
+      // session/account 데이터를 남기지 않는다. 다음 observer가 새로운
+      // 비인증 bootstrap을 한 번 수행한다.
       queryClient.removeQueries({
         queryKey: queryKeys.session.all,
       });
@@ -171,6 +182,20 @@ export default function AccountPage() {
     }
   }
 
+  function startNewConsultation(startNew: boolean) {
+    startConsultationMutation.mutate(startNew, {
+      onSuccess: (consultation) => {
+        router.replace(
+          getConsultationStepHref(consultation.currentStep),
+        );
+      },
+    });
+  }
+
+  const startError = startConsultationMutation.error;
+  const quotaExhausted = startError instanceof ApiResponseError &&
+    startError.code === "ACCOUNT_NEW_CONSULTATION_QUOTA_EXHAUSTED";
+
   const completedHistory = history.data?.content.filter(
     (item) => Boolean(item.reportId),
   );
@@ -180,9 +205,9 @@ export default function AccountPage() {
       <AppHeader />
 
       <main className="mx-auto w-full max-w-3xl px-4 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
-        <header>
-          <p className="text-sm font-semibold text-primary">상담 관리</p>
-          <h1 className="mt-2 break-keep text-3xl font-bold">
+        <header className="pt-2">
+          <p className="text-base font-bold text-primary">상담 관리</p>
+          <h1 className="mt-2 break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em]">
             내 금융상담
           </h1>
           <p className="mt-2 break-keep leading-7 text-foreground-muted">
@@ -195,7 +220,7 @@ export default function AccountPage() {
 
         <section
           aria-labelledby="account-quota-heading"
-          className="mt-6 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-y border-border py-5"
         >
           <h2 id="account-quota-heading" className="text-lg font-bold">
             이용 한도
@@ -203,7 +228,7 @@ export default function AccountPage() {
           <p className="mt-2 text-2xl font-bold text-primary">
             최근 7일 상담 {data.quota.used} / {data.quota.limit}
           </p>
-          <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
+          <p className="mt-2 break-keep text-[0.9375rem] leading-6 text-foreground-muted">
             {getQuotaMessage(
               data.quota.used,
               data.quota.limit,
@@ -225,37 +250,65 @@ export default function AccountPage() {
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/consultation/problem-category"
+                href={getConsultationStepHref(
+                  data.activeConsultation.currentStep,
+                )}
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
               >
                 이어서 하기
               </Link>
-              <Link
-                href="/consultation/problem-category?new=true"
+              <button
+                type="button"
+                disabled={startConsultationMutation.isPending}
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-control border border-primary px-5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
+                onClick={() => startNewConsultation(true)}
               >
-                새 상담 시작
-              </Link>
+                {startConsultationMutation.isPending
+                  ? "새 상담 준비 중..."
+                  : "새 상담 시작"}
+              </button>
             </div>
           </section>
         ) : (
-          <section className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
+          <section className="mt-6 border-b border-border pb-6">
             <h2 className="text-lg font-bold">새 상담</h2>
             <p className="mt-2 text-foreground-muted">
               새로운 금융 상담을 시작해 보세요.
             </p>
-            <Link
-              href="/consultation/problem-category"
+            <button
+              type="button"
+              disabled={startConsultationMutation.isPending}
               className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
+              onClick={() => startNewConsultation(false)}
             >
-              새 상담 시작
-            </Link>
+              {startConsultationMutation.isPending
+                ? "새 상담 준비 중..."
+                : "새 상담 시작"}
+            </button>
           </section>
         )}
 
+        {startConsultationMutation.isError ? (
+          <div
+            role="alert"
+            className="mt-5 rounded-control border border-danger bg-surface-subtle p-4"
+          >
+            <p className="font-semibold text-danger">
+              {quotaExhausted
+                ? "최근 7일 새 상담 한도를 모두 사용했어요."
+                : "새 상담을 시작하지 못했어요."}
+            </p>
+            <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
+              {quotaExhausted
+                ? "완료된 상담과 지난 결과는 상담 내역에서 계속 확인할 수 있어요."
+                : "잠시 후 다시 시도해 주세요."}
+            </p>
+          </div>
+        ) : null}
+
         <section
           aria-labelledby="completed-consultations-heading"
-          className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-b border-border pb-7"
         >
           <div className="flex items-center justify-between gap-3">
             <h2 id="completed-consultations-heading" className="text-lg font-bold">
@@ -286,23 +339,21 @@ export default function AccountPage() {
           ) : completedHistory && completedHistory.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
               {completedHistory.map((item) => (
-                <li
-                  key={item.consultationId}
-                  className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
-                    </p>
-                    <p className="mt-1 text-sm text-foreground-muted">
-                      {formatDate(item.reportGeneratedAt ?? item.updatedAt)}
-                    </p>
-                  </div>
+                <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
                   <Link
                     href={`/consultation/report?consultationId=${encodeURIComponent(item.consultationId)}`}
-                    className="inline-flex min-h-11 items-center self-start font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:self-auto"
+                    className="flex min-h-18 items-center justify-between gap-4 rounded-control px-1 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                   >
-                    결과 다시 보기
+                    <span className="min-w-0">
+                      <strong className="block text-[1.0625rem] font-bold text-foreground">
+                        {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
+                      </strong>
+                      <span className="mt-1 block text-[0.9375rem] text-foreground-muted">
+                        {formatDate(item.reportGeneratedAt ?? item.updatedAt)}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" className="shrink-0 text-2xl text-foreground-muted">›</span>
+                    <span className="sr-only">결과 다시 보기</span>
                   </Link>
                 </li>
               ))}
@@ -338,7 +389,7 @@ export default function AccountPage() {
 
         <section
           aria-labelledby="emergency-history-heading"
-          className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-b border-border pb-7"
         >
           <h2 id="emergency-history-heading" className="text-lg font-bold">
             긴급 대응 기록

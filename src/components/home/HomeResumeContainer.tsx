@@ -46,14 +46,12 @@ function formatUpdatedAt(value: string) {
 
 export default function HomeResumeContainer() {
   const sessionQuery = useSessionQuery();
-
-  const hasActiveConsultation =
-    sessionQuery.data
-      ?.hasActiveConsultation === true;
+  const authenticated =
+    sessionQuery.data?.authenticated === true;
 
   const activeConsultationQuery =
     useActiveConsultationQuery(
-      hasActiveConsultation,
+      authenticated,
     );
 
   let state: HomeResumeState;
@@ -73,19 +71,23 @@ export default function HomeResumeContainer() {
         void sessionQuery.refetch();
       },
     };
-  } else if (!hasActiveConsultation) {
+  } else if (!authenticated) {
     state = {
       status: "none",
     };
   } else if (
-    activeConsultationQuery.isLoading
+    activeConsultationQuery.isLoading ||
+    activeConsultationQuery.isFetching
   ) {
     state = {
       status: "loading",
     };
   } else if (
-    activeConsultationQuery.isError ||
-    !activeConsultationQuery.data
+    (activeConsultationQuery.isError) ||
+    (
+      activeConsultationQuery.data === undefined &&
+      !activeConsultationQuery.isSuccess
+    )
   ) {
     state = {
       status: "error",
@@ -97,7 +99,7 @@ export default function HomeResumeContainer() {
         void activeConsultationQuery.refetch();
       },
     };
-  } else {
+  } else if (activeConsultationQuery.data) {
     const consultation =
       activeConsultationQuery.data;
 
@@ -125,10 +127,12 @@ export default function HomeResumeContainer() {
           ),
         href: step.href,
         newHref: sessionQuery.data?.authenticated
-          ? "/consultation/problem-category?new=true"
+          ? "/consultation/entry"
           : undefined,
       },
     };
+  } else {
+    state = { status: "none" };
   }
 
   return (
