@@ -205,9 +205,9 @@ export default function AccountPage() {
       <AppHeader />
 
       <main className="mx-auto w-full max-w-3xl px-4 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
-        <header>
-          <p className="text-sm font-semibold text-primary">상담 관리</p>
-          <h1 className="mt-2 break-keep text-3xl font-bold">
+        <header className="pt-2">
+          <p className="text-base font-bold text-primary">상담 관리</p>
+          <h1 className="mt-2 break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em]">
             내 금융상담
           </h1>
           <p className="mt-2 break-keep leading-7 text-foreground-muted">
@@ -220,7 +220,7 @@ export default function AccountPage() {
 
         <section
           aria-labelledby="account-quota-heading"
-          className="mt-6 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-y border-border py-5"
         >
           <h2 id="account-quota-heading" className="text-lg font-bold">
             이용 한도
@@ -228,7 +228,7 @@ export default function AccountPage() {
           <p className="mt-2 text-2xl font-bold text-primary">
             최근 7일 상담 {data.quota.used} / {data.quota.limit}
           </p>
-          <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
+          <p className="mt-2 break-keep text-[0.9375rem] leading-6 text-foreground-muted">
             {getQuotaMessage(
               data.quota.used,
               data.quota.limit,
@@ -270,7 +270,7 @@ export default function AccountPage() {
             </div>
           </section>
         ) : (
-          <section className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
+          <section className="mt-6 border-b border-border pb-6">
             <h2 className="text-lg font-bold">새 상담</h2>
             <p className="mt-2 text-foreground-muted">
               새로운 금융 상담을 시작해 보세요.
@@ -308,7 +308,7 @@ export default function AccountPage() {
 
         <section
           aria-labelledby="completed-consultations-heading"
-          className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-b border-border pb-7"
         >
           <div className="flex items-center justify-between gap-3">
             <h2 id="completed-consultations-heading" className="text-lg font-bold">
@@ -339,23 +339,21 @@ export default function AccountPage() {
           ) : completedHistory && completedHistory.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
               {completedHistory.map((item) => (
-                <li
-                  key={item.consultationId}
-                  className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
-                    </p>
-                    <p className="mt-1 text-sm text-foreground-muted">
-                      {formatDate(item.reportGeneratedAt ?? item.updatedAt)}
-                    </p>
-                  </div>
+                <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
                   <Link
                     href={`/consultation/report?consultationId=${encodeURIComponent(item.consultationId)}`}
-                    className="inline-flex min-h-11 items-center self-start font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:self-auto"
+                    className="flex min-h-18 items-center justify-between gap-4 rounded-control px-1 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                   >
-                    결과 다시 보기
+                    <span className="min-w-0">
+                      <strong className="block text-[1.0625rem] font-bold text-foreground">
+                        {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
+                      </strong>
+                      <span className="mt-1 block text-[0.9375rem] text-foreground-muted">
+                        {formatDate(item.reportGeneratedAt ?? item.updatedAt)}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" className="shrink-0 text-2xl text-foreground-muted">›</span>
+                    <span className="sr-only">결과 다시 보기</span>
                   </Link>
                 </li>
               ))}
@@ -391,7 +389,7 @@ export default function AccountPage() {
 
         <section
           aria-labelledby="emergency-history-heading"
-          className="mt-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6"
+          className="mt-7 border-b border-border pb-7"
         >
           <h2 id="emergency-history-heading" className="text-lg font-bold">
             긴급 대응 기록

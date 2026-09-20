@@ -29,16 +29,16 @@ export default function SituationPage() {
           label="상황 입력"
         />
 
-        <header className="mt-10 text-center sm:mt-12">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+        <header className="mx-auto mt-9 max-w-xl text-center sm:mt-12">
+          <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
             어떤 일이
             <br className="sm:hidden" /> 있으셨나요?
           </h1>
 
-          <p className="mt-4 text-base leading-7 text-foreground-muted sm:text-lg">
-            자유롭게 상황을 입력해 주세요.
+          <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-7 text-foreground-muted sm:text-lg">
+            편하게 말씀해 주세요.
             <br />
-            확인된 내용을 바탕으로 안내를 준비해요.
+            필요한 내용은 다음 단계에서 하나씩 확인해요.
           </p>
         </header>
 

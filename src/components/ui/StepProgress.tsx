@@ -18,16 +18,16 @@ export default function StepProgress({
 
   return (
     <div>
-      <p className="text-center text-base text-foreground sm:text-lg">
-        <strong className="text-primary">
+      <p className="text-center text-base font-bold text-foreground">
+        <span className="text-primary">{label}</span>
+        <span className="ml-2 font-semibold text-foreground-muted">
           {currentStep}/{totalSteps}
-        </strong>{" "}
-        {label}
+        </span>
       </p>
 
       <ol
         aria-label={`${ariaLabel}: ${totalSteps}단계 중 ${currentStep}단계`}
-        className="mx-auto mt-5 flex w-full max-w-lg items-center"
+        className="mx-auto mt-4 flex w-full max-w-sm items-center gap-2"
       >
         {steps.map((step) => {
           const isComplete =
@@ -49,16 +49,13 @@ export default function StepProgress({
               <span
                 aria-hidden="true"
                 className={[
-                  "flex h-8 w-8 shrink-0 items-center justify-center",
-                  "rounded-full border text-sm font-bold",
+                  "h-2.5 w-2.5 shrink-0 rounded-full",
                   isComplete || isCurrent
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-surface-subtle text-foreground-muted",
+                    ? "bg-primary"
+                    : "bg-border",
                 ].join(" ")}
               >
-                {isComplete
-                  ? "✓"
-                  : null}
+                {null}
               </span>
 
               <span className="sr-only">
@@ -73,7 +70,7 @@ export default function StepProgress({
                 <span
                   aria-hidden="true"
                   className={[
-                    "h-1 flex-1",
+                    "h-0.5 flex-1",
                     step < currentStep
                       ? "bg-primary"
                       : "bg-border",

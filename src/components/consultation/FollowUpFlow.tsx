@@ -255,7 +255,7 @@ export default function FollowUpFlow() {
           </h1>
 
           <p className="mt-3 leading-7 text-foreground-muted">
-            입력하신 내용은 서버에 저장되어 있어요.
+            입력하신 내용은 그대로 저장되어 있어요.
             <br />
             잠시 후 다시 시도해 주세요.
           </p>
@@ -526,16 +526,16 @@ export default function FollowUpFlow() {
         label="추가 질문"
       />
 
-      <header className="mt-10 text-center sm:mt-12">
-        <p className="text-sm font-semibold text-primary">
+      <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
+        <p className="text-base font-bold text-primary">
           추가 질문
         </p>
 
-        <h1 className="mx-auto mt-3 max-w-2xl break-keep text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">
+        <h1 className="mx-auto mt-3 break-keep text-[2rem] font-bold leading-[1.3] tracking-[-0.025em] text-foreground sm:text-4xl">
           {question.question}
         </h1>
 
-        <p className="mt-4 break-keep leading-7 text-foreground-muted sm:text-lg">
+        <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-7 text-foreground-muted sm:text-lg">
           {question.description}
         </p>
       </header>
@@ -611,7 +611,7 @@ export default function FollowUpFlow() {
             ) : null}
 
             {question.options.map(
-              (option, index) => {
+              (option) => {
                 const isSelected =
                   selectedOption ===
                   option.value;
@@ -655,42 +655,24 @@ export default function FollowUpFlow() {
                     <label
                       htmlFor={inputId}
                       className={[
-                        "box-border flex min-h-28 w-full max-w-full min-w-0 cursor-pointer items-center gap-3 rounded-card",
-                        "border bg-surface p-3 shadow-card transition",
+                        "box-border flex min-h-20 w-full max-w-full min-w-0 cursor-pointer items-center gap-4 rounded-control",
+                        "border bg-surface px-5 py-4 transition-colors",
                         "peer-focus-visible:ring-2 peer-focus-visible:ring-focus",
                         "peer-focus-visible:ring-offset-2",
-                        "sm:min-h-32 sm:gap-4 sm:p-5",
+                        "sm:min-h-24 sm:px-6 sm:py-5",
                         isSelected
                           ? "border-primary bg-primary-subtle"
                           : "border-border hover:border-border-strong",
                       ].join(" ")}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={[
-                          "flex h-12 w-12 shrink-0 items-center justify-center sm:h-14 sm:w-14",
-                          "rounded-full text-xl font-bold",
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-surface-subtle text-primary",
-                        ].join(
-                          " ",
-                        )}
-                      >
-                        {isSelected
-                          ? "✓"
-                          : index +
-                            1}
-                      </span>
-
-                      <span className="min-w-0 flex-1 break-keep break-words">
-                        <span className="block text-lg font-bold text-foreground sm:text-xl">
+                      <span className="min-w-0 flex-1 break-keep">
+                        <span className="block text-lg font-bold leading-7 text-foreground sm:text-xl">
                           {
                             option.label
                           }
                         </span>
 
-                        <span className="mt-1 block leading-6 text-foreground-muted">
+                        <span className="mt-1 block break-keep text-base font-medium leading-6 text-foreground-muted">
                           {
                             option.description
                           }
@@ -700,8 +682,7 @@ export default function FollowUpFlow() {
                       <span
                         aria-hidden="true"
                         className={[
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8",
-                          "border-2 font-bold",
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-bold",
                           isSelected
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border-strong bg-surface",

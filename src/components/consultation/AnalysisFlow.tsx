@@ -132,7 +132,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div
@@ -226,7 +226,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div className="py-16 text-center">
@@ -247,7 +247,7 @@ export default function AnalysisFlow() {
               <>
                 분석이 중단됐다는 뜻은 아니에요.
                 <br />
-                서버의 현재 상태를 다시 확인해 주세요.
+                현재 진행 상태를 다시 확인해 주세요.
               </>
             )}
           </p>
@@ -309,7 +309,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div className="py-16 text-center">
@@ -398,7 +398,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div
@@ -412,19 +412,13 @@ export default function AnalysisFlow() {
           />
 
           <h1 className="mt-8 break-keep text-3xl font-bold text-foreground">
-            상담 내용을 분석하고 있어요
+            확인한 내용을 정리하고 있어요
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
-            핵심 쟁점과 필요한 다음 행동을
-            정리하고 있어요.
-            <br />
-            잠시만 기다려 주세요.
+            검토된 공식 자료와 현재 상황을 함께 확인하고 있습니다.
           </p>
 
-          <p className="mt-6 text-sm text-foreground-muted">
-            확인된 공식 자료를 바탕으로 안내를 준비하고 있어요.
-          </p>
         </div>
       </>
     );
@@ -438,7 +432,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div className="py-16 text-center">
@@ -541,7 +535,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div className="py-16 text-center">
@@ -641,7 +635,7 @@ export default function AnalysisFlow() {
         <ConsultationProgress
           currentStep={5}
           totalSteps={6}
-          label="AI 분석"
+          label="결과 준비"
         />
 
         <div className="py-12">
@@ -762,7 +756,7 @@ export default function AnalysisFlow() {
       <ConsultationProgress
         currentStep={5}
         totalSteps={6}
-        label="AI 분석"
+        label="결과 준비"
       />
 
       <div
@@ -771,18 +765,17 @@ export default function AnalysisFlow() {
       >
         <div
           aria-hidden="true"
-          className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-subtle text-2xl font-bold text-primary"
+          className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-subtle text-xl font-bold text-primary"
         >
           ✓
         </div>
 
-        <h1 className="mt-6 break-keep text-3xl font-bold text-foreground">
-          분석이 완료됐어요
+        <h1 className="mt-5 break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground">
+          결과가 준비됐어요
         </h1>
 
         <p className="mt-4 leading-7 text-foreground-muted">
-          확인하신 상담 내용을 바탕으로
-          핵심 쟁점 분석이 끝났어요.
+          확인한 내용을 바탕으로 다음 행동을 정리했어요.
         </p>
 
         {prepareReportMutation.isError ? (

@@ -44,19 +44,8 @@ export default function EmergencyNextHelp() {
         label="다음 도움"
       />
 
-      <header className="mt-10 text-center sm:mt-12">
-        <div
-          aria-hidden="true"
-          className={[
-            "mx-auto flex h-20 w-20 items-center justify-center",
-            "rounded-full bg-primary-subtle",
-            "text-4xl font-bold text-primary",
-          ].join(" ")}
-        >
-          ✓
-        </div>
-
-        <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
+        <h1 className="break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
           긴급 대응을 확인했어요
         </h1>
 
@@ -93,8 +82,8 @@ export default function EmergencyNextHelp() {
                     setPendingHref(action.href);
                   }}
                   className={[
-                    "flex min-h-28 items-center gap-4 rounded-card",
-                    "border bg-surface p-5 shadow-card",
+                    "flex min-h-24 items-center gap-4 rounded-control",
+                    "border bg-surface px-5 py-4",
                     "transition hover:border-primary",
                     "focus-visible:outline-none focus-visible:ring-2",
                     "focus-visible:ring-focus focus-visible:ring-offset-2",
@@ -108,17 +97,6 @@ export default function EmergencyNextHelp() {
                       : "",
                   ].join(" ")}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={[
-                      "flex h-14 w-14 shrink-0 items-center justify-center",
-                      "rounded-full bg-primary-subtle",
-                      "text-2xl text-primary",
-                    ].join(" ")}
-                  >
-                    {action.icon}
-                  </span>
-
                   <span className="min-w-0 flex-1">
                     <span className="block text-lg font-bold text-foreground sm:text-xl">
                       {action.title}

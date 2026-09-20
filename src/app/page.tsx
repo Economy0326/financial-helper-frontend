@@ -1,79 +1,73 @@
 "use client";
 
+import Link from "next/link";
+
 import { AppHeader } from "@/components/layout/AppHeader";
-import HomeActionCard from "@/components/home/HomeActionCard";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <AppHeader />
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6 sm:px-6 md:pt-8 lg:px-8">
-        <section className="rounded-card border border-border bg-surface-subtle p-6 sm:p-8 md:p-10">
-          <p className="text-sm font-semibold text-primary">
-            금융소비자 보호 AI
-          </p>
-
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            안녕하세요!
+      <main className="mx-auto flex w-full max-w-3xl flex-col px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-12 sm:px-8 sm:pt-16">
+        <section aria-labelledby="home-heading">
+          <h1
+            id="home-heading"
+            className="break-keep text-[1.9375rem] font-bold leading-[1.28] tracking-[-0.03em] text-foreground sm:text-[2.5rem]"
+          >
+            금융 피해 상황을 정리하고<br className="hidden min-[360px]:block" />
+            다음 행동을 확인하세요
           </h1>
 
-          <p className="mt-3 text-xl font-semibold text-foreground sm:text-2xl">
-            금융 피해 상황을 쉽게 정리하고 다음 행동을 확인하세요.
+          <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-[1.65] text-foreground-muted sm:text-lg">
+            몇 가지 질문으로 필요한 절차를<br className="hidden min-[360px]:block" />
+            차근차근 안내해 드려요.
           </p>
 
-          <p className="mt-5 flex items-center gap-2 text-sm text-foreground-muted sm:text-base">
-            <span aria-hidden="true" className="text-primary">
-              ✓
-            </span>
-            개인정보와 상담 내용은 안전하게 보호됩니다.
-          </p>
-        </section>
-
-        <section
-          aria-label="상담 시작"
-          className="mt-5 grid gap-4 md:grid-cols-2"
-        >
-          <HomeActionCard
+          <Link
             href="/consultation/entry"
-            title="금융 피해 상담하기"
-            description="카드 피해, 의심 송금, 무단이체, 개인정보 노출을 함께 정리해요."
-            ctaLabel="상담 시작하기"
-            tone="primary"
-            icon="consultation"
-          />
-
-          <HomeActionCard
-            href="/emergency/type"
-            title="긴급 금융 피해 대응"
-            description="보이스피싱, 금융사기 등 긴급 상황에 즉시 대응해요."
-            ctaLabel="지금 바로 시작하기"
-            tone="danger"
-            icon="emergency"
-          />
+            className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-control bg-primary px-6 py-4 text-lg font-bold text-primary-foreground shadow-[0_6px_16px_rgb(8_127_115_/_0.16)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-3 motion-reduce:transition-none sm:w-auto sm:min-w-64"
+          >
+            금융 피해 상담하기
+          </Link>
         </section>
 
-        <section
-          aria-label="서비스 안내"
-          className="mt-5 grid gap-4 md:grid-cols-2"
-        >
-          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
-            <h2 className="font-bold text-foreground">믿고 이용하세요</h2>
+        <section aria-label="지원하는 금융 피해" className="mt-7">
+          <p className="break-keep text-base font-medium leading-7 text-foreground-muted">
+            카드 피해 · 의심 송금 · 무단이체 · 스미싱
+          </p>
+        </section>
 
-            <p className="mt-2 leading-7 text-foreground-muted">
-              검토된 공식 자료와 절차를 바탕으로 안내하며, 근거가 부족하면
-              확인 가능한 범위만 보여드립니다.
-            </p>
-          </article>
+        <section aria-label="긴급 피해 대응" className="mt-9">
+          <Link
+            href="/emergency/type"
+            className="group flex min-h-18 items-center gap-3 rounded-control border border-border bg-surface px-4 py-3.5 transition-colors hover:border-danger hover:bg-danger-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-3 motion-reduce:transition-none"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center text-danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M12 3 20 6v5c0 5.1-3.1 8.5-8 11-4.9-2.5-8-5.9-8-11V6l8-3Z" />
+                <path d="M12 8v5" strokeLinecap="round" />
+                <path d="M12 17h.01" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <strong className="block text-[1.0625rem] text-foreground">긴급 피해 대응</strong>
+              <span className="block break-keep text-base leading-6 text-foreground-muted">
+                지금 바로 확인해야 할 행동
+              </span>
+            </span>
+            <span aria-hidden="true" className="text-2xl font-medium text-foreground-muted">›</span>
+          </Link>
+        </section>
 
-          <article className="rounded-card border border-border bg-surface p-5 sm:p-6">
-            <h2 className="font-bold text-foreground">보안 안내</h2>
-
-            <p className="mt-2 leading-7 text-foreground-muted">
-              상담 내용은 안전하게 처리하며 민감한 개인정보 입력은
-              최소화합니다.
-            </p>
-          </article>
+        <section aria-label="서비스 신뢰 안내" className="mt-8">
+          <p className="flex gap-3 text-base font-medium leading-7 text-foreground">
+            <span aria-hidden="true" className="font-bold text-primary">✓</span>
+            <span>검토된 공식 자료를 바탕으로 안내해요.</span>
+          </p>
+          <p className="mt-2 pl-7 text-[0.9375rem] leading-6 text-foreground-muted">
+            상담에 필요한 정보만 사용해요.
+          </p>
         </section>
       </main>
     </div>

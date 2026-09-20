@@ -352,12 +352,12 @@ export default function EmergencyTypeForm() {
                   <label
                     htmlFor={inputId}
                     className={[
-                      "flex min-h-28 cursor-pointer items-center gap-4",
-                      "rounded-card border bg-surface p-4 shadow-card transition",
+                      "flex min-h-24 cursor-pointer items-center gap-4",
+                      "rounded-control border bg-surface px-5 py-4 transition-colors",
                       "peer-focus-visible:ring-2 peer-focus-visible:ring-focus",
                       "peer-focus-visible:ring-offset-2",
                       "peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-                      "sm:min-h-32 sm:gap-5 sm:p-5",
+                      "sm:min-h-28 sm:px-6 sm:py-5",
                       isSelected
                         ? "border-primary bg-primary-subtle"
                         : "border-border hover:border-border-strong",
@@ -365,9 +365,9 @@ export default function EmergencyTypeForm() {
                   >
                     <span
                       className={[
-                        "flex h-16 w-16 shrink-0 items-center justify-center",
+                        "flex h-12 w-12 shrink-0 items-center justify-center",
                         "rounded-full bg-surface-subtle text-primary",
-                        "sm:h-20 sm:w-20",
+                        "sm:h-14 sm:w-14",
                       ].join(" ")}
                     >
                       <EmergencyTypeIcon

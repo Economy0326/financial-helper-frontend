@@ -93,11 +93,11 @@ function getSituationSubmitErrorMessage(
   error: Error,
 ) {
   if (error instanceof ApiNetworkError) {
-    return "서버에 연결할 수 없어요. 작성한 내용은 유지되어 있으니 연결을 확인한 뒤 다시 시도해 주세요.";
+    return "연결 상태를 확인하지 못했어요. 작성한 내용은 유지되어 있으니 잠시 후 다시 시도해 주세요.";
   }
 
   if (error instanceof ApiContractError) {
-    return "서버 응답을 확인하지 못했어요. 작성한 내용은 그대로 유지됩니다.";
+    return "요청 결과를 확인하지 못했어요. 작성한 내용은 그대로 유지됩니다.";
   }
 
   if (error instanceof ApiResponseError) {
@@ -116,7 +116,7 @@ function getSituationSubmitErrorMessage(
 
       default:
         if (error.status >= 500) {
-          return "서버에서 내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
+          return "내용을 저장하지 못했어요. 작성한 내용은 유지됩니다.";
         }
     }
   }
@@ -567,7 +567,7 @@ router.push(
                     {item.topic}
                   </p>
 
-                  <p className="mt-1 leading-6 text-foreground-muted">
+                  <p className="mt-1 break-keep leading-6 text-foreground-muted">
                     {item.reason}
                   </p>
                 </li>
@@ -575,7 +575,7 @@ router.push(
             )}
           </ul>
 
-          <p className="mt-4 text-sm font-medium text-foreground-muted">
+          <p className="mt-4 break-keep text-sm font-medium text-foreground-muted">
             추가 정보 보완은 한 번만 가능합니다.
           </p>
         </section>
@@ -609,11 +609,11 @@ router.push(
               descriptionIds
             }
             className={[
-              "min-h-72 w-full resize-y rounded-card border bg-surface",
-              "px-5 pb-14 pt-5 text-base leading-7 text-foreground",
+              "min-h-64 w-full resize-y rounded-control border bg-surface",
+              "px-5 pb-14 pt-5 text-[1.0625rem] leading-8 text-foreground",
               "placeholder:text-foreground-muted",
               "focus:outline-none focus:ring-2 focus:ring-focus",
-              "sm:min-h-80 sm:px-6 sm:pt-6 sm:text-lg",
+              "sm:min-h-72 sm:px-6 sm:pt-6 sm:text-lg",
               errorMessage
                 ? "border-danger"
                 : "border-border-strong",
@@ -677,25 +677,18 @@ router.push(
 
       <aside
         aria-labelledby="sensitive-information-title"
-        className="mt-6 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6"
+        className="mt-5 border-l-2 border-primary px-4 py-2"
       >
-        <div className="flex items-start gap-4">
-          <span
-            aria-hidden="true"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-xl font-bold text-primary"
-          >
-            !
-          </span>
-
+        <div>
           <div>
             <h2
               id="sensitive-information-title"
-              className="font-bold text-primary sm:text-lg"
+              className="font-bold text-foreground sm:text-lg"
             >
               민감정보는 입력하지 마세요
             </h2>
 
-            <p className="mt-2 leading-7 text-foreground">
+            <p className="mt-1 text-[0.9375rem] leading-6 text-foreground-muted">
               계좌번호, 비밀번호, 주민등록번호,
               카드번호 등은 입력하지 말아주세요.
             </p>

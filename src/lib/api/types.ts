@@ -166,6 +166,12 @@ export type ConsultationSummaryPayload = {
   headline: string;
   summaryText: string;
   keyPoints: string[];
+  facts: Array<{
+    key: string;
+    label: string | null;
+    value: string;
+    displayValue: string | null;
+  }>;
 };
 
 export type ConsultationSummaryStateResponse = {
