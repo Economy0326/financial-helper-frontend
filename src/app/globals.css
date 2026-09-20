@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Calm, high-contrast product surfaces */
+  /* 차분하고 대비가 분명한 제품 surface */
   --background: #f7faf9;
   --surface: #ffffff;
   --surface-subtle: #eef5f3;
@@ -17,7 +17,7 @@
   --primary-subtle: #e6f5f1;
   --primary-foreground: #ffffff;
 
-  /* Semantic */
+  /* 의미 기반 색상 */
   --success: #067647;
   --success-surface: #ecfdf3;
 

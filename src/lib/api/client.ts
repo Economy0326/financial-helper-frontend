@@ -12,25 +12,23 @@ const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 // Local Storage에 저장 x -> 새로고침 시 사라짐
 let csrfToken: string | null = null;
 
-// The response header is the token that the backend paired with the
-// Set-Cookie written by that response.  Browsers can expose the previous
-// cookie for a short moment while the response is being committed, so keep
-// the response value separately until the pair is observable together.
+// 응답 헤더 token은 Backend가 해당 응답의 Set-Cookie와 짝지은 값이다.
+// 응답이 반영되는 동안 브라우저가 잠시 이전 cookie를 노출할 수 있으므로
+// 두 값을 함께 확인할 수 있을 때까지 응답 값을 별도로 보관한다.
 let latestResponseCsrfToken: string | null = null;
 
 // 페이지의 여러 Query가 동시에 Session을 읽어도
 // CSRF 쿠키와 응답 헤더가 서로 다른 발급분으로 어긋나지 않게 한다.
 let sessionBootstrapPromise: Promise<unknown> | null = null;
 
-// Deduplicate the complete CSRF preparation, not only the GET /session call.
-// Several mutations can mount together; resetting the token in each caller
-// otherwise lets one request pair a fresh header with another response's
-// cookie and makes the first click fail with 403.
+// GET /session 호출뿐 아니라 전체 CSRF 준비 과정을 중복 실행하지 않는다.
+// 여러 mutation이 함께 마운트될 때 caller마다 token을 초기화하면 한 요청이
+// 새 헤더와 다른 응답의 cookie를 짝지어 첫 클릭이 403으로 실패할 수 있다.
 let csrfPreparationPromise: Promise<string> | null = null;
 
-// OAuth logout/login changes the account session while this module can stay
-// mounted during client-side navigation. Discard all account-bound bootstrap
-// state before the next account performs its first unsafe request.
+// client-side 이동 중 이 모듈이 유지된 상태에서 OAuth logout/login이
+// account session을 변경할 수 있다. 다음 account가 첫 unsafe request를
+// 보내기 전에 account에 묶인 bootstrap 상태를 모두 폐기한다.
 export function resetClientAuthState() {
   csrfToken = null;
   latestResponseCsrfToken = null;
@@ -115,19 +113,18 @@ async function prepareCsrfToken() {
   latestResponseCsrfToken = null;
   await requestSessionBootstrap();
 
-  // CookieCsrfTokenRepository validates the double-submit pair.  After an
-  // OAuth account switch the browser may briefly expose the previous cookie
-  // while the fresh /session response has already supplied a new header.
-  // Wait for that Set-Cookie to commit instead of sending a known mismatched
-  // first mutation.  This never retries the unsafe request itself.
+  // CookieCsrfTokenRepository가 double-submit 쌍을 검증한다. OAuth account
+  // 전환 뒤 새 /session 응답이 새 헤더를 제공했어도 브라우저는 잠시 이전
+  // cookie를 노출할 수 있다. 불일치가 확실한 첫 mutation을 보내지 않고
+  // Set-Cookie가 반영되기를 기다린다. unsafe request 자체는 재시도하지 않는다.
   let expectedToken = latestResponseCsrfToken ?? csrfToken;
   const waitForCookieCommit = async () => {
     if (!expectedToken) {
       return false;
     }
-    // Do not treat an absent cookie as synchronized. A fetch response can be
-    // observable one task before Set-Cookie is committed to document.cookie.
-    // Sending the header during that gap produces a first-click CSRF 403.
+    // cookie가 없으면 동기화된 것으로 보지 않는다. fetch 응답은 Set-Cookie가
+    // document.cookie에 반영되기 한 task 전에 관찰될 수 있다. 그 사이에
+    // 헤더를 보내면 첫 클릭에서 CSRF 403이 발생한다.
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const cookieToken = readCsrfCookie();
       if (cookieToken === expectedToken) {
@@ -141,9 +138,8 @@ async function prepareCsrfToken() {
 
   let cookieToken = readCsrfCookie();
   if (expectedToken && cookieToken && cookieToken !== expectedToken) {
-    // One more bootstrap is still a safe GET and handles browsers that
-    // committed the account-switch cookie after the first response.  The
-    // unsafe request is never retried here.
+    // bootstrap을 한 번 더 수행해도 안전한 GET이며, 첫 응답 뒤 account 전환
+    // cookie를 반영한 브라우저를 처리한다. 여기서 unsafe request는 재시도하지 않는다.
     latestResponseCsrfToken = null;
     await requestSessionBootstrap();
     expectedToken = latestResponseCsrfToken ?? csrfToken;

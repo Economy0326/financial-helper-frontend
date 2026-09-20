@@ -167,9 +167,9 @@ export default function AccountPage() {
     try {
       await logout();
       resetClientAuthState();
-      // Do not leave authenticated session/account data in the shared client
-      // while the browser transitions back to the public home page. The next
-      // observer performs one fresh unauthenticated bootstrap.
+      // 브라우저가 공개 Home으로 이동하는 동안 공용 client에 인증된
+      // session/account 데이터를 남기지 않는다. 다음 observer가 새로운
+      // 비인증 bootstrap을 한 번 수행한다.
       queryClient.removeQueries({
         queryKey: queryKeys.session.all,
       });

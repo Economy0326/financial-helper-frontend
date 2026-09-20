@@ -158,7 +158,7 @@ function ReportSection({
       aria-labelledby={`${id}-heading`}
       className="mt-8 scroll-mt-24 border-b border-border bg-surface first:mt-0 last:border-b-0"
     >
-      {/* Mobile Accordion Header */}
+      {/* 모바일 Accordion 헤더 */}
       <h2
         id={`${id}-heading`}
         className="lg:hidden print:hidden"
@@ -193,7 +193,7 @@ function ReportSection({
         </button>
       </h2>
 
-      {/* Desktop / Print Heading */}
+      {/* 데스크톱 / 인쇄용 제목 */}
       <h2
         id={`${id}-heading-desktop`}
         className={[
@@ -635,7 +635,7 @@ export default function SolutionReport() {
           "lg:items-start lg:gap-6",
         ].join(" ")}
       >
-        {/* Desktop Sticky Navigation */}
+        {/* 데스크톱 Sticky Navigation */}
         <nav
           aria-label="결과 목차"
           className={[
