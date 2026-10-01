@@ -361,7 +361,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div
@@ -393,7 +393,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -507,7 +507,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -564,7 +564,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -607,7 +607,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
       </div>
 

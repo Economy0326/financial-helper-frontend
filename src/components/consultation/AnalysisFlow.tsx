@@ -332,18 +332,12 @@ export default function AnalysisFlow() {
                 className="rounded-control border border-danger bg-surface p-4"
               >
                 {unsupportedScope
-                  ? "상담 내용을 수정하거나 새 상담으로 다시 시작해 주세요."
+                  ? "이 분석 결과에서는 상담 내용을 다시 여는 기능을 아직 지원하지 않아요. 새 상담으로 다시 시작해 주세요."
                   : "분석을 시작하지 못했어요. 잠시 후 다시 시도해 주세요."}
               </div>
 
               {unsupportedScope ? (
                 <div className="flex flex-col gap-3">
-                  <Link
-                    href="/consultation/situation"
-                    className="inline-flex min-h-12 items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-                  >
-                    상담 내용 수정
-                  </Link>
                   <Link
                     href="/consultation/entry"
                     className="inline-flex min-h-12 items-center justify-center rounded-control border border-border bg-surface px-5 py-3 font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import Link from "next/link";
 import {
@@ -20,6 +23,7 @@ import { z } from "zod";
 import {
   useActiveConsultationQuery,
   useConsultationDetailQuery,
+  useConfirmSuggestedScenarioMutation,
   useInformationSupplementContextQuery,
   usePrepareFollowUpMutation,
   useUpdateSituationMutation,
@@ -35,6 +39,8 @@ import {
 
 import type {
   ConsultationCategory,
+  ConsultationScenario,
+  UpdateSituationResponse,
 } from "@/lib/api/types";
 
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -49,6 +55,14 @@ import {
 } from "@/lib/consultation/navigation";
 
 const MAX_SITUATION_LENGTH = 1000;
+
+const scenarioLabels: Record<ConsultationScenario, string> = {
+  CARD_LOSS_UNAUTHORIZED_USE: "카드 분실·본인 아닌 결제",
+  VOICE_PHISHING_SUSPICIOUS_TRANSFER: "보이스피싱·의심 송금",
+  UNAUTHORIZED_ACCOUNT_TRANSFER: "본인 아닌 계좌이체",
+  PERSONAL_INFO_SMISHING_MALICIOUS_APP: "스미싱·악성앱·개인정보 노출",
+  UNKNOWN: "상담 유형",
+};
 
 function getSituationPlaceholder(
   category:
@@ -218,6 +232,14 @@ export default function SituationInputForm() {
   const situationMutation =
     useUpdateSituationMutation();
 
+  const confirmSuggestedScenarioMutation =
+    useConfirmSuggestedScenarioMutation();
+
+  const [
+    situationReview,
+    setSituationReview,
+  ] = useState<UpdateSituationResponse | null>(null);
+
   const supplementContextQuery =
     useInformationSupplementContextQuery(
       consultationId,
@@ -229,7 +251,8 @@ export default function SituationInputForm() {
 
   const isSubmitPending =
     situationMutation.isPending ||
-    followUpPreparationMutation.isPending;
+    followUpPreparationMutation.isPending ||
+    confirmSuggestedScenarioMutation.isPending;
 
   // 치명적 조회 실패 종류 -> 404, 401
   const hasFatalDetailError =
@@ -349,6 +372,18 @@ export default function SituationInputForm() {
         return;
       }
 
+      if (
+        updatedSituation.scenarioAlignment ===
+          "SUPPORTED_SCENARIO_MISMATCH" ||
+        updatedSituation.scenarioAlignment ===
+          "NEEDS_CLARIFICATION"
+      ) {
+        setSituationReview(updatedSituation);
+        return;
+      }
+
+      setSituationReview(null);
+
       const followUpState =
         await followUpPreparationMutation
           .mutateAsync({
@@ -398,6 +433,47 @@ router.push(
           void sessionQuery.refetch();
           void activeConsultationQuery.refetch();
         }
+      }
+    }
+  }
+
+  async function handleConfirmSuggestedScenario() {
+    if (
+      !consultationId ||
+      !situationReview?.suggestedScenario ||
+      confirmSuggestedScenarioMutation.isPending
+    ) {
+      return;
+    }
+
+    try {
+      const confirmation = await confirmSuggestedScenarioMutation.mutateAsync({
+        consultationId,
+        scenario: situationReview.suggestedScenario,
+        expectedCaseInputRevision: situationReview.caseInputRevision,
+      });
+
+      if (confirmation.nextStep !== "FOLLOW_UP") {
+        return;
+      }
+
+      const followUpState = await followUpPreparationMutation.mutateAsync({
+        consultationId,
+      });
+
+      if (followUpState.kind === "complete") {
+        router.push("/consultation/summary");
+        return;
+      }
+
+      setSituationReview(null);
+      router.push("/consultation/follow-up");
+    } catch (error) {
+      if (
+        error instanceof ApiResponseError &&
+        error.code === "INVALID_CONSULTATION_STATE"
+      ) {
+        void activeConsultationQuery.refetch();
       }
     }
   }
@@ -633,6 +709,11 @@ router.push(
                   situationMutation.reset();
                 }
 
+                if (situationReview) {
+                  setSituationReview(null);
+                  confirmSuggestedScenarioMutation.reset();
+                }
+
                 if (
                   followUpPreparationMutation.isError
                 ) {
@@ -777,6 +858,72 @@ router.push(
         </div>
       ) : null}
 
+      {situationReview?.scenarioAlignment === "SUPPORTED_SCENARIO_MISMATCH" &&
+      situationReview.suggestedScenario ? (
+        <section
+          role="status"
+          aria-labelledby="scenario-mismatch-title"
+          className="mt-4 rounded-control border border-primary bg-primary-subtle p-4"
+        >
+          <h2 id="scenario-mismatch-title" className="font-bold text-foreground">
+            입력하신 내용은 {scenarioLabels[situationReview.suggestedScenario]} 상담에 더 가까워요.
+          </h2>
+          <p className="mt-2 leading-6 text-foreground-muted">
+            상담 유형을 바꾸면 해당 유형의 질문부터 다시 확인해요. 확인 전에는 현재 선택한 상담 유형을 바꾸지 않아요.
+          </p>
+          {confirmSuggestedScenarioMutation.isError ? (
+            <p role="alert" className="mt-3 text-sm font-medium text-danger">
+              현재 상담 상태가 바뀌었어요. 내용을 수정하거나 현재 상담 단계를 다시 확인해 주세요.
+            </p>
+          ) : null}
+          <div className="mt-4 space-y-3">
+            <PrimaryButton
+              type="button"
+              className="w-full"
+              disabled={isSubmitPending}
+              onClick={() => void handleConfirmSuggestedScenario()}
+            >
+              {confirmSuggestedScenarioMutation.isPending
+                ? "상담 유형 변경 중..."
+                : `${scenarioLabels[situationReview.suggestedScenario]} 상담으로 변경하기`}
+            </PrimaryButton>
+            <SecondaryButton
+              type="button"
+              className="w-full"
+              disabled={isSubmitPending}
+              onClick={() => {
+                setSituationReview(null);
+                confirmSuggestedScenarioMutation.reset();
+              }}
+            >
+              입력 내용 수정하기
+            </SecondaryButton>
+          </div>
+        </section>
+      ) : null}
+
+      {situationReview?.scenarioAlignment === "NEEDS_CLARIFICATION" ? (
+        <section
+          role="status"
+          aria-labelledby="scenario-clarification-title"
+          className="mt-4 rounded-control border border-primary bg-primary-subtle p-4"
+        >
+          <h2 id="scenario-clarification-title" className="font-bold text-foreground">
+            상황을 조금 더 구체적으로 알려주세요
+          </h2>
+          <p className="mt-2 leading-6 text-foreground-muted">
+            어떤 일이 있었는지, 내가 직접 한 거래인지 등을 덧붙여 작성하면 알맞은 상담 유형을 확인할 수 있어요.
+          </p>
+          <SecondaryButton
+            type="button"
+            className="mt-4 w-full"
+            onClick={() => setSituationReview(null)}
+          >
+            입력 내용 보완하기
+          </SecondaryButton>
+        </section>
+      ) : null}
+
       {followUpPreparationMutation.error ? (
         <div
           role="alert"
@@ -800,6 +947,7 @@ router.push(
           disabled={
             !isValid ||
             !canEditSituation ||
+            Boolean(situationReview) ||
             isSubmitPending ||
             isConsultationStateLoading ||
             sessionQuery.isError ||
