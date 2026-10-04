@@ -143,7 +143,7 @@ export type FollowUpQuestionResponse = {
 };
 
 export type FollowUpStateResponse = {
-  kind: "question" | "complete" | "not-prepared" | "unsupported";
+  kind: "question" | "complete" | "not-prepared" | "unsupported" | "insufficient_information";
 
   question:
     | FollowUpQuestionResponse
@@ -162,6 +162,8 @@ export type FollowUpStateResponse = {
     | string
     | null;
   unsupportedReason: string | null;
+  blockingFact?: { key: string; label: string } | null;
+  message?: string | null;
 };
 
 export type ConfirmSuggestedScenarioResponse = {
@@ -219,6 +221,11 @@ export type AnalysisSafeAction = {
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
   failureCode: string | null;
+  evidenceFailureReason:
+    | "REVIEW_REQUIRED"
+    | "TEMPORARY_UNAVAILABLE"
+    | "COVERAGE_GAP"
+    | null;
   attemptCount: number;
 
   informationSupplementCount: number;

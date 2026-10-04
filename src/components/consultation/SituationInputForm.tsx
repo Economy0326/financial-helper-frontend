@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -38,7 +39,6 @@ import {
 } from "@/lib/api/errors";
 
 import type {
-  ConsultationCategory,
   ConsultationScenario,
   UpdateSituationResponse,
 } from "@/lib/api/types";
@@ -65,24 +65,20 @@ const scenarioLabels: Record<ConsultationScenario, string> = {
 };
 
 function getSituationPlaceholder(
-  category:
-    | ConsultationCategory
+  scenario:
+    | ConsultationScenario
     | null
     | undefined,
 ) {
-  switch (category) {
-    case "INSURANCE":
-      return "예) 보험금을 청구했는데 지급되지 않았어요.";
-
-    case "LOAN":
-      return "예) 대출 상환 금액이 예상과 달라서 확인하고 싶어요.";
-
-    case "CARD":
-      return "예) 카드를 잃어버렸는데 모르는 결제가 있어요.";
-
-    case "FINANCIAL_FRAUD":
-      return "예) 모르는 계좌이체가 있거나 스미싱 피해가 의심돼요.";
-
+  switch (scenario) {
+    case "CARD_LOSS_UNAUTHORIZED_USE":
+      return "예: 카드를 잃어버렸고 제가 하지 않은 결제가 있어요.";
+    case "VOICE_PHISHING_SUSPICIOUS_TRANSFER":
+      return "예: 모르는 사람이 전화로 시키는 대로 돈을 송금했어요.";
+    case "UNAUTHORIZED_ACCOUNT_TRANSFER":
+      return "예: 제 계좌에서 제가 하지 않은 계좌이체가 있어요.";
+    case "PERSONAL_INFO_SMISHING_MALICIOUS_APP":
+      return "예: 문자 링크를 눌렀고 의심스러운 앱을 설치했어요.";
     case "UNKNOWN":
     default:
       return "예) 금융 피해 상황을 어떻게 설명해야 할지 모르겠어요.";
@@ -239,6 +235,8 @@ export default function SituationInputForm() {
     situationReview,
     setSituationReview,
   ] = useState<UpdateSituationResponse | null>(null);
+
+  const confirmRequestInFlightRef = useRef(false);
 
   const supplementContextQuery =
     useInformationSupplementContextQuery(
@@ -441,10 +439,13 @@ router.push(
     if (
       !consultationId ||
       !situationReview?.suggestedScenario ||
-      confirmSuggestedScenarioMutation.isPending
+      confirmSuggestedScenarioMutation.isPending ||
+      confirmRequestInFlightRef.current
     ) {
       return;
     }
+
+    confirmRequestInFlightRef.current = true;
 
     try {
       const confirmation = await confirmSuggestedScenarioMutation.mutateAsync({
@@ -457,17 +458,26 @@ router.push(
         return;
       }
 
-      const followUpState = await followUpPreparationMutation.mutateAsync({
-        consultationId,
-      });
-
-      if (followUpState.kind === "complete") {
-        router.push("/consultation/summary");
-        return;
-      }
-
+      // confirm 성공은 서버의 새 revision이 확정됐다는 뜻이다. 이후 prepare가
+      // 일시적으로 실패해도 이전 mismatch revision으로 재확인하지 않는다.
       setSituationReview(null);
-      router.push("/consultation/follow-up");
+
+      try {
+        const followUpState = await followUpPreparationMutation.mutateAsync({
+          consultationId,
+        });
+
+        if (followUpState.kind === "complete") {
+          router.push("/consultation/summary");
+          return;
+        }
+
+        router.push("/consultation/follow-up");
+      } catch {
+        // Follow-up 화면은 not-prepared state에서 새 revision의 질문 준비를
+        // 다시 시도할 수 있으므로, confirm을 stale 오류로 표시하지 않는다.
+        router.push("/consultation/follow-up");
+      }
     } catch (error) {
       if (
         error instanceof ApiResponseError &&
@@ -475,6 +485,8 @@ router.push(
       ) {
         void activeConsultationQuery.refetch();
       }
+    } finally {
+      confirmRequestInFlightRef.current = false;
     }
   }
 
@@ -673,7 +685,7 @@ router.push(
             }
             placeholder={getSituationPlaceholder(
               activeConsultationQuery.data
-                ?.category,
+                ?.scenario,
             )}
             disabled={isSubmitPending}
             aria-invalid={

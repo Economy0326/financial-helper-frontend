@@ -294,7 +294,7 @@ export function useConfirmSuggestedScenarioMutation() {
     mutationFn: ({ consultationId, scenario, expectedCaseInputRevision }) =>
       confirmSuggestedScenario(consultationId, scenario, expectedCaseInputRevision),
 
-    onSuccess: async (_data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.removeQueries({
         queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
       });
@@ -308,7 +308,7 @@ export function useConfirmSuggestedScenarioMutation() {
         queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
       });
 
-      await Promise.all([
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.consultations.active() }),
         queryClient.invalidateQueries({
           queryKey: queryKeys.consultations.detail(variables.consultationId),

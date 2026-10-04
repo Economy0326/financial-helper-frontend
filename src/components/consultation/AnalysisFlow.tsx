@@ -104,6 +104,16 @@ export default function AnalysisFlow() {
       "ANALYSIS_RETRY_LIMIT_EXCEEDED";
 
   const failedGuidance = (() => {
+    switch (analysisQuery.data?.evidenceFailureReason) {
+      case "REVIEW_REQUIRED":
+        return "관련 공식 자료를 다시 검토하고 있어요. 검토되지 않은 내용을 추측해서 안내하지 않을게요.";
+      case "TEMPORARY_UNAVAILABLE":
+        return "공식 근거를 확인하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.";
+      case "COVERAGE_GAP":
+        return "확인된 정보에 맞는 검토된 공식 근거가 충분하지 않아 추측해서 안내하지 않았어요.";
+      default:
+        break;
+    }
     switch (analysisQuery.data?.failureCode) {
       case "RETRIEVAL_UNAVAILABLE":
         return "검색 근거를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.";
@@ -421,6 +431,9 @@ export default function AnalysisFlow() {
   if (
     state.status === "FAILED"
   ) {
+    const reviewRequired = state.evidenceFailureReason === "REVIEW_REQUIRED";
+    const coverageGap = state.evidenceFailureReason === "COVERAGE_GAP";
+    const canRetry = !reviewRequired && !coverageGap;
     return (
       <>
         <ConsultationProgress
@@ -431,7 +444,11 @@ export default function AnalysisFlow() {
 
         <div className="py-16 text-center">
           <h1 className="break-keep text-3xl font-bold text-foreground">
-            분석을 완료하지 못했어요
+            {reviewRequired
+              ? "최신 공식 근거를 확인 중이에요"
+              : coverageGap
+                ? "현재 지원 범위에서는 구체적인 안내가 어려워요"
+                : "분석을 완료하지 못했어요"}
           </h1>
 
           <p className="mt-4 leading-7 text-foreground-muted">
@@ -467,7 +484,7 @@ export default function AnalysisFlow() {
             </div>
           ) : null}
 
-          <PrimaryButton
+          {canRetry ? <PrimaryButton
             type="button"
             className="mx-auto mt-8 w-full max-w-sm"
             disabled={
@@ -488,7 +505,7 @@ export default function AnalysisFlow() {
             {retryMutation.isPending
               ? "다시 시작 중..."
               : "다시 시도"}
-          </PrimaryButton>
+          </PrimaryButton> : null}
 
           <Link
             href="/consultation/summary?review=true"
