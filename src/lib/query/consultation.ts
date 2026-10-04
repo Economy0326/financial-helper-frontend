@@ -6,6 +6,7 @@ import {
 
 import {
   confirmConsultationSummary,
+  confirmSuggestedScenario,
   getActiveConsultation,
   getConsultation,
   getConsultationSummary,
@@ -29,6 +30,7 @@ import type {
   ConsultationCategory,
   ConsultationScenario,
   ConsultationCreateResponse,
+  ConfirmSuggestedScenarioResponse,
 } from "@/lib/api/types";
 
 import { queryKeys } from "./keys";
@@ -271,6 +273,47 @@ export function useUpdateSituationMutation() {
             queryKeys.session.all,
         });
       }
+    },
+  });
+}
+
+type ConfirmSuggestedScenarioVariables = {
+  consultationId: string;
+  scenario: ConsultationScenario;
+  expectedCaseInputRevision: number;
+};
+
+export function useConfirmSuggestedScenarioMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ConfirmSuggestedScenarioResponse,
+    Error,
+    ConfirmSuggestedScenarioVariables
+  >({
+    mutationFn: ({ consultationId, scenario, expectedCaseInputRevision }) =>
+      confirmSuggestedScenario(consultationId, scenario, expectedCaseInputRevision),
+
+    onSuccess: (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.followUpRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.summaryRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.analysisRoot(variables.consultationId),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.consultations.reportRoot(variables.consultationId),
+      });
+
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.consultations.active() }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.consultations.detail(variables.consultationId),
+        }),
+      ]);
     },
   });
 }

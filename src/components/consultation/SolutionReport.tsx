@@ -361,7 +361,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div
@@ -393,7 +393,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -507,7 +507,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -564,7 +564,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
 
         <div className="py-16 text-center">
@@ -607,7 +607,7 @@ export default function SolutionReport() {
         <ConsultationProgress
           currentStep={6}
           totalSteps={6}
-          label="결과"
+          label="리포트"
         />
       </div>
 
@@ -616,13 +616,13 @@ export default function SolutionReport() {
           결과
         </p>
 
-        <h1 className="mt-3 break-keep text-[2rem] font-bold leading-[1.28] tracking-[-0.025em] text-foreground sm:text-4xl">
+        <h1 className="mx-auto mt-3 max-w-[22rem] break-keep text-balance text-[2rem] font-bold leading-[1.25] tracking-[-0.025em] text-foreground sm:max-w-2xl sm:text-4xl">
           {getUserFacingReportHeadline(report.headline)}
         </h1>
 
-        <div className="mx-auto mt-5 inline-flex max-w-2xl items-center gap-2 text-left">
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-          <p className="text-[0.9375rem] font-medium leading-6 text-foreground-muted">
+        <div className="mx-auto mt-5 flex max-w-2xl items-start gap-2 text-left">
+          <span aria-hidden="true" className="mt-[0.55em] h-2 w-2 shrink-0 rounded-full bg-primary" />
+          <p className="min-w-0 text-[0.9375rem] font-medium leading-6 text-foreground-muted">
             {getUserFacingEvidenceMessage(state.evidence.message)}
           </p>
         </div>

@@ -36,17 +36,6 @@ import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
 
-const SUMMARY_FACT_ORDER = [
-  "institution",
-  "productType",
-  "cardLost",
-  "unauthorizedPayment",
-  "domestic",
-  "transactionType",
-  "reported",
-  "incidentDate",
-] as const;
-
 export default function SummaryConfirmation() {
   const router =
     useRouter();
@@ -416,22 +405,20 @@ export default function SummaryConfirmation() {
     confirmSummaryMutation.isPending ||
     startAnalysisMutation.isPending;
 
-  const factOrder = new Map<string, number>(
-    SUMMARY_FACT_ORDER.map((key, index) => [key, index]),
-  );
-
   const summaryFacts = [...state.summary.facts]
     .filter(
       (fact) =>
-        factOrder.has(fact.key) &&
         Boolean(fact.label) &&
         Boolean(fact.displayValue),
-    )
-    .sort(
-      (left, right) =>
-        (factOrder.get(left.key) ?? Number.MAX_SAFE_INTEGER) -
-        (factOrder.get(right.key) ?? Number.MAX_SAFE_INTEGER),
     );
+
+  const confirmedFacts = summaryFacts.filter(
+    (fact) => fact.displayValue !== "잘 모르겠음",
+  );
+
+  const unresolvedFacts = summaryFacts.filter(
+    (fact) => fact.displayValue === "잘 모르겠음",
+  );
 
   return (
     <>
@@ -449,8 +436,36 @@ export default function SummaryConfirmation() {
 
       <section className="mt-8 border-y border-border py-2 sm:py-3">
         {summaryFacts.length > 0 ? (
-          <dl>
-            {summaryFacts.map((fact) => (
+          <div className="space-y-5 py-3">
+            {confirmedFacts.length > 0 ? (
+              <div>
+                <h2 className="px-1 text-base font-bold text-foreground">
+                  확인한 내용
+                </h2>
+                <dl className="mt-2">
+                  {confirmedFacts.map((fact) => (
+                    <div
+                      key={fact.key}
+                      className="grid gap-2 border-b border-border py-4 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center sm:gap-5"
+                    >
+                      <dt className="break-keep text-[0.9375rem] font-semibold leading-6 text-foreground-muted">
+                        {fact.label}
+                      </dt>
+                      <dd className="break-keep text-[1.0625rem] font-semibold leading-7 text-foreground">
+                        {fact.displayValue}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+            {unresolvedFacts.length > 0 ? (
+              <div>
+                <h2 className="px-1 text-base font-bold text-foreground">
+                  아직 확인하지 못한 내용
+                </h2>
+                <dl className="mt-2">
+                  {unresolvedFacts.map((fact) => (
               <div
                 key={fact.key}
                 className="grid gap-2 border-b border-border py-4 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center sm:gap-5"
@@ -462,8 +477,11 @@ export default function SummaryConfirmation() {
                   {fact.displayValue}
                 </dd>
               </div>
-            ))}
-          </dl>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <p className="py-5 text-center leading-7 text-foreground-muted">
             확인된 항목이 아직 없어요.

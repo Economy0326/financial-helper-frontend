@@ -399,7 +399,7 @@ export default function FollowUpFlow() {
   // 실제로 모두 존재하는지 먼저 확인한다.  
   if (
     !state ||
-    state.kind !== "question" ||
+    (state.kind !== "question" && state.kind !== "unsupported" && state.kind !== "insufficient_information") ||
     !state.question ||
     state.currentQuestionNumber == null ||
     state.totalQuestions == null
@@ -448,6 +448,23 @@ export default function FollowUpFlow() {
   const isPending =
     answerMutation.isPending ||
     prepareMutation.isPending;
+
+  const unsupportedMessage = state.kind === "unsupported"
+    ? ({
+        CARD_INSTITUTION_UNSUPPORTED: "현재는 이 카드사의 구체적인 절차를 지원하지 않아요. 지원되는 카드사를 선택하면 다음 단계로 진행할 수 있어요.",
+        CARD_PRODUCT_UNSUPPORTED: "현재는 이 카드 종류의 구체적인 절차를 지원하지 않아요. 지원되는 카드 종류를 선택하면 다음 단계로 진행할 수 있어요.",
+        CARD_TRANSACTION_SCOPE_UNSUPPORTED: "현재는 이 거래 범위의 구체적인 절차를 지원하지 않아요. 지원되는 범위를 선택하면 다음 단계로 진행할 수 있어요.",
+      } as Record<string, string>)[state.unsupportedReason ?? ""] ?? "현재 선택한 값으로는 다음 단계로 진행할 수 없어요. 다른 답을 선택해 주세요."
+    : null;
+
+  const insufficient = state.kind === "insufficient_information";
+
+  const canReplaceUnsupportedAnswer =
+    state.kind !== "unsupported" ||
+    (
+      selection?.questionId === question.id &&
+      selection.optionValue !== state.savedAnswer
+    );
 
   function handleSubmit(
     event:
@@ -718,20 +735,43 @@ export default function FollowUpFlow() {
           </div>
         ) : null}
 
+        {unsupportedMessage ? (
+          <div role="alert" className="mt-4 rounded-control border border-danger bg-surface p-4">
+            <p className="font-bold text-foreground">⚠ 지원 범위를 확인해 주세요</p>
+            <p className="mt-1 leading-6 text-foreground-muted">{unsupportedMessage}</p>
+          </div>
+        ) : null}
+
         <div className="mt-8 space-y-3">
+          {insufficient ? <div role="alert" className="rounded-control border border-warning bg-surface p-4 text-left">
+            <p className="font-bold text-foreground">{state.message}</p>
+            <p className="mt-2 text-sm font-bold text-foreground">확인이 필요한 정보</p>
+            <p className="mt-1 text-foreground-muted">{state.blockingFact?.label}</p>
+            <p className="mt-3 text-sm leading-6 text-foreground-muted">이 정보가 확인되어야 현재 적용 가능한 검토된 절차를 결정할 수 있어요.</p>
+          </div> : null}
+          {insufficient ? <PrimaryButton
+            type="button"
+            className="w-full"
+            disabled={isPending}
+            onClick={() => setSelection({ questionId: question.id, optionValue: "" })}
+          >
+            답변 다시 확인하기
+          </PrimaryButton> : null}
           <PrimaryButton
             type="submit"
             className="w-full"
             disabled={
               !selectedOption ||
-              isPending
+              isPending ||
+              !canReplaceUnsupportedAnswer ||
+              (insufficient && selection?.questionId !== question.id)
             }
           >
             {answerMutation.isPending
               ? "저장 중..."
               : isLastQuestion
                 ? "내용 확인하기"
-                : "다음"}
+                : "다음 질문 확인하기"}
           </PrimaryButton>
 
           <SecondaryButton

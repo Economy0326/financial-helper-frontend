@@ -43,7 +43,7 @@ export const consultationStepMeta: Record<
   },
 
   REPORT: {
-    label: "결과 리포트",
+    label: "리포트",
     number: 6,
     href: "/consultation/report",
   },

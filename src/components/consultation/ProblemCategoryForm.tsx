@@ -8,7 +8,7 @@ import {
 import Link from "next/link";
 
 import type {
-  ConsultationCategory,
+  ConsultationScenario,
 } from "@/lib/api/types";
 
 import {
@@ -35,26 +35,32 @@ import {
   getConsultationStepHref,
 } from "@/lib/consultation/navigation";
 
-const categories = [
+const consultationTypes = [
   {
-    value: "CARD",
-    title: "카드",
-    description: "분실·도난 · 모르는 결제",
+    category: "CARD",
+    scenario: "CARD_LOSS_UNAUTHORIZED_USE",
+    title: "카드 분실·본인 아닌 결제",
+    description: "카드를 잃어버렸거나 내가 하지 않은 카드 결제가 있어요",
   },
   {
-    value: "FINANCIAL_FRAUD",
-    title: "송금·사기·개인정보",
-    description: "보이스피싱·의심 송금 · 무단이체·모르는 출금 · 스미싱·악성 앱",
+    category: "FINANCIAL_FRAUD",
+    scenario: "VOICE_PHISHING_SUSPICIOUS_TRANSFER",
+    title: "보이스피싱·의심 송금",
+    description: "전화나 메시지로 지시받아 돈을 보냈어요",
   },
   {
-    value: "UNKNOWN",
-    title: "잘 모르겠어요",
-    description: "어떤 유형인지 모르겠다면 여기서 시작하세요",
+    category: "FINANCIAL_FRAUD",
+    scenario: "UNAUTHORIZED_ACCOUNT_TRANSFER",
+    title: "본인 아닌 계좌이체",
+    description: "내가 하지 않은 계좌 거래가 있어요",
+  },
+  {
+    category: "FINANCIAL_FRAUD",
+    scenario: "PERSONAL_INFO_SMISHING_MALICIOUS_APP",
+    title: "스미싱·악성앱·개인정보 노출",
+    description: "문자 링크나 앱 설치 후 개인정보 노출이 걱정돼요",
   },
 ] as const;
-
-type ProblemCategory =
-  ConsultationCategory;
 
 function getCategorySubmitErrorMessage(
   error: Error,
@@ -110,9 +116,9 @@ export default function ProblemCategoryForm() {
 
   // 사용자가 현재 화면에서 직접 선택한 Category
   const [
-    selectedCategoryOverride,
-    setSelectedCategoryOverride,
-  ] = useState<ProblemCategory | null>(null);
+    selectedScenarioOverride,
+    setSelectedScenarioOverride,
+  ] = useState<ConsultationScenario | null>(null);
 
   const sessionQuery = useSessionQuery();
 
@@ -129,14 +135,12 @@ export default function ProblemCategoryForm() {
   const pageAccess =
     getCategoryPageAccess(currentStep);
 
-  const savedCategory =
-    activeConsultationQuery.data?.category ?? null;
+  const savedScenario = activeConsultationQuery.data?.scenario ?? null;
 
   // 사용자가 직접 선택한 값이 있으면 그 값을 우선하고,
   // 아직 선택하지 않았다면 서버에 저장된 값을 사용
-  const selectedCategory =
-    selectedCategoryOverride ??
-    savedCategory;
+  const selectedScenario = selectedScenarioOverride ?? savedScenario;
+  const selectedType = consultationTypes.find((type) => type.scenario === selectedScenario) ?? null;
 
   const startConsultationMutation =
     useStartConsultationMutation();
@@ -161,7 +165,7 @@ export default function ProblemCategoryForm() {
     event.preventDefault();
 
     if (
-      !selectedCategory ||
+      !selectedType ||
       isSubmitting ||
       isCategoryLocked
     ) {
@@ -181,7 +185,9 @@ export default function ProblemCategoryForm() {
           consultation.consultationId,
 
         category:
-          selectedCategory,
+          selectedType.category,
+        scenario:
+          selectedType.scenario,
       });
 
       router.push(
@@ -252,30 +258,30 @@ export default function ProblemCategoryForm() {
       <form onSubmit={handleSubmit} className="mt-8">
         <fieldset>
           <legend className="sr-only">
-            금융 문제 유형 하나를 선택해 주세요.
+            상담 유형 하나를 선택해 주세요.
           </legend>
 
           <div className="space-y-3 sm:space-y-4">
-            {categories.map((category) => {
-              const isSelected = selectedCategory === category.value;
+            {consultationTypes.map((consultationType) => {
+              const isSelected = selectedScenario === consultationType.scenario;
 
               return (
-                <div key={category.value}>
+                <div key={consultationType.scenario}>
                   {/* 하나만 선택하므로 Radio 사용 */}
                   <input
-                    id={`problem-category-${category.value}`}
+                    id={`consultation-type-${consultationType.scenario}`}
                     type="radio"
                     disabled={
                       isSubmitting ||
                       isCategoryLocked
                     }
-                    name="problem-category"
-                    value={category.value}
+                    name="consultation-type"
+                    value={consultationType.scenario}
                     checked={isSelected}
                     onChange={() => {
                       // 사용자가 현재 화면에서 선택한 값을 임시 UI State로 저장
-                      setSelectedCategoryOverride(
-                        category.value,
+                      setSelectedScenarioOverride(
+                        consultationType.scenario,
                       );
 
                       // 새 선택 시 이전 저장 실패 상태 초기화
@@ -288,7 +294,7 @@ export default function ProblemCategoryForm() {
                   />
 
                   <label
-                    htmlFor={`problem-category-${category.value}`}
+                    htmlFor={`consultation-type-${consultationType.scenario}`}
                     className={[
                       "flex min-h-24 cursor-pointer items-center gap-4 rounded-control border bg-surface px-5 py-4",
                       "transition-colors",
@@ -301,11 +307,11 @@ export default function ProblemCategoryForm() {
                   >
                     <span className="min-w-0 flex-1 break-keep">
                       <span className="block text-xl font-bold leading-7 text-foreground">
-                        {category.title}
+                        {consultationType.title}
                       </span>
 
                       <span className="mt-1 block text-base font-medium leading-6 text-foreground-muted">
-                        {category.description}
+                        {consultationType.description}
                       </span>
                     </span>
 
@@ -348,7 +354,7 @@ export default function ProblemCategoryForm() {
           <PrimaryButton
             type="submit"
             disabled={
-              !selectedCategory ||
+              !selectedType ||
               isSubmitting ||
               isCategoryLocked
             }

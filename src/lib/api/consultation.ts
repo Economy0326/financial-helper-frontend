@@ -15,6 +15,7 @@ import type {
   UpdateCategoryResponse,
   UpdateSituationResponse,
   ReopenAnalysisResponse,
+  ConfirmSuggestedScenarioResponse,
 } from "./types";
 
 export function startConsultation(startNew = false) {
@@ -24,6 +25,12 @@ export function startConsultation(startNew = false) {
       method: "POST",
     },
   );
+}
+
+export function confirmSuggestedScenario(consultationId: string, scenario: ConsultationScenario, expectedCaseInputRevision: number) {
+  return apiFetch<ConfirmSuggestedScenarioResponse>(`/consultations/${encodeURIComponent(consultationId)}/scenario/confirm`, {
+    method: "POST", body: { scenario, expectedCaseInputRevision },
+  });
 }
 
 export function getActiveConsultation() {
@@ -83,9 +90,7 @@ export function prepareFollowUp(
   consultationId: string,
 ) {
   return apiFetch<FollowUpStateResponse>(
-    `/consultations/${encodeURIComponent(
-      consultationId,
-    )}/follow-up/prepare`,
+    `/consultations/${encodeURIComponent(consultationId)}/procedure-follow-up/prepare`,
     {
       method: "POST",
     },
@@ -96,17 +101,10 @@ export function getFollowUpState(
   consultationId: string,
   questionNumber?: number | null,
 ) {
-  const query =
-    questionNumber == null
-      ? ""
-      : `?questionNumber=${encodeURIComponent(
-          String(questionNumber),
-        )}`;
+  void questionNumber;
 
   return apiFetch<FollowUpStateResponse>(
-    `/consultations/${encodeURIComponent(
-      consultationId,
-    )}/follow-up${query}`,
+    `/consultations/${encodeURIComponent(consultationId)}/procedure-follow-up`,
   );
 }
 
@@ -118,7 +116,7 @@ export function updateFollowUpAnswer(
   return apiFetch<FollowUpStateResponse>(
     `/consultations/${encodeURIComponent(
       consultationId,
-    )}/follow-up/questions/${encodeURIComponent(
+    )}/procedure-follow-up/questions/${encodeURIComponent(
       questionId,
     )}/answer`,
     {

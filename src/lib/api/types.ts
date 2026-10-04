@@ -116,6 +116,10 @@ export type UpdateCategoryResponse = {
 export type UpdateSituationResponse = {
   consultationId: string;
   currentStep: ConsultationStep;
+  caseInputRevision: number;
+  scenarioAlignment: "SELECTED_SCENARIO_MATCH" | "SUPPORTED_SCENARIO_MISMATCH" | "NEEDS_CLARIFICATION";
+  selectedScenario: ConsultationScenario | null;
+  suggestedScenario: ConsultationScenario | null;
 };
 
 export type FollowUpOptionResponse = {
@@ -139,10 +143,7 @@ export type FollowUpQuestionResponse = {
 };
 
 export type FollowUpStateResponse = {
-  kind:
-    | "question"
-    | "complete"
-    | "not-prepared";
+  kind: "question" | "complete" | "not-prepared" | "unsupported" | "insufficient_information";
 
   question:
     | FollowUpQuestionResponse
@@ -160,6 +161,16 @@ export type FollowUpStateResponse = {
   savedAnswer:
     | string
     | null;
+  unsupportedReason: string | null;
+  blockingFact?: { key: string; label: string } | null;
+  message?: string | null;
+};
+
+export type ConfirmSuggestedScenarioResponse = {
+  selectedScenario: ConsultationScenario;
+  scenarioAlignment: "SELECTED_SCENARIO_MATCH";
+  caseInputRevision: number;
+  nextStep: ConsultationStep;
 };
 
 export type ConsultationSummaryPayload = {
@@ -210,6 +221,11 @@ export type AnalysisSafeAction = {
 export type AnalysisStateResponse = {
   status: AnalysisStatus;
   failureCode: string | null;
+  evidenceFailureReason:
+    | "REVIEW_REQUIRED"
+    | "TEMPORARY_UNAVAILABLE"
+    | "COVERAGE_GAP"
+    | null;
   attemptCount: number;
 
   informationSupplementCount: number;
