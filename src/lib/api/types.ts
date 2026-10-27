@@ -143,7 +143,7 @@ export type FollowUpQuestionResponse = {
 };
 
 export type FollowUpStateResponse = {
-  kind: "question" | "complete" | "not-prepared" | "unsupported" | "insufficient_information";
+  kind: "question" | "complete" | "not-prepared" | "unsupported" | "insufficient_information" | "version_blocked";
 
   question:
     | FollowUpQuestionResponse
@@ -164,6 +164,9 @@ export type FollowUpStateResponse = {
   unsupportedReason: string | null;
   blockingFact?: { key: string; label: string } | null;
   message?: string | null;
+  versionBlockReason?: string | null;
+  // Structured Follow-up includes this field; the legacy response does not.
+  caseInputRevision?: number;
 };
 
 export type ConfirmSuggestedScenarioResponse = {

@@ -41,6 +41,14 @@ function getLocalToday() {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
+const versionBlockDetails: Record<string, string> = {
+  NO_APPLICABLE_VERSION: "현재 상담에 적용할 절차를 확인하지 못했습니다.",
+  AMBIGUOUS_VERSION: "적용할 절차를 하나로 확정하지 못했습니다.",
+  INCOMPATIBLE_DATE_CONTRACT: "날짜에 따른 절차 적용 기준을 확인하고 있습니다.",
+  INCOMPATIBLE_COMMON_FACT_CONTRACT: "상담 분기 기준을 확인하고 있습니다.",
+  STALE_QUESTION_VERSION: "앞서 표시된 질문의 적용 상태가 달라졌습니다.",
+};
+
 export default function FollowUpFlow() {
   const router =
     useRouter();
@@ -109,7 +117,8 @@ export default function FollowUpFlow() {
 
   useEffect(() => {
     if (
-      currentStep === "SUMMARY"
+      currentStep === "SUMMARY" &&
+      followUpQuery.data?.kind !== "version_blocked"
     ) {
       router.replace(
         "/consultation/summary",
@@ -117,6 +126,7 @@ export default function FollowUpFlow() {
     }
   }, [
     currentStep,
+    followUpQuery.data?.kind,
     router,
   ]);
 
@@ -295,6 +305,38 @@ export default function FollowUpFlow() {
 
   const state =
     followUpQuery.data;
+
+  if (state?.kind === "version_blocked") {
+    const detail = versionBlockDetails[state.versionBlockReason ?? ""];
+    return (
+      <>
+        <ConsultationProgress
+          currentStep={3}
+          totalSteps={6}
+          label="추가 질문"
+        />
+        <div className="mx-auto max-w-xl py-16 text-center" aria-live="polite">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            현재 상담 안내를 확인 중입니다
+          </h1>
+          <p className="mt-4 leading-7 text-foreground-muted">
+            현재 상황에 적용되는 공식 절차를 확정할 수 없어 금융 행동 안내를 제공하지 않고 있습니다.
+            이전에 입력한 상담 내용은 보존됩니다.
+          </p>
+          {detail ? (
+            <p className="mt-3 text-sm leading-6 text-foreground-muted">{detail}</p>
+          ) : null}
+          <SecondaryButton
+            type="button"
+            className="mt-8"
+            onClick={() => router.push("/consultation/situation")}
+          >
+            이전 단계로
+          </SecondaryButton>
+        </div>
+      </>
+    );
+  }
 
   // Situation 저장은 됐지만
   // Follow-up prepare가 실패했거나,
