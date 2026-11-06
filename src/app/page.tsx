@@ -32,10 +32,11 @@ export default function Home() {
           </Link>
         </section>
 
-        <section aria-label="지원하는 금융 피해" className="mt-7">
+        <section aria-label="다루는 금융정보 주제" className="mt-7">
           <p className="break-keep text-base font-medium leading-7 text-foreground-muted">
-            카드 피해 · 의심 송금 · 무단이체 · 스미싱
+            카드 분실·부정사용 · 보이스피싱 · 무단이체 · 스미싱·악성앱
           </p>
+          <p className="mt-1 text-sm text-foreground-muted">주제별 공식 근거의 제공 범위는 확인 중이에요.</p>
         </section>
 
         <section aria-label="긴급 피해 대응" className="mt-9">
@@ -63,7 +64,7 @@ export default function Home() {
         <section aria-label="서비스 신뢰 안내" className="mt-8">
           <p className="flex gap-3 text-base font-medium leading-7 text-foreground">
             <span aria-hidden="true" className="font-bold text-primary">✓</span>
-            <span>검토된 공식 자료를 바탕으로 안내해요.</span>
+            <span>확인 가능한 공식 자료를 찾아요.</span>
           </p>
           <p className="mt-2 pl-7 text-[0.9375rem] leading-6 text-foreground-muted">
             상담에 필요한 정보만 사용해요.

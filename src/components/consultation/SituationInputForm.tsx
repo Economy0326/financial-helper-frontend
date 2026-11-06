@@ -162,6 +162,7 @@ export default function SituationInputForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
     setError,
     clearErrors,
     control,
@@ -670,6 +671,12 @@ router.push(
       ) : null}
 
       <div>
+        <p className="mb-2 text-sm leading-6 text-foreground-muted">다루는 주제: 카드 분실·부정사용, 보이스피싱, 무단이체, 스미싱·악성앱. 주제별 공식 근거 제공 범위는 확인 중이에요.</p>
+        <div className="mb-3 flex flex-wrap gap-2" aria-label="질문 예시">
+          {["카드를 잃어버렸어요.", "의심스러운 전화 후 송금했어요.", "제가 하지 않은 이체가 있어요.", "문자 링크를 눌렀어요."].map((example) => (
+            <button key={example} type="button" disabled={isSubmitPending} onClick={() => setValue("content", example, { shouldDirty: true, shouldValidate: true })} className="min-h-11 rounded-control border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{example}</button>
+          ))}
+        </div>
         <label
           htmlFor="situation-content"
           className="sr-only"

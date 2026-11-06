@@ -1,4 +1,15 @@
 import { apiFetch } from "./client";
+import type { InformationReportResponse } from "./types";
+
+export function getInformationReport(id: string) {
+  return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report`);
+}
+
+export function prepareInformationReport(id: string, expectedCaseInputRevision: number) {
+  return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report/prepare`, {
+    method: "POST", body: { expectedCaseInputRevision },
+  });
+}
 
 import type {
   ActiveConsultationStateResponse,
