@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFollowUpState, getInformationReport, prepareInformationReport } from "@/lib/api/consultation";
 import { ApiContractError, ApiNetworkError, ApiResponseError } from "@/lib/api/errors";
 import { useActiveConsultationQuery } from "@/lib/query/consultation";
 import { useSessionQuery } from "@/lib/query/session";
-import { isSyntheticTestDomain, safeOfficialLink } from "@/lib/consultation/information-links.mjs";
+import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
 
 const labels: Record<string, string> = {
   INSTITUTION: "금융회사", PRODUCT_TYPE: "상품·카드 종류", INCIDENT_DATE: "사건 날짜",
@@ -26,18 +27,20 @@ function label(value: string) { return labels[value] ?? value; }
 function errorMessage(error: unknown) {
   if (error instanceof ApiResponseError && (error.status === 401 || error.status === 403)) return "인증 또는 상담 권한을 확인해 주세요.";
   if (error instanceof ApiResponseError && error.status === 404) return "상담을 찾을 수 없어요. 상담 내역을 확인해 주세요.";
+  if (error instanceof ApiResponseError && error.status === 409) return "상담 내용이 변경됐어요. 추가 질문과 최신 입력을 확인한 뒤 다시 시도해 주세요.";
   if (error instanceof ApiNetworkError) return "서버에 연결하지 못했어요. 연결 상태를 확인해 주세요.";
   if (error instanceof ApiContractError) return "현재 상담의 최신 입력 상태를 확인하지 못했어요. 추가 질문 화면에서 다시 확인해 주세요.";
   return "정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
 }
 
 export default function InformationReport() {
+  const requestedId = useSearchParams().get("consultationId");
   const session = useSessionQuery();
-  const active = useActiveConsultationQuery(session.isSuccess && session.data.hasActiveConsultation);
-  const id = active.data?.consultationId ?? null;
+  const active = useActiveConsultationQuery(!requestedId && session.isSuccess && session.data.hasActiveConsultation);
+  const id = requestedId || active.data?.consultationId || null;
   const queryClient = useQueryClient();
   const key = ["information-report", id] as const;
-  const report = useQuery({ queryKey: key, queryFn: () => getInformationReport(id!), enabled: !!id, refetchOnMount: "always", retry: false });
+  const report = useQuery({ queryKey: key, queryFn: () => getInformationReport(id!), enabled: !!id && session.isSuccess, refetchOnMount: "always", retry: false });
   const prepare = useMutation({
     mutationFn: async () => {
       if (!id) throw new ApiContractError("상담이 없습니다.");
@@ -50,7 +53,7 @@ export default function InformationReport() {
     },
     onSuccess: (value) => queryClient.setQueryData(key, value),
   });
-  const pending = session.isLoading || (session.data?.hasActiveConsultation && active.isLoading) || (!!id && report.isLoading);
+  const pending = session.isLoading || (!requestedId && session.data?.hasActiveConsultation && active.isLoading) || (!!id && report.isLoading);
   const error = prepare.error ?? report.error ?? active.error ?? session.error;
   const data = report.data;
 
@@ -63,7 +66,7 @@ export default function InformationReport() {
     {!pending && !id && !error ? <p>진행 중인 상담이 없어요. 상담을 시작해 주세요.</p> : null}
     {error ? <div role="alert" className="rounded-card border border-danger bg-surface p-5"><p>{errorMessage(error)}</p><button type="button" onClick={() => { prepare.reset(); void report.refetch(); }} className="mt-3 min-h-11 font-bold text-primary underline">다시 확인</button></div> : null}
     {id && !pending ? <div className="flex flex-wrap gap-3">
-      <button type="button" disabled={prepare.isPending} onClick={() => prepare.mutate()} className="min-h-12 rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{prepare.isPending ? "공식 정보를 찾고 있어요…" : "공식 정보 찾기"}</button>
+      {!requestedId ? <button type="button" disabled={prepare.isPending} onClick={() => prepare.mutate()} className="min-h-12 rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{prepare.isPending ? "공식 정보를 찾고 있어요…" : "공식 정보 찾기"}</button> : null}
       <button type="button" disabled={report.isFetching} onClick={() => void report.refetch()} className="min-h-12 rounded-control border border-border bg-surface px-5 py-3 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">저장된 결과 다시 확인</button>
     </div> : null}
     {prepare.isPending ? <p role="status" aria-live="polite">자료와 적용 범위를 확인하고 있어요.</p> : null}
@@ -73,7 +76,7 @@ export default function InformationReport() {
       {data.status === "TEMPORARILY_UNAVAILABLE" ? <p role="alert">공식 자료 검색을 일시적으로 이용할 수 없어요.</p> : null}
       {data.status === "INSUFFICIENT_EVIDENCE" ? <p role="status">{data.snapshot?.missingFacts.length ? "추가로 확인할 정보가 있어요. 현재 표시할 수 있는 공식 근거도 없어요." : "현재 조건에서 확인된 공식 근거가 부족해요. 확인되지 않은 내용을 추측해 안내하지 않아요."}</p> : null}
       {!['READY_CANDIDATES', 'STALE', 'NOT_FOUND', 'TEMPORARILY_UNAVAILABLE', 'INSUFFICIENT_EVIDENCE'].includes(data.status) ? <p role="alert">결과 상태를 확인하지 못했어요. 다시 확인해 주세요.</p> : null}
-      {data.snapshot ? <section className="rounded-card border border-border bg-surface p-5 sm:p-7">
+      {data.snapshot && data.status !== "STALE" ? <section className="rounded-card border border-border bg-surface p-5 sm:p-7">
         <h2 className="text-lg font-bold">확인된 상황</h2>
         {data.snapshot.confirmedFacts.length ? <ul className="mt-3 space-y-2">{data.snapshot.confirmedFacts.map((fact, i) => <li key={`${fact.key}-${i}`} className="break-words">{label(fact.key)}: {fact.value ? label(fact.value) : "미확인"}</li>)}</ul> : <p className="mt-3 text-foreground-muted">표시할 확인된 사실이 없어요.</p>}
         {data.snapshot.missingFacts.length ? <p className="mt-4 leading-7">추가 확인 필요: {data.snapshot.missingFacts.map(label).join(", ")}</p> : null}
@@ -88,7 +91,7 @@ export default function InformationReport() {
           if (!source) return <p key={item.supportChunkId} role="alert">연결된 근거를 확인하지 못해 설명을 표시하지 않아요.</p>;
           const href = safeOfficialLink(source.canonicalUrl);
           return <article key={item.supportChunkId} className="rounded-card border border-border bg-surface p-5 sm:p-7">
-            {isSyntheticTestDomain(source.canonicalUrl) ? <p className="mb-2 font-bold text-danger">시연용 합성 데이터</p> : null}
+            <p className="mb-2 text-sm text-foreground-muted">출처 신원: 확인되지 않음</p>
             <p className="text-sm font-bold text-primary">{source.scopeKind === "COMMON" ? "공통 정보" : source.scopeKind === "INSTITUTION_SPECIFIC" ? "기관별 정보" : "적용 범위 미확인"}</p>
             <p className="mt-3 whitespace-pre-wrap break-words leading-8">{item.easyText}</p>
             <p className="mt-2 text-sm text-foreground-muted">{item.mode === "EXTRACTIVE_FALLBACK" ? "원문 기반 대체 설명" : item.mode === "LEGACY_EXTRACTIVE" ? "이전 결과의 원문 기반 설명" : item.mode === "AI_SELECTED_TEMPLATE" ? "자료를 선택하고 원문을 바탕으로 구성한 설명" : "설명 방식 미확인"}</p>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import ConsultationProgress from "@/components/consultation/ConsultationProgress";
-import SituationInputForm from "@/components/consultation/SituationInputForm";
+import SituationRoute from "@/components/consultation/SituationRoute";
 
 export default function SituationPage() {
   return (
@@ -43,7 +43,7 @@ export default function SituationPage() {
         </header>
 
         <Suspense fallback={<div className="mt-8 min-h-72" aria-label="상담 내용을 불러오는 중" />}>
-          <SituationInputForm />
+          <SituationRoute />
         </Suspense>
       </div>
     </main>

@@ -329,6 +329,7 @@ export type InformationEvidence = {
   applicabilityEndDate: string | null; conditions: InformationRelatedText[]; exceptions: InformationRelatedText[];
 };
 export type InformationReportResponse = {
+  evidenceProvenance?: Record<string, string>;
   consultationId: string; status: string; reason: string | null; generatedAt: string | null;
   snapshot: null | {
     caseInputRevision: number; followUpAnswerRevision: number; scenario: string;
@@ -339,6 +340,15 @@ export type InformationReportResponse = {
   selectedEvidence: InformationEvidence[];
   explanations: Array<{ supportChunkId: string; mode: string; easyText: string;
     conditions: InformationRelatedText[]; exceptions: InformationRelatedText[] }>;
+};
+
+export type InformationIntakeState = {
+  consultationId: string;
+  caseInputRevision: number;
+  status: "SCENARIO_CONFIRMATION_REQUIRED" | "NEEDS_CLARIFICATION" | "UNSUPPORTED_SCOPE" | "READY";
+  situationText: string | null;
+  scenarioCandidates: ConsultationScenario[];
+  confirmedScenario: ConsultationScenario | null;
 };
 
 export type ApiFieldError = {
