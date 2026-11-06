@@ -15,7 +15,7 @@ export const consultationStepMeta: Record<
   CATEGORY: {
     label: "문제 선택",
     number: 1,
-    href: "/consultation/problem-category",
+    href: "/consultation/intake",
   },
 
   SITUATION: {

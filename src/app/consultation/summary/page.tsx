@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import InformationIntakeEditLink from "@/components/consultation/InformationIntakeEditLink";
 
 import SummaryConfirmation from "@/components/consultation/SummaryConfirmation";
 
@@ -9,6 +11,8 @@ export default function SummaryPage() {
         <Suspense fallback={<div className="min-h-72" aria-label="상담 내용을 불러오는 중" />}>
           <SummaryConfirmation />
         </Suspense>
+        <InformationIntakeEditLink />
+        <Link href="/consultation/information" className="mt-8 inline-flex min-h-12 items-center rounded-control border border-border bg-surface px-4 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">공식 정보 확인하기</Link>
       </div>
     </main>
   );

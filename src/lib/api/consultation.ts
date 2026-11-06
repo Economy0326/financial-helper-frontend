@@ -1,4 +1,31 @@
 import { apiFetch } from "./client";
+import type { InformationReportResponse, InformationIntakeState, ConsultationScenario as IntakeScenario } from "./types";
+
+export function getInformationIntake(id: string) {
+  return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake`);
+}
+
+export function updateInformationIntake(id: string, situationText: string, expectedCaseInputRevision: number) {
+  return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake`, {
+    method: "PUT", body: { situationText, expectedCaseInputRevision },
+  });
+}
+
+export function confirmInformationIntake(id: string, scenario: IntakeScenario, expectedCaseInputRevision: number) {
+  return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake/confirm`, {
+    method: "POST", body: { scenario, expectedCaseInputRevision },
+  });
+}
+
+export function getInformationReport(id: string) {
+  return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report`);
+}
+
+export function prepareInformationReport(id: string, expectedCaseInputRevision: number) {
+  return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report/prepare`, {
+    method: "POST", body: { expectedCaseInputRevision },
+  });
+}
 
 import type {
   ActiveConsultationStateResponse,

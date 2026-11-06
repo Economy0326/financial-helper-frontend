@@ -319,6 +319,38 @@ export type ConsultationReportResponse = {
   };
 };
 
+export type InformationRelatedText = { chunkId: string; locator: string; text: string };
+export type InformationEvidence = {
+  sourceDocumentId: string; documentVersion: number; rawSha256: string; supportChunkId: string;
+  applicabilityReviewId: string; scopeKind: string; organizationName: string; title: string;
+  canonicalUrl: string; articleReference: string | null; pageReference: string | null;
+  supportLocator: string; supportText: string; applicableInstitution: string | null;
+  applicableProduct: string | null; applicabilityStartDate: string | null;
+  applicabilityEndDate: string | null; conditions: InformationRelatedText[]; exceptions: InformationRelatedText[];
+};
+export type InformationReportResponse = {
+  evidenceProvenance?: Record<string, string>;
+  consultationId: string; status: string; reason: string | null; generatedAt: string | null;
+  snapshot: null | {
+    caseInputRevision: number; followUpAnswerRevision: number; scenario: string;
+    confirmedFacts: Array<{ key: string; value: string | null }>;
+    missingFacts: string[]; coverageGaps: string[]; sourceIntegrityStatus: string;
+    humanScopeReviewStatus: string; caseApplicabilityStatus: string;
+  };
+  selectedEvidence: InformationEvidence[];
+  explanations: Array<{ supportChunkId: string; mode: string; easyText: string;
+    conditions: InformationRelatedText[]; exceptions: InformationRelatedText[] }>;
+};
+
+export type InformationIntakeState = {
+  consultationId: string;
+  caseInputRevision: number;
+  status: "SCENARIO_CONFIRMATION_REQUIRED" | "NEEDS_CLARIFICATION" | "UNSUPPORTED_SCOPE" | "READY";
+  situationText: string | null;
+  scenarioCandidates: ConsultationScenario[];
+  confirmedScenario: ConsultationScenario | null;
+};
+
 export type ApiFieldError = {
   field: string;
   reason: string;

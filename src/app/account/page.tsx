@@ -355,6 +355,7 @@ export default function AccountPage() {
                     <span aria-hidden="true" className="shrink-0 text-2xl text-foreground-muted">›</span>
                     <span className="sr-only">결과 다시 보기</span>
                   </Link>
+                  <Link href={`/consultation/information?consultationId=${encodeURIComponent(item.consultationId)}`} className="inline-flex min-h-11 items-center px-1 font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">저장된 공식 정보 확인</Link>
                 </li>
               ))}
             </ul>
