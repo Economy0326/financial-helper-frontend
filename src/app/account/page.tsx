@@ -24,6 +24,7 @@ import {
 } from "@/lib/consultation/navigation";
 import { useSessionQuery } from "@/lib/query/session";
 import { queryKeys } from "@/lib/query/keys";
+import { getHistoryLinks } from "@/lib/consultation/history-links.mjs";
 
 const categoryLabels: Record<string, string> = {
   INSURANCE: "보험",
@@ -197,7 +198,7 @@ export default function AccountPage() {
     startError.code === "ACCOUNT_NEW_CONSULTATION_QUOTA_EXHAUSTED";
 
   const completedHistory = history.data?.content.filter(
-    (item) => Boolean(item.reportId),
+    (item) => getHistoryLinks(item).length > 0,
   );
 
   return (
@@ -338,10 +339,13 @@ export default function AccountPage() {
             </div>
           ) : completedHistory && completedHistory.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
-              {completedHistory.map((item) => (
-                <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
+              {completedHistory.map((item) => {
+                const links = getHistoryLinks(item);
+                const primary = links[0];
+                const informationOnly = primary.kind === "INFORMATION";
+                return <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
                   <Link
-                    href={`/consultation/report?consultationId=${encodeURIComponent(item.consultationId)}`}
+                    href={primary.href}
                     className="flex min-h-18 items-center justify-between gap-4 rounded-control px-1 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                   >
                     <span className="min-w-0">
@@ -349,15 +353,16 @@ export default function AccountPage() {
                         {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
                       </strong>
                       <span className="mt-1 block text-[0.9375rem] text-foreground-muted">
-                        {formatDate(item.reportGeneratedAt ?? item.updatedAt)}
+                        {informationOnly ? "공식 정보 결과 · " : ""}
+                        {formatDate((informationOnly ? item.informationReportGeneratedAt : item.reportGeneratedAt) ?? item.updatedAt)}
                       </span>
                     </span>
                     <span aria-hidden="true" className="shrink-0 text-2xl text-foreground-muted">›</span>
-                    <span className="sr-only">결과 다시 보기</span>
+                    <span className="sr-only">{informationOnly ? "공식 정보 결과 다시 보기" : "결과 다시 보기"}</span>
                   </Link>
-                  <Link href={`/consultation/information?consultationId=${encodeURIComponent(item.consultationId)}`} className="inline-flex min-h-11 items-center px-1 font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">저장된 공식 정보 확인</Link>
-                </li>
-              ))}
+                  {links.length > 1 ? <Link href={links[1].href} className="inline-flex min-h-11 items-center px-1 font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">저장된 공식 정보 확인</Link> : null}
+                </li>;
+              })}
             </ul>
           ) : (
             <p className="mt-4 rounded-control bg-surface-subtle p-4 leading-7 text-foreground-muted">
