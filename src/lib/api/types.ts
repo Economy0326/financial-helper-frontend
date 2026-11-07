@@ -60,6 +60,10 @@ export type AccountConsultationHistoryItem = {
   updatedAt: string;
   reportId: string | null;
   reportGeneratedAt: string | null;
+  actionReportAvailable?: boolean;
+  informationReportAvailable?: boolean;
+  informationReportId?: string | null;
+  informationReportGeneratedAt?: string | null;
 };
 
 export type AccountEmergencyHistoryItem = {
