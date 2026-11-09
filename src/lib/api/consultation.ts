@@ -1,13 +1,19 @@
 import { apiFetch } from "./client";
-import type { InformationReportResponse, InformationIntakeState, ConsultationScenario as IntakeScenario } from "./types";
+import type { InformationReportResponse, InformationIntakeState, ConsultationScenario as IntakeScenario, FinancialTopic } from "./types";
 
 export function getInformationIntake(id: string) {
   return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake`);
 }
 
-export function updateInformationIntake(id: string, situationText: string, expectedCaseInputRevision: number) {
+export function updateInformationIntake(id: string, situationText: string, expectedCaseInputRevision: number, selectedTopic?: FinancialTopic | null) {
   return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake`, {
-    method: "PUT", body: { situationText, expectedCaseInputRevision },
+    method: "PUT", body: { situationText, expectedCaseInputRevision, ...(selectedTopic ? { selectedTopic } : {}) },
+  });
+}
+
+export function confirmFinancialTopic(id: string, topic: FinancialTopic, expectedCaseInputRevision: number) {
+  return apiFetch<InformationIntakeState>(`/consultations/${encodeURIComponent(id)}/information-intake/confirm-topic`, {
+    method: "POST", body: { topic, expectedCaseInputRevision },
   });
 }
 

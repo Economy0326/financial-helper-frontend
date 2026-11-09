@@ -93,17 +93,17 @@ export default function InformationReport() {
           return <article key={item.supportChunkId} className="rounded-card border border-border bg-surface p-5 sm:p-7">
             <p className="mb-2 text-sm text-foreground-muted">출처 신원: 확인되지 않음</p>
             <p className="text-sm font-bold text-primary">{source.scopeKind === "COMMON" ? "공통 정보" : source.scopeKind === "INSTITUTION_SPECIFIC" ? "기관별 정보" : "적용 범위 미확인"}</p>
-            <p className="mt-3 whitespace-pre-wrap break-words leading-8">{item.easyText}</p>
+            <p className="mt-3 whitespace-pre-wrap break-words text-[1.0625rem] leading-8">{item.easyText}</p>
+            {source.conditions.length || source.exceptions.length ? <p className="mt-4 rounded-control border border-border-strong bg-surface-subtle px-4 py-3 font-semibold leading-7 text-foreground">{source.conditions.length ? `함께 확인할 조건 ${source.conditions.length}건` : ""}{source.conditions.length && source.exceptions.length ? " · " : ""}{source.exceptions.length ? `함께 확인할 예외 ${source.exceptions.length}건` : ""}이 있어요. 아래 상세 출처에서 원문을 확인해 주세요.</p> : null}
             <p className="mt-2 text-sm text-foreground-muted">{item.mode === "EXTRACTIVE_FALLBACK" ? "원문 기반 대체 설명" : item.mode === "LEGACY_EXTRACTIVE" ? "이전 결과의 원문 기반 설명" : item.mode === "AI_SELECTED_TEMPLATE" ? "자료를 선택하고 원문을 바탕으로 구성한 설명" : "설명 방식 미확인"}</p>
-            <details className="group mt-5 border-t border-border pt-4"><summary className="min-h-12 cursor-pointer rounded-control py-3 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">상세 출처와 조건 보기</summary>
-              <dl className="space-y-2 break-words leading-7"><div><dt className="font-semibold">발행기관·문서</dt><dd>{source.organizationName} · {source.title}</dd></div>
-                <div><dt className="font-semibold">판본과 위치</dt><dd>버전 {source.documentVersion} · {[source.articleReference, source.pageReference, source.supportLocator].filter(Boolean).join(" · ") || "미확인"}</dd></div>
-                <div><dt className="font-semibold">적용 범위</dt><dd>{source.applicableInstitution ?? (source.scopeKind === "COMMON" ? "공통 정보" : "기관 미확인")} · {source.applicableProduct ?? "상품: 미확인"} · {source.applicabilityStartDate ?? "시작일 미확인"} ~ {source.applicabilityEndDate ?? "종료일 미확인"}</dd></div>
-                <div><dt className="font-semibold">근거 원문</dt><dd>{source.supportText}</dd></div>
-                <div><dt className="font-semibold">조건</dt><dd>{source.conditions.length ? source.conditions.map((x) => <p key={x.chunkId}>{x.locator}: {x.text}</p>) : "연결된 조건 없음"}</dd></div>
-                <div><dt className="font-semibold">예외</dt><dd>{source.exceptions.length ? source.exceptions.map((x) => <p key={x.chunkId}>{x.locator}: {x.text}</p>) : "연결된 예외 없음"}</dd></div>
-                <div><dt className="font-semibold">확인 상태</dt><dd>자료: {label(data.snapshot?.sourceIntegrityStatus ?? "미확인")} · 범위: {label(data.snapshot?.humanScopeReviewStatus ?? "미확인")} · {label(data.snapshot?.caseApplicabilityStatus ?? "미확인")}</dd></div>
-              </dl>{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-12 items-center font-semibold text-primary underline">공식 원문 열기 (새 창)</a> : <p className="mt-4">원문 링크를 확인할 수 없어요.</p>}
+            <details className="group mt-5 border-t border-border pt-4"><summary className="min-h-12 cursor-pointer rounded-control py-3 text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">상세 출처와 조건 보기</summary>
+              <dl className="mt-2 space-y-5 break-words leading-7 [&_dd]:mt-1 [&_dt]:font-bold">
+                <div className="border-t border-border pt-4"><dt>출처·문서</dt><dd>{source.organizationName} · {source.title}</dd></div>
+                <div className="border-t border-border pt-4"><dt>적용 기관·상품·기간</dt><dd>{source.applicableInstitution ?? (source.scopeKind === "COMMON" ? "공통 정보" : "기관 미확인")} · {source.applicableProduct ?? "상품: 미확인"} · {source.applicabilityStartDate ?? "시작일 미확인"} ~ {source.applicabilityEndDate ?? "종료일 미확인"}</dd></div>
+                <div className="border-t border-border pt-4"><dt>근거 원문</dt><dd className="whitespace-pre-wrap">{source.supportText}</dd></div>
+                <div className="border-t border-border pt-4"><dt>함께 확인할 조건과 예외</dt><dd><p className="font-semibold">조건</p>{source.conditions.length ? source.conditions.map((x) => <p key={x.chunkId} className="mt-1 whitespace-pre-wrap break-words">{x.locator}: {x.text}</p>) : <p>연결된 조건 없음</p>}<p className="mt-3 font-semibold">예외</p>{source.exceptions.length ? source.exceptions.map((x) => <p key={x.chunkId} className="mt-1 whitespace-pre-wrap break-words">{x.locator}: {x.text}</p>) : <p>연결된 예외 없음</p>}</dd></div>
+                <div className="border-t border-border pt-4"><dt>판본·위치·검토 상태</dt><dd>버전 {source.documentVersion} · {[source.articleReference, source.pageReference, source.supportLocator].filter(Boolean).join(" · ") || "위치 미확인"}</dd><dd>자료: {label(data.snapshot?.sourceIntegrityStatus ?? "미확인")} · 범위: {label(data.snapshot?.humanScopeReviewStatus ?? "미확인")} · {label(data.snapshot?.caseApplicabilityStatus ?? "미확인")}</dd></div>
+              </dl>{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-12 max-w-full items-center break-all font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">공식 원문 열기 (새 창)</a> : <p className="mt-4">원문 링크를 확인할 수 없어요.</p>}
             </details>
           </article>;
         })}

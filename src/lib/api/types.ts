@@ -346,13 +346,29 @@ export type InformationReportResponse = {
     conditions: InformationRelatedText[]; exceptions: InformationRelatedText[] }>;
 };
 
+export type FinancialTopic = "CARD_PAYMENTS" | "DEPOSITS_ACCOUNTS" | "LOANS_CREDIT" |
+  "INSURANCE" | "INVESTMENTS_SECURITIES" | "FRAUD_SECURITY" | "CONSUMER_RIGHTS_DISPUTES";
+
+export type InformationIntakeStatus = "SCENARIO_CONFIRMATION_REQUIRED" | "NEEDS_CLARIFICATION" |
+  "UNSUPPORTED_SCOPE" | "READY" | "TOPIC_CONFIRMATION_REQUIRED" |
+  "TOPIC_MISMATCH_CONFIRMATION_REQUIRED" | "MULTIPLE_TOPICS" |
+  "OUT_OF_SCOPE_NON_FINANCIAL" | "INPUT_NOT_UNDERSTOOD" |
+  "UNSUPPORTED_FINANCIAL_TOPIC" | "TOPIC_CONFIRMED_NO_SEARCH";
+
 export type InformationIntakeState = {
   consultationId: string;
   caseInputRevision: number;
-  status: "SCENARIO_CONFIRMATION_REQUIRED" | "NEEDS_CLARIFICATION" | "UNSUPPORTED_SCOPE" | "READY";
+  status: InformationIntakeStatus;
   situationText: string | null;
   scenarioCandidates: ConsultationScenario[];
   confirmedScenario: ConsultationScenario | null;
+  topicCandidates: FinancialTopic[];
+  selectedTopic: FinancialTopic | null;
+  confirmedTopic: FinancialTopic | null;
+  routingStatus: InformationIntakeStatus | "EMERGENCY_RECOMMENDED";
+  suggestedRoute: "ACTION" | "INFORMATION" | "EMERGENCY" | "NONE";
+  evidenceAvailability: "NOT_EVALUATED";
+  generalInformationSearchAvailable: boolean;
 };
 
 export type ApiFieldError = {
