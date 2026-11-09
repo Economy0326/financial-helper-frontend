@@ -16,19 +16,19 @@ export default function Home() {
             className="break-keep text-[1.9375rem] font-bold leading-[1.28] tracking-[-0.03em] text-foreground sm:text-[2.5rem]"
           >
             금융 피해 상황을 정리하고<br className="hidden min-[360px]:block" />
-            다음 행동을 확인하세요
+            필요한 정보와 대응을 확인하세요
           </h1>
 
           <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-[1.65] text-foreground-muted sm:text-lg">
-            몇 가지 질문으로 필요한 절차를<br className="hidden min-[360px]:block" />
-            차근차근 안내해 드려요.
+            상황을 차근차근 확인하고, 관련 공식 자료와<br className="hidden min-[360px]:block" />
+            필요한 대응을 구분해 살펴볼 수 있어요.
           </p>
 
           <Link
             href="/consultation/entry"
             className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-control bg-primary px-6 py-4 text-lg font-bold text-primary-foreground shadow-[0_6px_16px_rgb(8_127_115_/_0.16)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-3 motion-reduce:transition-none sm:w-auto sm:min-w-64"
           >
-            금융 피해 상담하기
+            내 상황 상담 시작하기
           </Link>
         </section>
 
@@ -54,7 +54,7 @@ export default function Home() {
             <span className="min-w-0 flex-1">
               <strong className="block text-[1.0625rem] text-foreground">긴급 피해 대응</strong>
               <span className="block break-keep text-base leading-6 text-foreground-muted">
-                지금 바로 확인해야 할 행동
+                일반 상담과 별도로 즉시 확인할 대응
               </span>
             </span>
             <span aria-hidden="true" className="text-2xl font-medium text-foreground-muted">›</span>
@@ -64,7 +64,7 @@ export default function Home() {
         <section aria-label="서비스 신뢰 안내" className="mt-8">
           <p className="flex gap-3 text-base font-medium leading-7 text-foreground">
             <span aria-hidden="true" className="font-bold text-primary">✓</span>
-            <span>확인 가능한 공식 자료를 찾아요.</span>
+            <span>확인된 범위의 공식 자료를 찾아요.</span>
           </p>
           <p className="mt-2 pl-7 text-[0.9375rem] leading-6 text-foreground-muted">
             상담에 필요한 정보만 사용해요.

@@ -587,7 +587,7 @@ export default function FollowUpFlow() {
 
       <header className="mx-auto mt-9 max-w-2xl text-center sm:mt-12">
         <p className="text-base font-bold text-primary">
-          추가 질문
+          상담 진행 · 추가 질문
         </p>
 
         <h1 className="mx-auto mt-3 break-keep text-[2rem] font-bold leading-[1.3] tracking-[-0.025em] text-foreground sm:text-4xl">

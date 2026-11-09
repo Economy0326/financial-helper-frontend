@@ -341,13 +341,9 @@ export default function AccountPage() {
             <ul className="mt-4 divide-y divide-border">
               {completedHistory.map((item) => {
                 const links = getHistoryLinks(item);
-                const primary = links[0];
-                const informationOnly = primary.kind === "INFORMATION";
+                const informationOnly = links.length === 1 && links[0].kind === "INFORMATION";
                 return <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
-                  <Link
-                    href={primary.href}
-                    className="flex min-h-18 items-center justify-between gap-4 rounded-control px-1 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-                  >
+                  <div className="flex min-h-18 items-center justify-between gap-4 px-1 py-3">
                     <span className="min-w-0">
                       <strong className="block text-[1.0625rem] font-bold text-foreground">
                         {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
@@ -357,10 +353,12 @@ export default function AccountPage() {
                         {formatDate((informationOnly ? item.informationReportGeneratedAt : item.reportGeneratedAt) ?? item.updatedAt)}
                       </span>
                     </span>
-                    <span aria-hidden="true" className="shrink-0 text-2xl text-foreground-muted">›</span>
-                    <span className="sr-only">{informationOnly ? "공식 정보 결과 다시 보기" : "결과 다시 보기"}</span>
-                  </Link>
-                  {links.length > 1 ? <Link href={links[1].href} className="inline-flex min-h-11 items-center px-1 font-semibold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">저장된 공식 정보 확인</Link> : null}
+                  </div>
+                  <div className="flex flex-col gap-2 pb-3 sm:flex-row">
+                    {links.map((link) => <Link key={link.kind} href={link.href} className="inline-flex min-h-12 items-center justify-center rounded-control border border-border-strong bg-surface px-4 py-2 text-center font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto">
+                      {link.kind === "INFORMATION" ? "공식 정보 결과 보기" : "행동 안내 결과 보기"}
+                    </Link>)}
+                  </div>
                 </li>;
               })}
             </ul>
