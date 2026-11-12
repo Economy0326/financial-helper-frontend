@@ -27,9 +27,9 @@ export function getInformationReport(id: string) {
   return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report`);
 }
 
-export function prepareInformationReport(id: string, expectedCaseInputRevision: number) {
+export function prepareInformationReport(id: string, expectedCaseInputRevision: number, timeScope?: "CURRENT" | "HISTORICAL", asOfDate?: string) {
   return apiFetch<InformationReportResponse>(`/consultations/${encodeURIComponent(id)}/information-report/prepare`, {
-    method: "POST", body: { expectedCaseInputRevision },
+    method: "POST", body: { expectedCaseInputRevision, ...(timeScope ? { timeScope } : {}), ...(asOfDate ? { asOfDate } : {}) },
   });
 }
 
