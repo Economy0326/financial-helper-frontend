@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node tests/information-links.test.mjs && node tests/information-intake.test.mjs && node tests/account-history.test.mjs"
+    "test": "node tests/information-links.test.mjs && node tests/information-intake.test.mjs && node tests/account-history.test.mjs && node tests/source-review.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

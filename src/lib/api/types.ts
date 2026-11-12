@@ -331,7 +331,9 @@ export type InformationEvidence = {
   supportLocator: string; supportText: string; applicableInstitution: string | null;
   applicableProduct: string | null; applicabilityStartDate: string | null;
   applicabilityEndDate: string | null; conditions: InformationRelatedText[]; exceptions: InformationRelatedText[];
+  questionNumber?: number | null; metadataSourceUrl?: string | null;
 };
+export type InformationNextAction = { title: string; description: string; sourceUrl: string; supportChunkId: string };
 export type InformationReportResponse = {
   evidenceProvenance?: Record<string, string>;
   consultationId: string; status: string; reason: string | null; generatedAt: string | null;
@@ -340,8 +342,10 @@ export type InformationReportResponse = {
     confirmedFacts: Array<{ key: string; value: string | null }>;
     missingFacts: string[]; coverageGaps: string[]; sourceIntegrityStatus: string;
     humanScopeReviewStatus: string; caseApplicabilityStatus: string;
+    financialTopic?: FinancialTopic | null; referenceDate?: string | null;
   };
   selectedEvidence: InformationEvidence[];
+  nextActions?: InformationNextAction[];
   explanations: Array<{ supportChunkId: string; mode: string; easyText: string;
     conditions: InformationRelatedText[]; exceptions: InformationRelatedText[] }>;
 };
@@ -353,7 +357,7 @@ export type InformationIntakeStatus = "SCENARIO_CONFIRMATION_REQUIRED" | "NEEDS_
   "UNSUPPORTED_SCOPE" | "READY" | "TOPIC_CONFIRMATION_REQUIRED" |
   "TOPIC_MISMATCH_CONFIRMATION_REQUIRED" | "MULTIPLE_TOPICS" |
   "OUT_OF_SCOPE_NON_FINANCIAL" | "INPUT_NOT_UNDERSTOOD" |
-  "UNSUPPORTED_FINANCIAL_TOPIC" | "TOPIC_CONFIRMED_NO_SEARCH";
+  "UNSUPPORTED_FINANCIAL_TOPIC" | "TOPIC_CONFIRMED_NO_SEARCH" | "TOPIC_CONFIRMED_SEARCH_AVAILABLE";
 
 export type InformationIntakeState = {
   consultationId: string;
@@ -367,7 +371,7 @@ export type InformationIntakeState = {
   confirmedTopic: FinancialTopic | null;
   routingStatus: InformationIntakeStatus | "EMERGENCY_RECOMMENDED";
   suggestedRoute: "ACTION" | "INFORMATION" | "EMERGENCY" | "NONE";
-  evidenceAvailability: "NOT_EVALUATED";
+  evidenceAvailability: "NOT_EVALUATED" | "NO_APPROVED_READY_EVIDENCE" | "REVIEWED_READY_CORPUS";
   generalInformationSearchAvailable: boolean;
 };
 
