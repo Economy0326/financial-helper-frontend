@@ -43,6 +43,6 @@ export default function OfficialSourceReviewPage() {
         {sources.length === 0 && !error && <p>등록된 자료를 확인하는 중이거나 자료가 없습니다.</p>}
         {sources.map((source) => <SourceReviewCard key={source.sourceKey} source={source} />)}
       </section>
-      <p className="text-sm text-foreground-muted">자료 등록은 승인이나 READY 활성화가 아닙니다. 현재 항목별 결정 API는 예금자보호 PDF에 한정됩니다.</p>
+      <p className="text-sm text-foreground-muted">자료 등록은 승인이나 READY 활성화가 아닙니다. 검토 화면이 표시된 자료만 항목별 결정을 지원합니다.</p>
     </main></div>;
 }

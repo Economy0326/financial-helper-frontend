@@ -20,13 +20,13 @@ const labels: Record<string, string> = {
 };
 const examples = ["카드를 잃어버렸는데 모르는 결제가 있어요.", "보이스피싱인 것 같아서 송금했어요.", "제 계좌에서 제가 하지 않은 이체가 발생했어요.", "이상한 문자 링크를 눌렀어요."];
 const topics: Array<{ id: FinancialTopic; label: string; examples: string[] }> = [
-  { id: "CARD_PAYMENTS", label: "카드·결제", examples: [examples[0], "모르는 카드 결제가 있어요."] },
+  { id: "CARD_PAYMENTS", label: "카드·결제", examples: ["카드 분실 시 어디에 신고해야 하나요?", "모르는 카드 결제가 있어요."] },
   { id: "DEPOSITS_ACCOUNTS", label: "예금·계좌", examples: ["예금자보호 한도가 얼마인가요?", "같은 은행에 통장이 여러 개면 어떻게 되나요?", "다른 은행에 있는 예금은 별도로 보호되나요?", "ISA는 무조건 보호되나요?", "원금과 이자는 어떻게 계산되나요?"] },
-  { id: "LOANS_CREDIT", label: "대출·신용", examples: ["대출 중도상환수수료는 어떻게 되나요?", "신용점수는 어떻게 확인하나요?"] },
-  { id: "INSURANCE", label: "보험", examples: ["보험금 청구 방법이 궁금해요."] },
-  { id: "INVESTMENTS_SECURITIES", label: "투자·증권", examples: ["투자상품 위험을 알고 싶어요."] },
-  { id: "FRAUD_SECURITY", label: "금융사기·보안", examples: [examples[1], examples[3]] },
-  { id: "CONSUMER_RIGHTS_DISPUTES", label: "금융소비자 권리·분쟁", examples: ["금융소비자 민원과 분쟁조정을 알고 싶어요."] },
+  { id: "LOANS_CREDIT", label: "대출·신용", examples: ["2025년 1월 13일 이후 계약한 대출의 중도상환수수료 적용 조건은 무엇인가요?", "대출 중도상환수수료는 어떻게 되나요?"] },
+  { id: "INSURANCE", label: "보험", examples: ["실손24 청구서류 전송 절차는 어떻게 되나요?"] },
+  { id: "INVESTMENTS_SECURITIES", label: "투자·증권", examples: ["투자상품의 위험과 수수료 설명의무는 무엇인가요?"] },
+  { id: "FRAUD_SECURITY", label: "금융사기·보안", examples: ["보이스피싱 피해가 발생하면 112에 어떻게 신고하나요?", examples[3]] },
+  { id: "CONSUMER_RIGHTS_DISPUTES", label: "금융소비자 권리·분쟁", examples: ["금융민원과 분쟁조정은 어디서 신청하나요?"] },
 ];
 const topicLabel = (topic: FinancialTopic) => topics.find((item) => item.id === topic)?.label ?? "확인되지 않은 주제";
 
@@ -123,7 +123,7 @@ export default function InformationIntake() {
       {state.status === "INPUT_NOT_UNDERSTOOD" ? <p>질문의 뜻을 확인하기 어려워요. 궁금한 금융 상황을 문장으로 조금 더 자세히 적어주세요.</p> : null}
       {state.status === "UNSUPPORTED_FINANCIAL_TOPIC" ? <p>금융 관련 질문이지만 현재 안내할 수 있는 범위가 아니에요. 다른 질문을 입력하거나 공식 기관 자료를 확인해 주세요.</p> : null}
       {state.status === "TOPIC_CONFIRMED_NO_SEARCH" && !state.generalInformationSearchAvailable ? <p>주제를 확인했어요. 이 일반 금융정보 주제의 공식 근거 검색과 Report는 아직 제공하지 않아요.</p> : null}
-      {state.status === "TOPIC_CONFIRMED_SEARCH_AVAILABLE" && state.confirmedTopic === "DEPOSITS_ACCOUNTS" && state.generalInformationSearchAvailable ? <><p>예금자보호 관련 검토 자료를 검색할 수 있어요. 질문에 맞는 근거가 충분한지는 결과에서 다시 확인합니다.</p><Link href="/consultation/information" className="mt-3 inline-flex min-h-12 items-center rounded-control bg-primary px-5 font-bold text-primary-foreground focus-visible:ring-2 focus-visible:ring-focus">공식 정보 확인하기</Link></> : null}
+      {state.status === "TOPIC_CONFIRMED_SEARCH_AVAILABLE" && state.confirmedTopic && state.generalInformationSearchAvailable ? <><p>{topicLabel(state.confirmedTopic)} 관련 검토 자료를 검색할 수 있어요. 질문에 맞는 근거가 충분한지는 결과에서 다시 확인합니다.</p><Link href="/consultation/information" className="mt-3 inline-flex min-h-12 items-center rounded-control bg-primary px-5 font-bold text-primary-foreground focus-visible:ring-2 focus-visible:ring-focus">공식 정보 확인하기</Link></> : null}
       {state.status === "UNSUPPORTED_SCOPE" ? <p>현재 확인할 수 있는 자료의 범위를 벗어난 상황이에요. 내용을 수정하거나 공식 기관에 직접 확인해 주세요.</p> : null}
       {state.status === "READY" ? <Link href="/consultation/follow-up" className="inline-flex min-h-12 items-center font-bold text-primary underline">추가 질문으로 계속하기</Link> : null}
     </section> : null}

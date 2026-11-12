@@ -10,6 +10,9 @@ import { useSessionQuery } from "@/lib/query/session";
 import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
 
 const labels: Record<string, string> = {
+  CARD_PAYMENTS: "카드·결제", DEPOSITS_ACCOUNTS: "예금·계좌", FRAUD_SECURITY: "금융사기·보안",
+  LOANS_CREDIT: "대출·신용", INSURANCE: "보험", INVESTMENTS_SECURITIES: "투자·증권",
+  CONSUMER_RIGHTS_DISPUTES: "금융소비자 권리·분쟁",
   INSTITUTION: "금융회사", PRODUCT_TYPE: "상품·카드 종류", INCIDENT_DATE: "사건 날짜",
   TRANSACTION_DATE: "거래 날짜", SCENARIO: "피해 상황", INSTITUTION_UNCONFIRMED: "금융회사가 확인되지 않았어요",
   NO_APPROVED_INSTITUTION_CORPUS: "해당 금융회사의 검토된 자료가 부족해요",
@@ -47,7 +50,7 @@ export default function InformationReport() {
       const consultation = await getConsultation(id);
       if (consultation.category === null) {
         const intake = await getInformationIntake(id);
-        if (intake.confirmedTopic !== "DEPOSITS_ACCOUNTS" || !intake.generalInformationSearchAvailable) {
+        if (!intake.confirmedTopic || !intake.generalInformationSearchAvailable) {
           throw new ApiContractError("이 질문에 사용할 수 있는 검토 자료가 없습니다.");
         }
         if (!Number.isSafeInteger(intake.caseInputRevision) || intake.caseInputRevision < 0) {
@@ -90,7 +93,7 @@ export default function InformationReport() {
       {!['READY_CANDIDATES', 'STALE', 'NOT_FOUND', 'TEMPORARILY_UNAVAILABLE', 'INSUFFICIENT_EVIDENCE', 'NEEDS_CLARIFICATION'].includes(data.status) ? <p role="alert">결과 상태를 확인하지 못했어요. 다시 확인해 주세요.</p> : null}
       {data.snapshot && data.status !== "STALE" ? <section className="rounded-card border border-border bg-surface p-5 sm:p-7">
         <h2 className="text-lg font-bold">{data.snapshot.financialTopic ? "질문과 자료의 기준" : "확인된 상황"}</h2>
-        {data.snapshot.financialTopic ? <><p className="mt-3">예금·계좌 일반 정보 · 기준일 {data.snapshot.referenceDate ?? "미확인"}</p><p className="mt-2 text-foreground-muted">표시된 설명은 아래 금융위원회 자료를 근거로 합니다. 법령의 현행 판본은 이 결과의 승인 근거로 연결되지 않았어요.</p></> : null}
+        {data.snapshot.financialTopic ? <><p className="mt-3">{label(data.snapshot.financialTopic)} 일반 정보 · 기준일 {data.snapshot.referenceDate ?? "미확인"}</p><p className="mt-2 text-foreground-muted">표시된 설명은 아래에 연결된 검토 자료를 근거로 합니다. 별도로 승인되지 않은 법령이나 자료는 근거에 포함되지 않습니다.</p></> : null}
         {data.snapshot.confirmedFacts.length ? <ul className="mt-3 space-y-2">{data.snapshot.confirmedFacts.map((fact, i) => <li key={`${fact.key}-${i}`} className="break-words">{label(fact.key)}: {fact.value ? label(fact.value) : "미확인"}</li>)}</ul> : <p className="mt-3 text-foreground-muted">표시할 확인된 사실이 없어요.</p>}
         {data.snapshot.missingFacts.length ? <p className="mt-4 leading-7">추가 확인 필요: {data.snapshot.missingFacts.map(label).join(", ")}</p> : null}
         {data.snapshot.coverageGaps.length ? <ul className="mt-3 list-inside list-disc text-foreground-muted">{data.snapshot.coverageGaps.map((gap) => <li key={gap}>{label(gap)}</li>)}</ul> : null}

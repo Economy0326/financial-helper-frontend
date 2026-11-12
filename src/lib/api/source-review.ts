@@ -95,3 +95,50 @@ export const sourceReviewApi = {
   ready: (documentId: string) => apiFetch<string>(
     `${base}/ready?documentId=${encodeURIComponent(documentId)}`, { method: "POST" }),
 };
+
+export type InformationReviewDocument = {
+  documentId: string; version: number; title: string; publishedAt: string | null;
+  rawSha256: string; officialUrl: string; retrievedAt: string;
+  storedBytesMatchHash: boolean;
+};
+export type InformationReviewCandidate = {
+  chunkId: string; label: string; body: string; locator: string;
+  article: string | null; page: string | null; status: string;
+};
+export type InformationReviewState = {
+  reviewId: string; chunkId: string; status: string; rawSha256: string;
+  start: string; end: string | null; reviewedAt: string | null; revokedAt: string | null;
+};
+export type InformationReviewAudit = {
+  reviewId: string; reviewerAccountId: string; decision: string;
+  reason: string; decidedAt: string; rawSha256: string;
+};
+
+export function informationReviewApi(sourceKey: string) {
+  const path = `/source-review/information/${encodeURIComponent(sourceKey)}`;
+  return {
+    document: () => apiFetch<InformationReviewDocument>(`${path}/document`),
+    ingest: () => apiFetch<{ outcome: string; failureCode: string | null }>(`${path}/ingest`, { method: "POST" }),
+    extract: (documentId: string) => apiFetch<InformationReviewCandidate[]>(
+      `${path}/extract?documentId=${encodeURIComponent(documentId)}`, { method: "POST" }),
+    candidates: (documentId: string) => apiFetch<InformationReviewCandidate[]>(
+      `${path}/candidates?documentId=${encodeURIComponent(documentId)}`),
+    reviews: (documentId: string) => apiFetch<InformationReviewState[]>(
+      `${path}/reviews?documentId=${encodeURIComponent(documentId)}`),
+    audit: (documentId: string) => apiFetch<InformationReviewAudit[]>(
+      `${path}/audit?documentId=${encodeURIComponent(documentId)}`),
+    prepare: (documentId: string, rawSha256: string, start: string, end: string | null) =>
+      apiFetch<InformationReviewState[]>(`${path}/prepare`, { method: "POST", body: {
+        documentId, expectedRawSha256: rawSha256,
+        applicabilityStartDate: start, applicabilityEndDate: end,
+      } }),
+    decide: (reviewId: string, rawSha256: string, decision: "APPROVE" | "REJECT",
+      conditionsReviewed: boolean, exceptionsReviewed: boolean) =>
+      apiFetch<void>(`${path}/${encodeURIComponent(reviewId)}/decision`, { method: "POST", body: {
+        expectedRawSha256: rawSha256, conditionsReviewed, exceptionsReviewed, decision,
+      } }),
+    revoke: (reviewId: string) => apiFetch<void>(`${path}/${encodeURIComponent(reviewId)}/revoke`, { method: "POST" }),
+    ready: (documentId: string) => apiFetch<string>(
+      `${path}/ready?documentId=${encodeURIComponent(documentId)}`, { method: "POST" }),
+  };
+}

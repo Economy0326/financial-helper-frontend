@@ -17,7 +17,9 @@ export function SourceReviewCard({ source }: { source: ReviewableSource }) {
     </div>
     <div className="mt-4 border-t border-border pt-3">
       <p className="text-sm font-semibold">금융도우미 검토 화면</p>
-      {source.reviewWorkflowAvailable ? <Link href="/official-source-review/deposit"
+      {source.reviewWorkflowAvailable ? <Link href={source.sourceKey === "fsc-deposit-protection-qa-pdf"
+        ? "/official-source-review/deposit"
+        : `/official-source-review/information/${encodeURIComponent(source.sourceKey)}`}
         className="mt-2 inline-flex min-h-12 items-center rounded-control bg-primary px-5 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">검토 화면으로 이동 →</Link>
         : <p className="mt-2 text-sm">이 자료의 항목별 검토 UI는 아직 지원하지 않습니다.</p>}
     </div>
