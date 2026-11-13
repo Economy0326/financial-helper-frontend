@@ -8,7 +8,7 @@ import { ReviewProgress, ReviewWorkQueue, SourceText, formatSeoulTime, reviewSta
 import { ApiResponseError } from "@/lib/api/errors";
 import { informationReviewApi, sourceReviewApi, type InformationReviewAudit,
   type InformationReviewCandidate, type InformationReviewDocument,
-  type InformationReviewState, type ReviewableSource } from "@/lib/api/source-review";
+  type InformationReviewState, type InformationReviewGuide, type ReviewableSource } from "@/lib/api/source-review";
 import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
 
 const enabled = process.env.NEXT_PUBLIC_OFFICIAL_REVIEW_ENABLED === "true";
@@ -33,6 +33,7 @@ export default function InformationSourceReviewPage() {
   const [candidates, setCandidates] = useState<InformationReviewCandidate[]>([]);
   const [reviews, setReviews] = useState<InformationReviewState[]>([]);
   const [audits, setAudits] = useState<InformationReviewAudit[]>([]);
+  const [guide, setGuide] = useState<InformationReviewGuide | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [scopeChecked, setScopeChecked] = useState(false);
@@ -46,6 +47,7 @@ export default function InformationSourceReviewPage() {
       const chosen = list.find((row) => row.sourceKey === sourceKey && row.reviewWorkflowAvailable);
       if (!chosen) { setMessage("이 자료의 항목별 검토는 지원하지 않습니다."); return; }
       setSource(chosen);
+      setGuide(await api.guidance());
       if (!chosen.documentId) { setDocument(null); setCandidates([]); setReviews([]); setAudits([]); return; }
       const current = await api.document();
       const [claimRows, reviewRows, auditRows] = await Promise.all([
@@ -79,20 +81,23 @@ export default function InformationSourceReviewPage() {
   if (!enabled) return <main className="p-8">공식자료 검토 화면은 허용된 시연 환경에서만 사용할 수 있습니다.</main>;
 
   const prepared = reviews.length > 0;
+  const supportCandidates = candidates.filter((item) => item.role === "SUPPORT");
+  const conditionCandidates = candidates.filter((item) => item.role === "CONDITION");
   const decided = prepared && reviews.every((row) => row.status !== "PENDING");
   const stages: ReviewStage[] = [
     { label: "원문 확인", state: prepared ? "done" : "current", detail: document ? "저장된 원본 확인 가능" : "수집 전" },
-    { label: "근거 항목 확인", state: prepared ? "done" : document ? "current" : "waiting", detail: `${candidates.length}개 후보` },
+    { label: "근거 항목 확인", state: prepared ? "done" : document ? "current" : "waiting", detail: `주장 ${supportCandidates.length}개 · 필수 조건 ${conditionCandidates.length}개` },
     { label: "적용 범위 설정", state: prepared ? "done" : candidates.length ? "current" : "waiting", detail: prepared ? "서버에 기간 저장" : "검토자가 기간 확인" },
     { label: "검토 시작", state: prepared ? "done" : candidates.length ? "current" : "waiting", detail: prepared ? "검토표 준비 완료" : "승인 전 준비 단계" },
     { label: "항목별 승인·거절", state: decided ? "done" : prepared ? "current" : "waiting",
-      detail: `결정 ${reviews.filter((row) => row.status !== "PENDING").length}/${reviews.length || candidates.length}` },
+      detail: `결정 ${reviews.filter((row) => row.status !== "PENDING").length}/${reviews.length || supportCandidates.length}` },
   ];
   const official = source ? safeOfficialLink(source.officialUrl) : null;
-  const canPrepare = document && document.storedBytesMatchHash && candidates.length > 0 && !prepared
+  const canPrepare = document && document.storedBytesMatchHash && supportCandidates.length > 0 && !prepared
     && startDate && (!endDate || endDate >= startDate) && scopeChecked;
-  const approved = prepared && reviews.length === candidates.length
-    && reviews.every((row) => row.status === "APPROVED");
+  const approved = prepared && reviews.length === supportCandidates.length
+    && reviews.every((row) => row.status === "APPROVED")
+    && conditionCandidates.every((item) => item.status === "APPROVED");
 
   return <div className="min-h-screen bg-background"><AppHeader />
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6">
@@ -102,6 +107,18 @@ export default function InformationSourceReviewPage() {
         <p className="text-sm text-foreground-muted">이 화면의 원문 확인·검토표 준비는 승인 결정이 아닙니다. 승인 후에도 READY 검증 전에는 검색에 사용되지 않습니다.</p>
       </header>
       <ReviewProgress stages={stages} />
+      {guide && <section className="rounded-card border border-border bg-surface p-5" aria-label="검토 범위 안내">
+        <h2 className="text-xl font-bold">이 자료의 승인 후보와 보류 사항</h2>
+        <dl className="mt-3 space-y-2 text-sm">
+          <div><dt className="font-semibold">원문 위치</dt><dd>{guide.location}</dd></div>
+          <div><dt className="font-semibold">사용할 주장</dt><dd>{guide.support}</dd></div>
+          <div><dt className="font-semibold">필수 조건</dt><dd>{guide.condition}</dd></div>
+          <div><dt className="font-semibold">제외·예외</dt><dd>{guide.exception}</dd></div>
+          <div><dt className="font-semibold">현행성·범위 HOLD</dt><dd>{guide.hold}</dd></div>
+          <div><dt className="font-semibold">적용 시작일 확인</dt><dd>{guide.dateNote}</dd></div>
+        </dl>
+        <p className="mt-3 text-sm">이 안내는 검토 후보이며 승인이나 현재 제도 확인 결과가 아닙니다. 보류 사항을 해소하지 못하면 해당 주장을 승인하지 마세요.</p>
+      </section>}
       {prepared && <ReviewWorkQueue items={reviews.map((row) => ({
         id: `item-${row.chunkId}`, title: candidates.find((item) => item.chunkId === row.chunkId)?.label ?? "근거 항목", status: row.status,
       }))} />}
@@ -136,8 +153,8 @@ export default function InformationSourceReviewPage() {
         {!canPrepare && !prepared && <p className="mt-2 text-sm">원본 바이트 일치, 후보 추출, 적용 시작일과 확인 체크가 필요합니다.</p>}
       </section>}
       <section className="space-y-4" aria-label="공식 근거 항목"><h2 className="text-xl font-bold">3. 근거 항목</h2>
-        {!candidates.length && <p>추출된 검토 후보가 없습니다.</p>}
-        {candidates.map((item) => { const review = reviews.find((row) => row.chunkId === item.chunkId);
+        {!supportCandidates.length && <p>추출된 검토 후보가 없습니다.</p>}
+        {supportCandidates.map((item) => { const review = reviews.find((row) => row.chunkId === item.chunkId);
           const itemAudits = audits.filter((row) => row.reviewId === review?.reviewId);
           return <article id={`item-${item.chunkId}`} key={item.chunkId} className="scroll-mt-6 rounded-card border border-border bg-surface p-5">
             <h3 className="font-bold">{item.label} · {reviewStatusLabel(review?.status ?? item.status)}</h3>
@@ -145,6 +162,12 @@ export default function InformationSourceReviewPage() {
             <details className="mt-1"><summary className="cursor-pointer">UTF-16 위치 기술 상세</summary><code className="break-all">{item.locator}</code></details>
             <details open={review?.status === "PENDING"} className="mt-3"><summary className="cursor-pointer font-semibold">저장된 원문 전체 읽기</summary>
               <SourceText body={item.body} squareParagraphGlyph /></details>
+            {conditionCandidates.map((condition) => <section key={condition.chunkId} className="mt-3 rounded-control border border-border p-3">
+              <h4 className="font-semibold">함께 검토할 필수 조건 · {condition.label}</h4>
+              <p className="text-sm">이 조건도 같은 원본 판본의 별도 Chunk이며, 함께 승인·READY되지 않으면 근거로 사용할 수 없습니다.</p>
+              <SourceText body={condition.body} squareParagraphGlyph />
+              <details><summary className="cursor-pointer">조건 위치 기술 상세</summary><code className="break-all">{condition.locator}</code></details>
+            </section>)}
             {review?.status === "PENDING" && <div className="mt-4 space-y-2">
               <label className="flex gap-2"><input type="checkbox" checked={!!itemChecked[item.chunkId]}
                 onChange={(event) => setItemChecked((old) => ({ ...old, [item.chunkId]: event.target.checked }))} />원문과 조건·예외를 직접 확인했습니다.</label>

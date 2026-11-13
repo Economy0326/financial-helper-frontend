@@ -103,7 +103,7 @@ export type InformationReviewDocument = {
 };
 export type InformationReviewCandidate = {
   chunkId: string; label: string; body: string; locator: string;
-  article: string | null; page: string | null; status: string;
+  article: string | null; page: string | null; status: string; role: "SUPPORT" | "CONDITION" | "EXCEPTION";
 };
 export type InformationReviewState = {
   reviewId: string; chunkId: string; status: string; rawSha256: string;
@@ -113,10 +113,15 @@ export type InformationReviewAudit = {
   reviewId: string; reviewerAccountId: string; decision: string;
   reason: string; decidedAt: string; rawSha256: string;
 };
+export type InformationReviewGuide = {
+  location: string; support: string; condition: string; exception: string;
+  hold: string; dateNote: string;
+};
 
 export function informationReviewApi(sourceKey: string) {
   const path = `/source-review/information/${encodeURIComponent(sourceKey)}`;
   return {
+    guidance: () => apiFetch<InformationReviewGuide>(`${path}/guidance`),
     document: () => apiFetch<InformationReviewDocument>(`${path}/document`),
     ingest: () => apiFetch<{ outcome: string; failureCode: string | null }>(`${path}/ingest`, { method: "POST" }),
     extract: (documentId: string) => apiFetch<InformationReviewCandidate[]>(
