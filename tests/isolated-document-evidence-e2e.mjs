@@ -82,6 +82,8 @@ try {
   if (reviewDocumentId && reviewBasisUrl) {
     await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
     await waitFor(() => evaluate("[...document.querySelectorAll('a')].some(a=>a.textContent.trim()==='합성 안내')"), "review document inventory");
+    await evaluate("[...document.querySelectorAll('button')].find(x=>x.textContent.includes('이용조건 확인 필요')).click()");
+    await waitFor(() => evaluate("[...document.querySelectorAll('a')].some(a=>a.textContent.trim()==='합성 안내')"), "document status filter");
     const forbidden = await fetch(`http://localhost:${backend}/api/v1/source-review/document-claims`, { headers: { cookie: `financial_helper_account=${other}` } });
     if (forbidden.status !== 403) throw new Error("non-reviewer inventory access accepted");
     await evaluate("[...document.querySelectorAll('a')].find(a=>a.textContent.trim()==='합성 안내').click()");
@@ -100,13 +102,16 @@ try {
     await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: ALLOWED')"), "rights decision");
     await waitFor(() => clickReview("Claim 검토 준비"), "prepare claims button");
     await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('SUPPORT:')&&x.innerText.includes('EXCEPTION:')&&x.innerText.includes('CONDITION:'))"), "claim context");
-    const approve = await evaluate("(()=>{const a=[...document.querySelectorAll('article')].find(x=>x.innerText.includes('신규 대출'));const b=[...a.querySelectorAll('button')].find(x=>x.textContent.trim()==='승인');if(!b||b.disabled)return false;b.click();return true})()");
+    await evaluate("[...document.querySelectorAll('button')].find(x=>x.textContent.includes('검토 필요')).click()");
+    await waitFor(() => evaluate("[...document.querySelectorAll('article')].every(x=>x.dataset.claimBucket==='pending')"), "claim pending filter");
+    await evaluate("[...document.querySelectorAll('button')].find(x=>x.textContent.includes('검토 필요')).click()");
+    const approve = await evaluate("(()=>{const a=[...document.querySelectorAll('article')].find(x=>x.innerText.includes('신규 대출'));const b=[...a.querySelectorAll('button')].find(x=>x.textContent.trim()==='승인하기');if(!b||b.disabled)return false;b.click();return true})()");
     if (!approve) throw new Error("approve control unavailable");
     await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('신규 대출')&&x.innerText.includes('상태 APPROVED'))"), "claim approval");
     const reject = await evaluate("(()=>{const a=[...document.querySelectorAll('article')].find(x=>x.innerText.includes('대출 신청은'));const b=a&&[...a.querySelectorAll('button')].find(x=>x.textContent.trim()==='사용하지 않기');if(!b||b.disabled)return false;b.click();return true})()");
     if (!reject) throw new Error("reject control unavailable");
     await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('대출 신청은')&&x.innerText.includes('상태 REJECTED'))"), "claim rejection");
-    await evaluate("[...document.querySelectorAll('article')].find(x=>x.innerText.includes('신규 대출')).querySelector('summary').click()");
+    await evaluate("[...[...document.querySelectorAll('article')].find(x=>x.innerText.includes('신규 대출')).querySelectorAll('summary')].find(x=>x.textContent.includes('Claim 감사 이력')).click()");
     await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('신규 대출')&&x.innerText.includes('DOCUMENT_CLAIM_REVIEW'))"), "approval audit");
     await input("검토 사유", "synthetic withdrawal");
     await evaluate("(()=>{const e=document.querySelector('[aria-label=\"이용조건 결정\"]');e.value='HOLD';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
