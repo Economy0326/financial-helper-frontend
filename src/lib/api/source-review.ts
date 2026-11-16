@@ -17,6 +17,8 @@ export type ReviewDocument = {
 };
 
 export type ReviewableSource = {
+  registryId: string;
+  textRegistrationAvailable: boolean;
   sourceKey: string;
   organization: string;
   officialUrl: string;

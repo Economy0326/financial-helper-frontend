@@ -70,6 +70,7 @@ export default function DocumentReviewPage() {
     {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
     <section className="space-y-3 rounded-card border border-border p-5"><h2 className="text-xl font-bold">문서 이용조건 검토</h2>
       <p>현재 상태: {history[0]?.decision ?? "미검토"}. 이 결정은 개별 Claim의 내용 승인과 다릅니다.</p>
+      <p>이미 허용한 이용범위를 변경하려면 HOLD로 재검토한 후 다시 결정하세요.</p>
       <label className="block">이용조건 근거 URL <input aria-label="이용조건 근거 URL" className="block w-full border p-2" value={basisUrl} onChange={(e) => setBasisUrl(e.target.value)} /></label>
       <fieldset><legend>확인한 사용 범위</legend>{scopes.map(([value,label]) => <label key={value} className="mr-4 inline-block"><input type="checkbox" checked={selected.includes(value)} onChange={(e) => setSelected(e.target.checked ? [...selected,value] : selected.filter((s) => s !== value))} /> {label}</label>)}</fieldset>
       <label className="block"><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} /> 개인정보 검토 완료</label>

@@ -12,6 +12,7 @@ const account = process.env.FH_UI_ACCOUNT_SESSION;
 const other = process.env.FH_UI_OTHER_SESSION;
 const reviewDocumentId = process.env.FH_UI_REVIEW_DOCUMENT_ID;
 const reviewBasisUrl = process.env.FH_UI_REVIEW_BASIS_URL;
+const registrationRegistryId = process.env.FH_UI_REGISTRY_ID;
 if (!backend || !frontend || backend === 15432 || !account || !other || process.env.FH_UI_E2E !== "true") throw new Error("isolated test configuration required");
 const root = process.cwd();
 const profile = await mkdtemp(path.join(tmpdir(), "fh-ui-e2e-"));
@@ -81,6 +82,107 @@ try {
   await waitFor(async () => (await fetch(`http://localhost:${frontend}/financial-information`)).ok, "Next startup");
   if (reviewDocumentId && reviewBasisUrl) {
     await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
+    if (registrationRegistryId) {
+      await waitFor(() => evaluate("!![...document.querySelectorAll('summary')].find(x=>x.textContent.includes('검토할 텍스트 등록'))"), "registration control");
+      await evaluate("[...document.querySelectorAll('summary')].find(x=>x.textContent.includes('검토할 텍스트 등록')).click()");
+      await waitFor(() => evaluate(`!!document.querySelector('[aria-label="등록 출처"] option[value="${registrationRegistryId}"]')`), "registration source");
+      await evaluate(`(()=>{const e=document.querySelector('[aria-label="등록 출처"]');e.value=${JSON.stringify(registrationRegistryId)};e.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+      const fill = (label, value) => evaluate(`(()=>{const e=document.querySelector('[aria-label='+JSON.stringify(${JSON.stringify(label)})+']');const p=e.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(p,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await fill("등록 문서 제목", "합성 신규 문서");
+      await fill("등록 HTML", "<div class='body'><p>예금 안내</p><p>예금은 2025년 이후 적용됩니다. 다만 기존 계약은 제외합니다.</p><p>예금 신청은 공식 채널에서 확인해야 합니다.</p></div>");
+      await fill("등록 이용조건 근거", `https://synthetic.invalid/${registrationRegistryId}`);
+      await fill("등록 검토 사유", "합성 이용조건 확인");
+      for (const name of ["저장·추출·검토 이용범위 확인", "개인정보 검토 완료", "제3자 권리 검토 완료"]) {
+        const ok = await evaluate(`(()=>{const l=[...document.querySelectorAll('label')].find(x=>x.textContent.trim()===${JSON.stringify(name)});if(!l)return false;l.querySelector('input').click();return true})()`);
+        if (!ok) throw new Error("registration checkbox unavailable");
+      }
+      await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='텍스트 등록');if(!b||b.disabled)return false;b.click();return true})()"), "register text");
+      await waitFor(() => evaluate("document.querySelector('h1')?.innerText==='합성 신규 문서'"), "registered detail");
+      await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='Claim 검토 준비');if(!b||b.disabled)return false;b.click();return true})()"), "prepare registered claim");
+      await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('예금은 2025년')&&x.innerText.includes('CONDITION:')&&x.innerText.includes('EXCEPTION:'))"), "registered candidate and relations");
+      await waitFor(() => evaluate("(()=>{const a=[...document.querySelectorAll('article')].find(x=>x.innerText.includes('예금은 2025년'));const b=a&&[...a.querySelectorAll('button')].find(x=>x.textContent.trim()==='승인하기');if(!b||b.disabled)return false;b.click();return true})()"), "approve registered claim");
+      await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('예금은 2025년')&&x.innerText.includes('상태 APPROVED'))"), "registered approval");
+      await waitFor(() => evaluate("(()=>{const a=[...document.querySelectorAll('article')].find(x=>x.innerText.includes('예금 신청은'));const b=a&&[...a.querySelectorAll('button')].find(x=>x.textContent.trim()==='사용하지 않기');if(!b||b.disabled)return false;b.click();return true})()"), "reject registered claim");
+      await waitFor(() => evaluate("[...document.querySelectorAll('article')].some(x=>x.innerText.includes('예금 신청은')&&x.innerText.includes('상태 REJECTED'))"), "registered rejection");
+      await fill("이용조건 근거 URL", `https://synthetic.invalid/${registrationRegistryId}`);
+      await fill("검토 사유", "합성 검색 이용범위 확인");
+      for (const name of ["본문 저장", "추출", "검토", "검색", "원문 발췌", "개인정보 검토 완료", "제3자 권리 검토 완료"]) {
+        const ok = await evaluate(`(()=>{const l=[...document.querySelectorAll('label')].find(x=>x.textContent.trim()===${JSON.stringify(name)});if(!l)return false;l.querySelector('input').click();return true})()`);
+        if (!ok) throw new Error("registered usage control unavailable");
+      }
+      await evaluate("(()=>{const e=document.querySelector('[aria-label=\"이용조건 결정\"]');e.value='HOLD';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='이용조건 결정 저장');if(!b||b.disabled)return false;b.click();return true})()"), "registered rights recheck");
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: HOLD')"), "registered rights on hold");
+      await evaluate("(()=>{const e=document.querySelector('[aria-label=\"이용조건 결정\"]');e.value='ALLOWED';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='이용조건 결정 저장');if(!b||b.disabled)return false;b.click();return true})()"), "registered search rights");
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: ALLOWED')"), "registered search rights saved");
+      await waitFor(() => evaluate("[...document.querySelectorAll('[aria-label=\"기준 문서\"] option')].some(x=>x.value==='fsc-card-use-qa')"), "registered base document");
+      await evaluate("(()=>{const e=document.querySelector('[aria-label=\"기준 문서\"]');e.value='fsc-card-use-qa';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      const press = (label) => evaluate(`(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()===${JSON.stringify(label)});if(!b||b.disabled)return false;b.click();return true})()`);
+      await waitFor(() => press("READY 후보 생성"), "registered ready candidate");
+      await waitFor(() => evaluate("document.body.innerText.includes('비활성 READY 후보를 만들었습니다.')"), "registered ready created");
+      await waitFor(() => press("후보 빌드"), "registered build");
+      await waitFor(() => evaluate("document.body.innerText.includes('후보 빌드를 마쳤습니다.')"), "registered built");
+      await waitFor(() => press("활성화 요청"), "registered activate");
+      await waitFor(() => evaluate("document.body.innerText.includes('활성화 요청을 처리했습니다.')"), "registered activated");
+      const registeredDocumentId = await evaluate("location.pathname.split('/').pop()");
+      // Exercise the newly registered document as a separate ordinary user.
+      await cdp("Network.setCookie", { name: "financial_helper_account", value: other, url: `http://localhost:${frontend}/`, sameSite: "Lax" });
+      await cdp("Page.navigate", { url: `http://localhost:${frontend}/financial-information` });
+      await waitFor(() => evaluate("!!document.querySelector('#question')"), "registered user page");
+      await evaluate("(()=>{const e=document.querySelector('#question');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'예금은');e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+      await waitFor(() => press("공식 근거 찾기"), "registered user search");
+      await waitFor(() => evaluate(`window.__testResponses.some(x=>x.status==='READY_CANDIDATES'&&x.evidence?.some(e=>e.documentId===${JSON.stringify(registeredDocumentId)}))`), "registered document search");
+      const registeredSnapshot = await evaluate(`window.__testResponses.find(x=>x.status==='READY_CANDIDATES'&&x.evidence?.some(e=>e.documentId===${JSON.stringify(registeredDocumentId)}))`);
+      const registeredClaim = registeredSnapshot.evidence.find(e => e.documentId === registeredDocumentId);
+      if (!registeredClaim?.claimId || !registeredClaim.locator || registeredClaim.currentApplicability !== 'NOT_VERIFIED') throw new Error('registered claim identity or currentness missing');
+      if (registeredSnapshot.evidence.some(e => e.documentId === registeredDocumentId && e.excerpt.includes('예금 신청은'))) throw new Error('rejected claim appeared in search');
+      await waitFor(() => press("결과 저장하기"), "registered report creation");
+      await waitFor(() => evaluate(`window.__testResponses.some(x=>x.status==='READY'&&x.snapshotId===${JSON.stringify(registeredSnapshot.snapshotId)}&&x.evidence?.some(e=>e.claimId===${JSON.stringify(registeredClaim.claimId)}))`), "registered report identity");
+      const registeredReportId = await evaluate(`window.__testResponses.find(x=>x.status==='READY'&&x.snapshotId===${JSON.stringify(registeredSnapshot.snapshotId)})?.reportId`);
+      if (!registeredReportId) throw new Error('registered report identity missing');
+      const baseApi = `http://localhost:${backend}/api/v1/information-evidence-snapshots`;
+      for (const [suffix, expectedStatus] of [[registeredSnapshot.snapshotId, 'READY_CANDIDATES'], [`reports/${registeredReportId}`, 'READY']]) {
+        const response = await fetch(`${baseApi}/${suffix}`, { headers: { cookie: `financial_helper_account=${other}` } });
+        const result = await response.json();
+        if (!response.ok || result.status !== expectedStatus || !result.evidence?.some(e => e.documentId === registeredDocumentId && e.claimId === registeredClaim.claimId)) throw new Error('registered current result identity mismatch');
+      }
+      // Revoke A via the same reviewer UI, then check the ordinary user's stored results.
+      await cdp("Network.setCookie", { name: "financial_helper_account", value: account, url: `http://localhost:${frontend}/`, sameSite: "Lax" });
+      await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents/${registeredDocumentId}` });
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: ALLOWED')"), "registered rights before withdrawal");
+      await fill("이용조건 근거 URL", `https://synthetic.invalid/${registrationRegistryId}`);
+      await fill("검토 사유", "합성 이용조건 철회");
+      await evaluate("(()=>{const e=document.querySelector('[aria-label=\"이용조건 결정\"]');e.value='HOLD';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      await waitFor(() => press("이용조건 결정 저장"), "registered withdrawal");
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: HOLD')"), "registered withdrawn");
+      await cdp("Network.setCookie", { name: "financial_helper_account", value: other, url: `http://localhost:${frontend}/`, sameSite: "Lax" });
+      for (const suffix of [registeredSnapshot.snapshotId, `reports/${registeredReportId}`]) {
+        const response = await fetch(`${baseApi}/${suffix}`, { headers: { cookie: `financial_helper_account=${other}` } });
+        const result = await response.json();
+        if (!response.ok || result.status !== 'STALE' || result.evidence?.length || result.explanation) throw new Error('registered stale result exposed');
+      }
+      await cdp("Page.navigate", { url: `http://localhost:${frontend}/financial-information` });
+      await waitFor(() => evaluate("!!document.querySelector('#question')"), "withdrawn user page");
+      await evaluate("(()=>{const e=document.querySelector('#question');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'예금은');e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+      await waitFor(() => press("공식 근거 찾기"), "withdrawn search");
+      await waitFor(() => evaluate("window.__testResponses.length>0"), "withdrawn search response");
+      if (await evaluate(`window.__testResponses.some(x=>x.evidence?.some(e=>e.documentId===${JSON.stringify(registeredDocumentId)}))`)) throw new Error('withdrawn document returned in search');
+      // Restore only the synthetic A rights so the separate existing mixed-generation regression remains valid.
+      await cdp("Network.setCookie", { name: "financial_helper_account", value: account, url: `http://localhost:${frontend}/`, sameSite: "Lax" });
+      await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents/${registeredDocumentId}` });
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: HOLD')"), "registered recheck");
+      await fill("이용조건 근거 URL", `https://synthetic.invalid/${registrationRegistryId}`);
+      await fill("검토 사유", "합성 재검토 완료");
+      for (const name of ["본문 저장", "추출", "검토", "검색", "원문 발췌", "개인정보 검토 완료", "제3자 권리 검토 완료"]) {
+        const ok = await evaluate(`(()=>{const l=[...document.querySelectorAll('label')].find(x=>x.textContent.trim()===${JSON.stringify(name)});if(!l)return false;l.querySelector('input').click();return true})()`);
+        if (!ok) throw new Error('registered recheck control unavailable');
+      }
+      await evaluate("(()=>{const e=document.querySelector('[aria-label=\"이용조건 결정\"]');e.value='ALLOWED';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      await waitFor(() => press("이용조건 결정 저장"), "registered reapproval");
+      await waitFor(() => evaluate("document.body.innerText.includes('현재 상태: ALLOWED')"), "registered reapproved");
+      await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
+    }
     await waitFor(() => evaluate("[...document.querySelectorAll('a')].some(a=>a.textContent.trim()==='합성 안내')"), "review document inventory");
     await evaluate("[...document.querySelectorAll('button')].find(x=>x.textContent.includes('이용조건 확인 필요')).click()");
     await waitFor(() => evaluate("[...document.querySelectorAll('a')].some(a=>a.textContent.trim()==='합성 안내')"), "document status filter");
@@ -125,7 +227,12 @@ try {
     await waitFor(() => evaluate("[...document.querySelectorAll('[aria-label=\"기준 문서\"] option')].some(x=>x.value==='fsc-card-use-qa')"), "approved base document");
     await evaluate("(()=>{const e=document.querySelector('[aria-label=\"기준 문서\"]');e.value='fsc-card-use-qa';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
     await waitFor(() => clickReview("READY 후보 생성"), "READY candidate button");
-    await waitFor(() => evaluate("document.body.innerText.includes('비활성 READY 후보를 만들었습니다.')&&document.body.innerText.includes('Generation PROCESSING')&&document.body.innerText.includes('빌드 미시작')"), "READY candidate status");
+    try {
+      await waitFor(() => evaluate("document.body.innerText.includes('비활성 READY 후보를 만들었습니다.')&&document.body.innerText.includes('Generation PROCESSING')&&document.body.innerText.includes('빌드 미시작')"), "READY candidate status", 30000);
+    } catch {
+      const diagnostic = await evaluate("({http:window.__testHttp.filter(x=>x.path?.includes('ready-candidate')),alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.innerText)})");
+      throw new Error(`READY candidate failed: ${JSON.stringify(diagnostic)}`);
+    }
     await waitFor(() => clickReview("후보 빌드"), "build candidate button");
     await waitFor(() => evaluate("document.body.innerText.includes('후보 빌드를 마쳤습니다.')&&document.body.innerText.includes('빌드 BUILT')"), "candidate build status");
     await waitFor(() => clickReview("활성화 요청"), "activate candidate button");

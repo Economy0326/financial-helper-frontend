@@ -14,10 +14,11 @@ test("common reviewer uses existing backend routes and explicit decision bodies"
     await api.documents(); await api.usage("doc", "hash"); await api.prepare("doc", "hash");
     await api.decide("doc", "claim", "hash", "APPROVE"); await api.audit("doc", "hash");
     await api.generations("doc", "hash"); await api.candidate("base", "base-doc", "doc");
+    await api.registerText({ registryId: "registry", html: "<p>합성</p>", title: "합성", publishedAt: null, basisUrl: "https://synthetic.invalid", reason: "합성 검토", privacyReviewed: true, thirdPartyReviewed: true, storageApproved: true });
     assert.deepEqual(calls.map(([path]) => path), ["/source-review/document-claims", "/source-review/document-claims/doc/usage-review?expectedRawSha256=hash",
       "/source-review/document-claims/doc/prepare", "/source-review/document-claims/doc/claim/decision",
       "/source-review/document-claims/doc/audit?expectedRawSha256=hash", "/source-review/document-claims/doc/generations?expectedRawSha256=hash",
-      "/source-review/information/base/ready-candidate"]);
+      "/source-review/information/base/ready-candidate", "/source-review/document-claims/text-registration"]);
     assert.deepEqual(calls[3][1].body, { expectedRawSha256: "hash", decision: "APPROVE" });
     assert.deepEqual(calls[6][1].body, { documentId: "base-doc", genericDocumentIds: ["doc"] });
   } finally { delete globalThis.__reviewFetch; }
