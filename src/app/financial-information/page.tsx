@@ -121,7 +121,7 @@ function QuestionFlow() {
       }}>확인하기 어려워요</button>
     </form>}
     {snapshot?.status === "NO_MATCH" && <p role="status" className="mt-6">관련된 승인 근거를 찾지 못했어요. 질문을 바꾸어 다시 확인해 주세요.</p>}
-    {snapshot && snapshot.status !== "READY_CANDIDATES" && snapshot.status !== "NO_MATCH" && <p role="status" className="mt-6">{snapshot.status === "STALE" ? "근거를 다시 확인해야 해요. 새로 검색해 주세요." : "현재 확인할 수 있는 근거가 없어요."}</p>}
+    {snapshot && snapshot.status !== "READY_CANDIDATES" && snapshot.status !== "NO_MATCH" && <p role="status" className="mt-6">{snapshot.status === "STALE" ? "근거를 다시 확인해야 해요. 새로 검색해 주세요." : snapshot.status === "NEEDS_CLARIFICATION" ? "어떤 상품이나 내용이 궁금한지 조금 더 알려 주세요." : snapshot.status === "TEMPORARILY_UNAVAILABLE" ? "검색을 일시적으로 사용할 수 없어요. 잠시 후 다시 시도해 주세요." : "현재 확인할 수 있는 근거가 없어요."}</p>}
     {applicabilityUncertain && <p role="status" className="mt-4">입력한 내용만으로 개인별 적용 여부를 확인할 수 없어요. 아래 문서의 조건과 예외를 확인해 주세요.</p>}
     {evidence.length > 0 && <section className="mt-8 space-y-4"><h2 className="text-xl font-bold">확인된 문서 내용</h2>
       <p className="text-sm text-foreground-muted">문서의 내용을 보여드려요. 현재 적용 여부는 별도 확인이 필요해요.</p><EvidenceList evidence={evidence} />
