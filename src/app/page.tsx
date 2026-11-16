@@ -24,9 +24,12 @@ export default function Home() {
             필요한 대응을 구분해 살펴볼 수 있어요.
           </p>
 
+          <Link href="/financial-information" className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-control bg-primary px-6 py-4 text-lg font-bold text-primary-foreground sm:w-auto sm:min-w-64">
+            금융 정보 질문하기
+          </Link>
           <Link
             href="/consultation/entry"
-            className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-control bg-primary px-6 py-4 text-lg font-bold text-primary-foreground shadow-[0_6px_16px_rgb(8_127_115_/_0.16)] transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-3 motion-reduce:transition-none sm:w-auto sm:min-w-64"
+            className="mt-3 inline-flex min-h-14 w-full items-center justify-center rounded-control border border-border px-6 py-4 text-lg font-bold text-foreground sm:ml-3 sm:w-auto sm:min-w-64"
           >
             내 상황 상담 시작하기
           </Link>

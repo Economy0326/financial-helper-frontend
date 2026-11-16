@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { ReviewAuditList, ReviewItemCard, ReviewProgress, ReviewWorkQueue, auditsForQuestion, formatSeoulTime,
-  type ReviewStage } from "@/components/source-review/SourceReviewComponents";
+import { ReviewItemCard, ReviewWorkQueue, auditsForQuestion, formatSeoulTime } from "@/components/source-review/SourceReviewComponents";
 import { ApiResponseError } from "@/lib/api/errors";
 import { apiFetch } from "@/lib/api/client";
 import { sourceReviewApi, type ReviewAudit, type ReviewCandidate, type ReviewDocument, type ReviewState } from "@/lib/api/source-review";
@@ -24,6 +23,10 @@ function errorMessage(error: unknown): string {
     if (error.status === 401) return "먼저 본인 계정으로 로그인해 주세요.";
     if (error.status === 403) return "이 계정에는 Reviewer 권한이 없습니다. 전용 DB의 권한 부여 절차를 확인해 주세요.";
     if (error.code === "SOURCE_REVIEW_DOCUMENT_MISSING") return "공식 PDF가 아직 수집되지 않았습니다.";
+    if (error.code === "SOURCE_REVIEW_INCOMPLETE") return "필수 조건과 예외를 확인해야 합니다.";
+    if (error.code === "SOURCE_REVIEW_SCOPE_INVALID") return "근거의 적용 기간을 확인해야 합니다.";
+    if (error.code === "SOURCE_REVIEW_VERSION_CHANGED") return "문서 판본이 달라졌습니다. 저장된 상태를 다시 확인해 주세요.";
+    if (error.code === "SOURCE_REVIEW_ALREADY_DECIDED") return "이 항목은 이미 다른 결정이 기록됐습니다.";
     return `요청이 거부됐습니다. 상태 ${error.status}, 코드 ${error.code ?? "UNKNOWN"}`;
   }
   return "요청을 완료하지 못했습니다. 서버와 시연 DB 상태를 확인해 주세요.";
@@ -107,13 +110,6 @@ export default function DepositReviewPage() {
     && reviews.every((review) => review.status !== "PENDING");
   const approvedCount = reviews.filter((row) => row.status === "APPROVED").length;
   const readyEligible = allDecided && approvedCount === expectedQuestions.length && exactDocument;
-  const stages: ReviewStage[] = [
-    { label: "원문 확인", state: prepared ? "done" : "current", detail: prepared ? "판본 확인 후 검토표 기록" : document ? "수집됨 · 사람 확인 전" : "수집 전" },
-    { label: "근거 항목 확인", state: prepared ? "done" : document ? "current" : "waiting", detail: prepared ? "항목 확인 기록" : exactCandidates ? "항목 추출 완료 · 확인 대기" : "추출 대기" },
-    { label: "적용 범위 설정", state: prepared ? "done" : exactCandidates ? "current" : "waiting", detail: prepared ? "서버에 기간 기록" : "검토표 준비 시 기록" },
-    { label: "검토 시작", state: prepared ? "done" : exactCandidates ? "current" : "waiting", detail: prepared ? "검토표 준비 완료" : "승인 전 준비 단계" },
-    { label: "항목별 승인·거절", state: allDecided ? "done" : prepared ? "current" : "waiting", detail: `${allDecided ? "결정 완료 " : "결정 "}${reviews.filter((row) => row.status !== "PENDING").length}/${expectedQuestions.length} · 승인 ${approvedCount}/${expectedQuestions.length}` },
-  ];
   const prepareBlock = !document ? "먼저 공식 PDF를 수집하세요."
     : !exactDocument ? "검토된 PDF Hash와 다릅니다."
       : !exactCandidates ? "먼저 9개 근거 항목을 추출·확인하세요."
@@ -131,13 +127,14 @@ export default function DepositReviewPage() {
         <p className="mt-3 leading-7 text-foreground-muted">공식자료의 내용과 적용 범위를 확인하고 승인 여부를 결정합니다.</p>
         <p className="mt-1">현재 문서: {document?.title ?? "금융위원회 예금보호한도 상향 관련 주요 QA"}</p>
       </header>
-      <ReviewProgress stages={stages} />
+      <p className="rounded-card border border-border bg-surface p-4">승인 {approvedCount}/{expectedQuestions.length}건 · 검토 필요 {expectedQuestions.length - reviews.filter((row) => row.status !== "PENDING").length}건 · {searchAvailable ? "검토된 검색 범위 있음" : "READY 확인 전"}</p>
       {prepared && <ReviewWorkQueue items={reviews.map((review) => ({
         id: `review-item-${review.question}`, title: `Q${review.question}`, status: review.status,
       }))} />}
       <section className="rounded-card border border-border bg-surface p-5 shadow-card" aria-label="원문과 문서 상태">
         <h2 className="text-xl font-bold">1. 원문과 문서 판본</h2>
-        <p className="mt-2">로그인 계정 ID: <span className="break-all font-mono text-sm">{accountId ?? "로그인 필요"}</span></p>
+        <p className="mt-2">로그인 상태: {accountId ? "확인됨" : "로그인 필요"}</p>
+        {accountId && <details><summary className="cursor-pointer">계정 기술 상세</summary><code className="break-all">{accountId}</code></details>}
         {!accountId && <Link className="mt-2 inline-block font-semibold text-primary underline" href="/auth/login">로그인 화면 열기</Link>}
         <p className="mt-3">문서: {document?.title ?? "아직 확인되지 않음"}</p>
         {document && <><p className="mt-1 text-sm">판본 {document.documentVersion} · 게시일 {document.publishedAt}</p>
@@ -161,7 +158,7 @@ export default function DepositReviewPage() {
         </div>
       </section>
       {message && <p role="status" className="rounded-control border border-border bg-surface p-4">{message}</p>}
-      <section className="rounded-card border border-border bg-surface p-5" aria-labelledby="items-heading">
+      {!exactCandidates && <section className="rounded-card border border-border bg-surface p-5" aria-labelledby="items-heading">
         <h2 id="items-heading" className="text-xl font-bold">2. 근거 항목</h2>
         <p className="mt-2">승인 후보: Q1·2·3·5·6·7·8·9·10. Q4·머리말·미승인 법령은 제외됩니다.</p>
         {candidateError && <p role="status" className="mt-2">항목 조회 결과: {candidateError}</p>}
@@ -170,8 +167,8 @@ export default function DepositReviewPage() {
             : document && exactDocument && <button type="button" disabled={busy} onClick={() => void run(() => sourceReviewApi.chunk(document.documentId), "근거 후보를 추출했습니다. 아직 승인되지 않았습니다.")} className="min-h-12 rounded-control border border-primary px-4 font-semibold text-primary hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">{busy ? "추출 중…" : "근거 후보 추출하기"}</button>}
           <span>기존 항목 조회는 상태 새로고침으로 수행합니다.</span>
         </div>
-      </section>
-      <section className="rounded-card border border-border bg-surface p-5" aria-labelledby="scope-heading">
+      </section>}
+      {!prepared && <section className="rounded-card border border-border bg-surface p-5" aria-labelledby="scope-heading">
         <h2 id="scope-heading" className="text-xl font-bold">3. 근거 적용 범위와 검토 시작</h2>
         <p className="mt-2 leading-7">이 기간은 <strong>근거 주장의 적용 기간</strong>입니다. 문서 게시일·사람의 승인 효력일과 다릅니다. 2025-09-01은 문서에 명시된 상향 한도 시행일이며, 과거 사고의 개인별 결과를 확정하지 않습니다.</p>
         <p className="mt-1 text-sm">승인 결정 시각과 결정자는 입력하지 않습니다. 서버의 감사 기록에 남습니다.</p>
@@ -184,39 +181,37 @@ export default function DepositReviewPage() {
           <button type="button" disabled={busy || Boolean(prepareBlock)} onClick={() => document && void run(() => sourceReviewApi.prepare(document.documentId, startDate, endDate || null), "9개 항목의 검토표가 준비됐습니다. 아직 승인되지 않았습니다.")} className="mt-4 min-h-12 rounded-control bg-primary px-5 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">{busy ? "준비 중…" : "검토 시작하기"}</button>
           {prepareBlock && <p className="mt-2 text-sm" role="status">진행 조건: {prepareBlock}</p>}
         </>}
-      </section>
+      </section>}
       <section aria-labelledby="decisions-heading" className="space-y-4">
-        <h2 id="decisions-heading" className="text-xl font-bold">4. 항목별 승인·거절</h2>
-        {!prepared && <p>검토표를 준비한 뒤 각 항목의 원문·조건·예외를 확인하고 결정할 수 있습니다.</p>}
+        <h2 id="decisions-heading" className="text-xl font-bold">근거 항목 · 검토 필요 {expectedQuestions.length - reviews.filter((row) => row.status !== "PENDING").length}건</h2>
+        <p>Q4·머리말·미승인 법령은 이 검토 범위에서 제외됩니다.</p>
+        {!prepared && <p>적용 범위 확인 후 각 항목에서 직접 결정할 수 있습니다.</p>}
         {candidates.map((candidate) => {
           const review = reviews.find((item) => item.question === candidate.question);
           const itemAudit = auditsForQuestion(audit, candidate.question);
           return <ReviewItemCard key={candidate.supportChunkId} id={`review-item-${candidate.question}`} title={`Q${candidate.question}`} status={review?.status ?? "검토 준비 전"} squareParagraphGlyph
+            usageState={review?.status === "APPROVED" ? searchAvailable ? "사용 가능 · 질문 조건은 별도 확인" : "승인 완료 · 활성화 전" : undefined}
             location={{ pageReference: candidate.pageReference, locator: candidate.locator }} body={candidate.body}
             context={[...(scopeNotes[candidate.question] ? [scopeNotes[candidate.question]] : []), ...candidate.mandatoryContextPassages]}
             audit={itemAudit}>
+            {review && <p className="mt-2 text-sm">근거 적용 기간 {review.applicabilityStartDate} ~ {review.applicabilityEndDate ?? "종료일 미지정"} · 게시일이나 승인일과 별개입니다.</p>}
             {document && safeOfficialLink(document.pdfUrl) && <a className="mt-3 inline-flex min-h-11 items-center rounded-control border border-border px-4 text-primary hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href={safeOfficialLink(document.pdfUrl)!} target="_blank" rel="noopener noreferrer">이 항목의 공식 PDF 원문 보기 ↗</a>}
-            {review?.status === "PENDING" && exactDocument && <div className="mt-5 space-y-3">
-              <p className="text-sm">결정 대상: Q{candidate.question} · 판본 {document?.documentVersion} · 근거 적용 기간 {review.applicabilityStartDate} ~ {review.applicabilityEndDate ?? "종료일 미지정"}</p>
+            {(!review || review.status === "PENDING") && exactDocument && <div className="mt-5 space-y-3">
+              <p className="text-sm">결정 대상: Q{candidate.question} · 판본 {document?.documentVersion} · 근거 적용 기간 {review?.applicabilityStartDate ?? (startDate || "확인 필요")} ~ {review?.applicabilityEndDate ?? (endDate || "종료일 미지정")}</p>
               <label className="flex items-start gap-2"><input className="mt-1 size-5" type="checkbox" checked={checked[candidate.question] ?? false} onChange={(event) => setChecked((value) => ({ ...value, [candidate.question]: event.target.checked }))} />원문 전체와 필수 조건·예외·적용 범위를 확인했습니다.</label>
               <div className="flex flex-wrap gap-3">
-                <button type="button" disabled={busy || !checked[candidate.question]} onClick={() => {
-                  if (window.confirm(`Q${candidate.question}을 승인하시겠습니까? 문서 판본 ${document?.documentVersion}, 적용 시작일 ${review.applicabilityStartDate}을 확인하세요.`))
-                    void run(() => sourceReviewApi.decide(review.reviewId, document!.rawSha256, "APPROVE"), `Q${candidate.question} 승인 결정이 기록됐습니다.`);
-                }} className="min-h-12 rounded-control bg-primary px-4 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">Q{candidate.question} 승인</button>
-                <button type="button" disabled={busy} onClick={() => {
+                <button type="button" disabled={busy || !checked[candidate.question] || (!review && Boolean(prepareBlock))} onClick={() => {
+                  if (window.confirm(`Q${candidate.question}을 승인하시겠습니까? 문서 판본 ${document?.documentVersion}, 적용 시작일 ${review?.applicabilityStartDate ?? startDate}을 확인하세요.`))
+                    void run(() => sourceReviewApi.decideCandidate(document!.documentId, candidate.question, document!.rawSha256, startDate, endDate || null, "APPROVE"), `Q${candidate.question} 승인 결정이 기록됐습니다.`);
+                }} className="min-h-12 rounded-control bg-primary px-4 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">승인하기</button>
+                <button type="button" disabled={busy || (!review && Boolean(prepareBlock))} onClick={() => {
                   if (window.confirm(`Q${candidate.question}을 거절하시겠습니까? 이 항목은 승인 근거로 사용할 수 없습니다.`))
-                    void run(() => sourceReviewApi.decide(review.reviewId, document!.rawSha256, "REJECT"), `Q${candidate.question} 거절 결정이 기록됐습니다.`);
-                }} className="min-h-12 rounded-control border border-border px-4 font-semibold hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">Q{candidate.question} 거절</button>
+                    void run(() => sourceReviewApi.decideCandidate(document!.documentId, candidate.question, document!.rawSha256, startDate, endDate || null, "REJECT"), `Q${candidate.question} 거절 결정이 기록됐습니다.`);
+                }} className="min-h-12 rounded-control border border-border px-4 font-semibold hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">사용하지 않기</button>
               </div>
             </div>}
           </ReviewItemCard>;
         })}
-      </section>
-      <section className="rounded-card border border-border bg-surface p-5" aria-labelledby="audit-heading">
-        <h2 id="audit-heading" className="text-xl font-bold">결정 감사 기록</h2>
-        <ReviewAuditList rows={audit} />
-        <p className="mt-4 text-sm text-foreground-muted">APPROVED 기록만으로 검색이 시작되지 않습니다. READY 전환은 별도 검증 단계입니다.</p>
       </section>
       {readyEligible && <section className="rounded-card border border-border bg-surface p-5" aria-label="READY 검증">
         <h2 className="text-xl font-bold">별도 READY 검증</h2>

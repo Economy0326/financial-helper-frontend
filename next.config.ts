@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  ...(process.env.FH_UI_TEST_DIST_DIR ? {
+    distDir: process.env.FH_UI_TEST_DIST_DIR,
+    agentRules: false,
+    typescript: { tsconfigPath: `${process.env.FH_UI_TEST_DIST_DIR}.tsconfig.json` },
+  } : {}),
 };
 
 export default nextConfig;

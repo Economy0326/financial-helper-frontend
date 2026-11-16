@@ -4,27 +4,28 @@ import type { ReviewableSource } from "@/lib/api/source-review";
 
 export function SourceReviewCard({ source }: { source: ReviewableSource }) {
   const officialUrl = safeOfficialLink(source.officialUrl);
-  return <article className="rounded-card border border-border bg-surface p-5">
-    <h3 className="break-words text-lg font-bold">{source.title ?? `${source.organization} 공식자료 · 제목 확인 전`}</h3>
-    <p className="mt-2 text-sm">{source.organization} · {source.format} · 게시일 {source.publishedAt ?? "확인 전"}</p>
-    <p className="mt-1 text-sm">{source.documentId ? `판본 ${source.documentVersion} · 검토 항목 ${source.reviewItemCount}건 중 승인 ${source.approvedItemCount}건` : "아직 수집되지 않음"}</p>
-    <p className="mt-1 text-sm">{source.searchAvailable ? "검토된 검색 범위 사용 가능" : "READY 검증 전 또는 검색 범위 미확인"}</p>
-    <div className="mt-4 border-t border-border pt-3">
-      <p className="text-sm font-semibold">공식기관 원문</p>
-      {officialUrl ? <a href={officialUrl} target="_blank" rel="noopener noreferrer"
-        className="mt-2 inline-flex min-h-11 items-center rounded-control border border-border px-4 text-primary hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">공식 원문 보기 ↗ (외부 사이트)</a>
-        : <p className="mt-2 text-sm">안전한 원문 링크를 확인할 수 없습니다.</p>}
-    </div>
-    <div className="mt-4 border-t border-border pt-3">
-      <p className="text-sm font-semibold">금융도우미 검토 화면</p>
-      {source.reviewWorkflowAvailable ? <Link href={source.sourceKey === "fsc-deposit-protection-qa-pdf"
+  const detail = source.sourceKey === "fsc-deposit-protection-qa-pdf"
         ? "/official-source-review/deposit"
-        : `/official-source-review/information/${encodeURIComponent(source.sourceKey)}`}
-        className="mt-2 inline-flex min-h-12 items-center rounded-control bg-primary px-5 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">검토 화면으로 이동 →</Link>
-        : <p className="mt-2 text-sm">이 자료의 항목별 검토 UI는 아직 지원하지 않습니다.</p>}
+        : `/official-source-review/information/${encodeURIComponent(source.sourceKey)}`;
+  const remaining = Math.max(0, source.candidateItemCount - source.approvedItemCount - source.rejectedItemCount);
+  const state = !source.documentId ? "미수집" : source.candidateItemCount === 0 ? "근거 후보 추출 전"
+    : source.searchAvailable && remaining > 0 ? "분야 검색 범위 있음 · 이 문서 검토 필요"
+      : source.searchAvailable ? "분야 검색 범위 있음 · 항목별 사용 조건 확인 필요" : remaining > 0 ? "검토 필요"
+        : source.approvedItemCount > 0 ? "승인 완료 · 활성화 전" : "사용하지 않음";
+  return <article className="rounded-card border border-border bg-surface p-4">
+    <h3 className="break-words text-lg font-bold">{source.documentId && source.reviewWorkflowAvailable
+      ? <Link href={detail} className="hover:underline focus-visible:outline-2 focus-visible:outline-primary">{source.title ?? `${source.organization} 공식자료 · 제목 확인 전`}</Link>
+      : source.title ?? `${source.organization} 공식자료 · 제목 확인 전`}</h3>
+    <p className="mt-1 text-sm">{source.organization} · 게시일 {source.publishedAt ?? "미확인"}</p>
+    <p className="mt-1 text-sm">승인 {source.approvedItemCount}/{source.candidateItemCount}건 · 검토 필요 {remaining}건 · {state}</p>
+    <div className="mt-3 flex flex-wrap items-center gap-3">
+      {source.documentId && source.reviewWorkflowAvailable && <Link href={detail}
+        className="inline-flex min-h-11 items-center rounded-control bg-primary px-4 font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">상세 검토</Link>}
+      {officialUrl && <a href={officialUrl} target="_blank" rel="noopener noreferrer"
+        className="inline-flex min-h-11 items-center rounded-control border border-border px-3 text-primary hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">공식 원문 ↗</a>}
     </div>
-    <details className="mt-4 text-sm"><summary className="cursor-pointer">자료 기술 상세</summary>
-      <p className="break-all">Source ID: {source.sourceKey}</p>
-      {source.rawSha256 && <p className="break-all">저장된 SHA-256: {source.rawSha256}</p>}</details>
+    <details className="mt-2 text-sm"><summary className="cursor-pointer">기술 상세</summary>
+      <p>검토표 기록 {source.reviewItemCount}건 (PENDING 포함, 결정 감사와 별개) · 판본 {source.documentVersion ?? "없음"} · Source ID {source.sourceKey}</p>
+      {source.rawSha256 && <p className="break-all">SHA-256: {source.rawSha256}</p>}</details>
   </article>;
 }

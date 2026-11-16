@@ -47,10 +47,10 @@ export type ReviewWorkItem = { id: string; title: string; status: string };
 
 /** The caller supplies persisted review states; no change-detection status is inferred here. */
 export function ReviewWorkQueue({ items }: { items: ReviewWorkItem[] }) {
-  const waiting = items.filter((item) => item.status === "PENDING" || item.status === "REJECTED" || item.status === "REVOKED");
+  const waiting = items.filter((item) => item.status === "PENDING" || item.status === "REVOKED");
   return <section aria-labelledby="review-work-heading" className="rounded-card border border-border bg-surface p-5">
     <h2 id="review-work-heading" className="text-xl font-bold">이 문서에서 처리할 항목</h2>
-    {waiting.length === 0 ? <p className="mt-2">현재 검토 대기 또는 거절·철회된 항목이 없습니다.</p>
+    {waiting.length === 0 ? <p className="mt-2">현재 검토 대기 또는 철회된 항목이 없습니다.</p>
       : <ul className="mt-3 space-y-2">{waiting.map((item) => <li key={item.id}>
         <a href={`#${item.id}`} className="inline-flex min-h-11 items-center rounded-control border border-border px-3 font-semibold text-primary hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           {item.title} · {reviewStatusLabel(item.status)} 항목으로 이동
@@ -81,12 +81,12 @@ export function SourceText({ body, squareParagraphGlyph = false }: { body: strin
   })}</div>;
 }
 
-export function ReviewItemCard({ id, title, status, location, body, context, audit, squareParagraphGlyph, children }: {
+export function ReviewItemCard({ id, title, status, usageState, location, body, context, audit, squareParagraphGlyph, children }: {
   id?: string; title: string; status: string; location: { pageReference: string; locator: string };
-  body: string; context: string[]; audit: AuditEntry[]; squareParagraphGlyph?: boolean; children?: ReactNode;
+  usageState?: string; body: string; context: string[]; audit: AuditEntry[]; squareParagraphGlyph?: boolean; children?: ReactNode;
 }) {
   return <article id={id} className="scroll-mt-6 rounded-card border border-border bg-surface p-5">
-    <h3 className="text-lg font-bold">{title} <span className="text-sm font-normal">· {reviewStatusLabel(status)}</span></h3>
+    <h3 className="text-lg font-bold">{title} <span className="text-sm font-normal">· {usageState ?? reviewStatusLabel(status)}</span></h3>
     <SourceLocation {...location} />
     <details className="mt-3" open={status === "PENDING"}>
       <summary className="cursor-pointer font-semibold">공식 원문 전체 읽기</summary>

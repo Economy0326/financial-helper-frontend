@@ -19,6 +19,33 @@ loaded.paths = Module._nodeModulePaths(path.dirname(file));
 loaded._compile(output, file);
 const { SourceText, SourceLocation, ReviewProgress, ReviewWorkQueue, auditsForQuestion, ReviewAuditList } = loaded.exports;
 
+test("candidate decisions submit the document and claim without a prepare request", async () => {
+  const apiFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../src/lib/api/source-review.ts");
+  const compiled = ts.transpileModule(readFileSync(apiFile, "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  const calls = [];
+  const apiModule = new Module(apiFile);
+  apiModule.filename = apiFile;
+  apiModule.paths = Module._nodeModulePaths(path.dirname(apiFile));
+  apiModule.require = (name) => name === "./client"
+    ? { apiFetch: async (...args) => { calls.push(args); } }
+    : require(name);
+  apiModule._compile(compiled, apiFile);
+  assert.equal(calls.length, 0);
+  await apiModule.exports.sourceReviewApi.decideCandidate("doc", 2, "hash", "2025-09-01", null, "APPROVE");
+  await apiModule.exports.informationReviewApi("example").decideCandidate(
+    "doc2", "chunk", "hash2", "REJECT", [{ chunkId: "chunk", policy: "HOLD", start: null,
+      end: null, verifiedOn: null, validUntil: null }]);
+  assert.equal(calls.length, 2);
+  assert.match(calls[0][0], /deposit\/candidate-decision$/);
+  assert.equal(calls[0][1].body.conditionsReviewed, true);
+  assert.equal(calls[0][1].body.question, 2);
+  assert.match(calls[1][0], /information\/example\/candidate-decision$/);
+  assert.equal(calls[1][1].body.decision, "REJECT");
+  assert.equal(calls[1][1].body.conditionsReviewed, false);
+});
+
 test("work queue links only persisted unresolved review items", () => {
   const items = [
     { id: "review-item-1", title: "Q1", status: "APPROVED" },
@@ -27,11 +54,11 @@ test("work queue links only persisted unresolved review items", () => {
   ];
   const html = renderToStaticMarkup(React.createElement(ReviewWorkQueue, { items }));
   assert.match(html, /href="#review-item-2"/);
-  assert.match(html, /href="#review-item-3"/);
+  assert.doesNotMatch(html, /href="#review-item-3"/);
   assert.doesNotMatch(html, /href="#review-item-1"/);
   assert.match(html, /공식 원문 변경 감지는 아직 제공하지 않습니다/);
   const complete = renderToStaticMarkup(React.createElement(ReviewWorkQueue, { items: items.slice(0, 1) }));
-  assert.match(complete, /검토 대기 또는 거절·철회된 항목이 없습니다/);
+  assert.match(complete, /검토 대기 또는 철회된 항목이 없습니다/);
 });
 
 test("PDF display separates page markers and paragraph glyphs while preserving conditions and notes", () => {

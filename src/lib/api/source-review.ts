@@ -27,6 +27,7 @@ export type ReviewableSource = {
   documentVersion: number | null;
   rawSha256: string | null;
   reviewWorkflowAvailable: boolean;
+  candidateItemCount: number;
   reviewItemCount: number;
   approvedItemCount: number;
   pendingItemCount: number;
@@ -92,6 +93,13 @@ export const sourceReviewApi = {
       body: { expectedRawSha256: rawSha256, conditionsReviewed: decision === "APPROVE",
         exceptionsReviewed: decision === "APPROVE", decision },
     }),
+  decideCandidate: (documentId: string, question: number, rawSha256: string,
+      start: string, end: string | null, decision: "APPROVE" | "REJECT") =>
+    apiFetch<void>(`${base}/candidate-decision`, { method: "POST", body: {
+      documentId, question, expectedRawSha256: rawSha256, applicabilityStartDate: start,
+      applicabilityEndDate: end, conditionsReviewed: decision === "APPROVE",
+      exceptionsReviewed: decision === "APPROVE", decision,
+    } }),
   ready: (documentId: string) => apiFetch<string>(
     `${base}/ready?documentId=${encodeURIComponent(documentId)}`, { method: "POST" }),
 };
@@ -104,15 +112,34 @@ export type InformationReviewDocument = {
 export type InformationReviewCandidate = {
   chunkId: string; label: string; body: string; locator: string;
   article: string | null; page: string | null; status: string; role: "SUPPORT" | "CONDITION" | "EXCEPTION";
+  temporalAssistance: {
+    documentPublishedAt: string | null; recommendedPolicy: TemporalEvidencePolicy;
+    reason: string; truncated: boolean; currentnessNotice: string;
+    unresolvedDates: { sourceText: string; locator: string; reason: string }[];
+    mentions: { date: string; sourceText: string;
+      meaning: "PUBLICATION" | "AMENDMENT" | "EFFECTIVE" | "LAW_EFFECTIVE" | "CONTRACT" | "HISTORICAL" | "UNCLEAR";
+      sentence: string; locator: string; inClaim: boolean; hasCondition: boolean; hasException: boolean }[];
+  };
 };
 export type InformationReviewState = {
   reviewId: string; chunkId: string; status: string; rawSha256: string;
-  start: string; end: string | null; reviewedAt: string | null; revokedAt: string | null;
+  start: string | null; end: string | null; reviewedAt: string | null; revokedAt: string | null;
+  temporalPolicy: TemporalEvidencePolicy;
+  temporalVerifiedOn: string | null; temporalValidUntil: string | null;
+  temporalState: "HOLD" | "REVOKED" | "RECHECK_REQUIRED" | "REVIEW_REQUIRED" |
+    "EFFECTIVE_WINDOW_REVIEWED" | "REVIEWER_CHECK_WINDOW";
 };
+export type TemporalEvidencePolicy = "EXPLICIT_EFFECTIVE" | "VERSION_EFFECTIVE" | "CURRENT_GUIDANCE"
+  | "HISTORICAL_FACT" | "CONTRACT_DATE" | "DYNAMIC_CHECK" | "HOLD";
+export type InformationClaimScope = { chunkId: string; policy: TemporalEvidencePolicy;
+  start: string | null; end: string | null; verifiedOn: string | null; validUntil: string | null };
 export type InformationReviewAudit = {
   reviewId: string; reviewerAccountId: string; decision: string;
   reason: string; decidedAt: string; rawSha256: string;
 };
+export type ReviewCorrectionCode = "SOURCE_DATE_MISCLASSIFIED" | "SOURCE_CONTEXT_MISSING" |
+  "REVIEWER_CURRENTNESS_CHECK" | "CLAIM_OUTSIDE_SOURCE" | "CONDITION_MISSING" |
+  "EXCEPTION_MISSING" | "OTHER_SCOPE";
 export type InformationReviewGuide = {
   location: string; support: string; condition: string; exception: string;
   hold: string; dateNote: string;
@@ -132,15 +159,29 @@ export function informationReviewApi(sourceKey: string) {
       `${path}/reviews?documentId=${encodeURIComponent(documentId)}`),
     audit: (documentId: string) => apiFetch<InformationReviewAudit[]>(
       `${path}/audit?documentId=${encodeURIComponent(documentId)}`),
-    prepare: (documentId: string, rawSha256: string, start: string, end: string | null) =>
+    prepare: (documentId: string, rawSha256: string, start: string | null, end: string | null,
+      temporalPolicy: TemporalEvidencePolicy, temporalVerifiedOn: string | null, temporalValidUntil: string | null,
+      claimScopes?: InformationClaimScope[]) =>
       apiFetch<InformationReviewState[]>(`${path}/prepare`, { method: "POST", body: {
         documentId, expectedRawSha256: rawSha256,
         applicabilityStartDate: start, applicabilityEndDate: end,
+        temporalPolicy, temporalVerifiedOn, temporalValidUntil,
+        claimScopes,
       } }),
     decide: (reviewId: string, rawSha256: string, decision: "APPROVE" | "REJECT",
-      conditionsReviewed: boolean, exceptionsReviewed: boolean) =>
+      conditionsReviewed: boolean, exceptionsReviewed: boolean,
+      correctionCode?: ReviewCorrectionCode | null, evidenceLocator?: string | null) =>
       apiFetch<void>(`${path}/${encodeURIComponent(reviewId)}/decision`, { method: "POST", body: {
         expectedRawSha256: rawSha256, conditionsReviewed, exceptionsReviewed, decision,
+        correctionCode, evidenceLocator,
+      } }),
+    decideCandidate: (documentId: string, chunkId: string, rawSha256: string,
+      decision: "APPROVE" | "REJECT", claimScopes: InformationClaimScope[] | null,
+      correctionCode?: ReviewCorrectionCode | null, evidenceLocator?: string | null) =>
+      apiFetch<void>(`${path}/candidate-decision`, { method: "POST", body: {
+        documentId, chunkId, expectedRawSha256: rawSha256, decision,
+        conditionsReviewed: decision === "APPROVE", exceptionsReviewed: decision === "APPROVE",
+        claimScopes, correctionCode: correctionCode ?? null, evidenceLocator: evidenceLocator ?? null,
       } }),
     revoke: (reviewId: string) => apiFetch<void>(`${path}/${encodeURIComponent(reviewId)}/revoke`, { method: "POST" }),
     ready: (documentId: string) => apiFetch<string>(
