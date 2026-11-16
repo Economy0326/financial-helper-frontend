@@ -9,7 +9,7 @@ import {
   createEvidenceReport, getEvidenceReport, getEvidenceSnapshot, searchDocumentEvidence,
   type DocumentEvidence, type EvidenceReport, type EvidenceSnapshot,
 } from "@/lib/api/document-evidence";
-import { officialHttpsUrl, visibleReport, visibleSnapshot } from "@/lib/consultation/document-evidence-state.mjs";
+import { clarificationCondition, followUpQuery, officialHttpsUrl, visibleReport, visibleSnapshot } from "@/lib/consultation/document-evidence-state.mjs";
 
 function EvidenceList({ evidence }: { evidence: DocumentEvidence[] }) {
   return <div className="space-y-4">{evidence.map((item) => {
@@ -37,6 +37,11 @@ function QuestionFlow() {
   const [report, setReport] = useState<EvidenceReport | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [condition, setCondition] = useState<string | null>(null);
+  const [clarification, setClarification] = useState("");
+  const [followUp, setFollowUp] = useState("");
+  const [pendingQuestion, setPendingQuestion] = useState("");
+  const [applicabilityUncertain, setApplicabilityUncertain] = useState(false);
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setError("");
@@ -51,10 +56,44 @@ function QuestionFlow() {
     event.preventDefault();
     if (!question.trim()) return;
     const input = question;
-    setSnapshot(null); setReport(null); setSnapshotId(null); setReportId(null); setSubmitted("");
+    setSnapshot(null); setReport(null); setSnapshotId(null); setReportId(null); setSubmitted(""); setCondition(null); setClarification(""); setApplicabilityUncertain(false);
     void run(async () => {
       const result = await searchDocumentEvidence(input);
+      const missing = clarificationCondition(input, visibleSnapshot(result));
+      if (missing && result.snapshotId) {
+        setSnapshotId(result.snapshotId); setPendingQuestion(input); setCondition(missing); return;
+      }
       setSnapshot(result); setSnapshotId(result.snapshotId); setSubmitted(input);
+    });
+  }
+  function clarify(event: FormEvent) {
+    event.preventDefault();
+    if (!clarification.trim() || !snapshotId) return;
+    const previousId = snapshotId;
+    const combined = `${pendingQuestion} ${clarification.trim()}`;
+    setCondition(null); setSnapshot(null); setReport(null); setReportId(null); setApplicabilityUncertain(true);
+    void run(async () => {
+      const previous = await getEvidenceSnapshot(previousId);
+      if (previous.status !== "READY_CANDIDATES") { setSnapshot(previous); setSnapshotId(null); return; }
+      const result = await searchDocumentEvidence(combined);
+      setSnapshot(result); setSnapshotId(result.snapshotId); setSubmitted(combined);
+    });
+  }
+  function submitFollowUp(event: FormEvent) {
+    event.preventDefault();
+    if (!followUp.trim() || !snapshotId) return;
+    const priorId = snapshotId;
+    const followUpInput = followUp;
+    setSnapshot(null); setReport(null); setReportId(null); setCondition(null); setApplicabilityUncertain(false);
+    void run(async () => {
+      const previous = await getEvidenceSnapshot(priorId);
+      if (previous.status !== "READY_CANDIDATES") { setSnapshot(previous); setSnapshotId(null); return; }
+      const next = followUpQuery(submitted, followUpInput, visibleSnapshot(previous));
+      const result = await searchDocumentEvidence(next);
+      const missing = clarificationCondition(next, visibleSnapshot(result));
+      setSnapshotId(result.snapshotId);
+      if (missing && result.snapshotId) { setPendingQuestion(next); setClarification(""); setCondition(missing); return; }
+      setSnapshot(result); setSubmitted(next); setFollowUp("");
     });
   }
   const reportContent = visibleReport(report);
@@ -69,12 +108,31 @@ function QuestionFlow() {
     </form>
     {busy && <p role="status" className="mt-4">최신 근거를 확인하고 있어요.</p>}
     {error && <p role="alert" className="mt-4">{error}</p>}
+    {condition && <form onSubmit={clarify} className="mt-6 space-y-3 rounded-card border border-border p-4">
+      <h2 className="font-bold">답변 전 확인할 내용</h2>
+      <p>문서에 다음 조건이 있어요: {condition}</p>
+      <p>질문에 필요한 범위에서 알려 주세요. 개인정보는 입력하지 마세요. 확인해도 개인별 자격을 확정하지 않습니다.</p>
+      <label htmlFor="clarification">확인 답변</label><textarea id="clarification" value={clarification} onChange={(e) => setClarification(e.target.value)} className="block w-full border p-2" />
+      <button disabled={busy || !clarification.trim()} className="rounded-control bg-primary px-4 py-2 text-primary-foreground">확인 후 다시 검색</button>
+      <button type="button" disabled={busy || !snapshotId} className="ml-3 rounded-control border px-4 py-2" onClick={() => {
+        if (!snapshotId) return;
+        const id = snapshotId; setCondition(null); setApplicabilityUncertain(true);
+        void run(async () => { const current = await getEvidenceSnapshot(id); setSnapshot(current); setSubmitted(pendingQuestion); });
+      }}>확인하기 어려워요</button>
+    </form>}
     {snapshot?.status === "NO_MATCH" && <p role="status" className="mt-6">관련된 승인 근거를 찾지 못했어요. 질문을 바꾸어 다시 확인해 주세요.</p>}
     {snapshot && snapshot.status !== "READY_CANDIDATES" && snapshot.status !== "NO_MATCH" && <p role="status" className="mt-6">{snapshot.status === "STALE" ? "근거를 다시 확인해야 해요. 새로 검색해 주세요." : "현재 확인할 수 있는 근거가 없어요."}</p>}
+    {applicabilityUncertain && <p role="status" className="mt-4">입력한 내용만으로 개인별 적용 여부를 확인할 수 없어요. 아래 문서의 조건과 예외를 확인해 주세요.</p>}
     {evidence.length > 0 && <section className="mt-8 space-y-4"><h2 className="text-xl font-bold">확인된 문서 내용</h2>
       <p className="text-sm text-foreground-muted">문서의 내용을 보여드려요. 현재 적용 여부는 별도 확인이 필요해요.</p><EvidenceList evidence={evidence} />
     </section>}
-    {snapshotId && <div className="mt-6 flex flex-wrap gap-3">
+    {evidence.length > 0 && <form onSubmit={submitFollowUp} className="mt-6 space-y-2">
+      <label htmlFor="follow-up" className="block font-bold">답변 후 추가 질문</label>
+      <textarea id="follow-up" value={followUp} onChange={(e) => setFollowUp(e.target.value)} className="block w-full rounded-control border p-3" />
+      <p className="text-sm">추가 질문마다 최신 근거를 다시 검색해요. 개인정보는 입력하지 마세요.</p>
+      <button disabled={busy || !followUp.trim()} className="rounded-control border px-4 py-2">추가 질문하기</button>
+    </form>}
+    {snapshotId && !condition && <div className="mt-6 flex flex-wrap gap-3">
       <button disabled={busy} className="rounded-control border border-border px-4 py-3 font-semibold" onClick={() => { setSnapshot(null); setReport(null); void run(async () => setSnapshot(await getEvidenceSnapshot(snapshotId))); }}>저장된 근거 다시 확인</button>
       {snapshot?.status === "READY_CANDIDATES" && <button disabled={busy} className="rounded-control bg-primary px-4 py-3 font-bold text-primary-foreground" onClick={() => { setReport(null); void run(async () => { const value = await createEvidenceReport(snapshotId, submitted); setReport(value); setReportId(value.reportId); }); }}>결과 저장하기</button>}
     </div>}

@@ -78,7 +78,7 @@ try {
   const setCookie = await cdp("Network.setCookie", { name: "financial_helper_account", value: account, url: `http://localhost:${frontend}/`, sameSite: "Lax" });
   if (!setCookie.success) throw new Error("synthetic session cookie failed");
   await cdp("Page.enable");
-  await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `window.__testResponses=[];window.__testHttp=[];const originalFetch=window.fetch;window.fetch=async(...a)=>{try{const h=new Headers(a[1]?.headers);const csrf=h.get('X-XSRF-TOKEN');const cookies=document.cookie.split(';').map(x=>x.trim()).filter(x=>x.startsWith('XSRF-TOKEN='));const match=cookies.some(x=>decodeURIComponent(x.slice(11))===csrf);const r=await originalFetch(...a);window.__testHttp.push({path:new URL(String(a[0]),location.href).pathname,status:r.status,csrfHeader:!!csrf,csrfCookies:cookies.length,csrfMatch:match});if(String(a[0]).includes('information-evidence-snapshots')){try{window.__testResponses.push(await r.clone().json())}catch{}}return r}catch(e){window.__testHttp.push({status:'NETWORK_ERROR'});throw e}}` });
+  await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `window.__testResponses=[];window.__testHttp=[];window.__testQuestions=[];const originalFetch=window.fetch;window.fetch=async(...a)=>{try{const h=new Headers(a[1]?.headers);const csrf=h.get('X-XSRF-TOKEN');const cookies=document.cookie.split(';').map(x=>x.trim()).filter(x=>x.startsWith('XSRF-TOKEN='));const match=cookies.some(x=>decodeURIComponent(x.slice(11))===csrf);const r=await originalFetch(...a);window.__testHttp.push({path:new URL(String(a[0]),location.href).pathname,status:r.status,csrfHeader:!!csrf,csrfCookies:cookies.length,csrfMatch:match});if(String(a[0]).includes('information-evidence-snapshots')){try{if(a[1]?.body)window.__testQuestions.push(JSON.parse(a[1].body).question);window.__testResponses.push(await r.clone().json())}catch{}}return r}catch(e){window.__testHttp.push({status:'NETWORK_ERROR'});throw e}}` });
   await waitFor(async () => (await fetch(`http://localhost:${frontend}/financial-information`)).ok, "Next startup");
   if (reviewDocumentId && reviewBasisUrl) {
     await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
@@ -249,12 +249,50 @@ try {
   await setQuestion("존재하지않는합성단어");
   await waitFor(() => click("공식 근거 찾기"), "empty search button");
   await waitFor(() => evaluate("window.__testResponses.some(x=>x.status==='NO_MATCH')&&document.body.innerText.includes('승인 근거를 찾지 못했어요')"), "no evidence state");
+  // The synthetic source contains these exact PostgreSQL simple tokens.
+  await setQuestion("신규 신청할 수 있습니다");
+  await waitFor(() => click("공식 근거 찾기"), "clarification question search");
+  await waitFor(() => evaluate("!!document.querySelector('#clarification') && document.body.innerText.includes('답변 전 확인할 내용')"), "clarification appears");
+  const clarificationClaim = await evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.find(e=>e.title==='합성 안내')?.claimId");
+  if (!clarificationClaim) throw new Error('clarification claim identity missing');
+  await waitFor(() => click("확인하기 어려워요"), "clarification unavailable");
+  await waitFor(() => evaluate("document.body.innerText.includes('개인별 적용 여부를 확인할 수 없어요') && document.body.innerText.includes('확인된 문서 내용') && !document.querySelector('#clarification')"), "clarification safely deferred");
+  await setQuestion("신규 신청할 수 있습니다");
+  await waitFor(() => click("공식 근거 찾기"), "clarification retry search");
+  await waitFor(() => evaluate("!!document.querySelector('#clarification')"), "clarification retry appears");
+  await evaluate("(()=>{const e=document.querySelector('#clarification');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'2025년');e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+  await waitFor(() => click("확인 후 다시 검색"), "clarification answer search");
+  await waitFor(() => evaluate("!document.querySelector('#clarification') && document.body.innerText.includes('확인된 문서 내용') && document.body.innerText.includes('개인별 적용 여부를 확인할 수 없어요')"), "clarified result");
+  if (!(await evaluate("window.__testQuestions.includes('신규 신청할 수 있습니다 2025년')"))) throw new Error('clarification was not included in the search request');
+  if (!(await evaluate(`window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.some(e=>e.claimId===${JSON.stringify(clarificationClaim)})`))) throw new Error('clarified search changed the expected claim');
   await setQuestion("신규");
   await waitFor(() => click("공식 근거 찾기"), "search button");
   try { await waitFor(() => evaluate("document.body.innerText.includes('확인된 문서 내용')"), "real search", 45000); }
   catch { const diagnostic = await evaluate("({http:window.__testHttp,alert:document.querySelector('[role=alert]')?.innerText,status:document.querySelector('[role=status]')?.innerText})"); throw new Error(`real search: ${JSON.stringify({ ...diagnostic, requestCookies })}`); }
   const textOk = await evaluate("['신규 대출','조건','예외','2025-01-01','현재 적용 여부 미확인','합성 안내','원문 위치:'].every(t=>document.body.innerText.includes(t))");
   if (!textOk) throw new Error("source, condition, exception or time context missing");
+  if (await evaluate("!!document.querySelector('#clarification')")) throw new Error('unnecessary clarification');
+  const initialClaim = await evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.find(e=>e.title==='합성 안내')?.claimId");
+  if (!initialClaim) throw new Error('initial document claim identity missing');
+  const setFollow = (value) => evaluate(`(()=>{const e=document.querySelector('#follow-up');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  const beforeNewProduct = await evaluate("window.__testResponses.length");
+  await setFollow("그럼 예금은");
+  await waitFor(() => click("추가 질문하기"), "new product search");
+  await waitFor(() => evaluate(`window.__testResponses.length>=${beforeNewProduct + 2} && ['NO_MATCH','TEMPORARILY_UNAVAILABLE'].includes(window.__testResponses.at(-1)?.status)`), "new product without active evidence");
+  if (await evaluate(`window.__testResponses.at(-1)?.evidence?.some(e=>e.claimId===${JSON.stringify(initialClaim)})`)) throw new Error('previous product claim used for new product');
+  if (!(await evaluate("window.__testQuestions.includes('예금은')"))) throw new Error('new product was not searched independently');
+  await setQuestion("신규");
+  await waitFor(() => click("공식 근거 찾기"), "return to original product");
+  await waitFor(() => evaluate(`window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.some(e=>e.claimId===${JSON.stringify(initialClaim)}) && document.body.innerText.includes('합성 안내')`), "original product evidence restored");
+  const beforeReferential = await evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').length");
+  await setFollow("그러면 기존 계약은 제외합니다?");
+  await waitFor(() => click("추가 질문하기"), "referential follow-up");
+  await waitFor(() => evaluate(`window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').length>=${beforeReferential + 2} && window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.some(e=>e.claimId===${JSON.stringify(initialClaim)} && e.related?.some(r=>r.role==='EXCEPTION'))`), "referential claim and exception");
+  if (!(await evaluate("window.__testQuestions.includes('신규 기존 계약은 제외합니다?')"))) throw new Error('referential context was not searched');
+  const previousResponses = await evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').length");
+  await evaluate("(()=>{const e=document.querySelector('#follow-up');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'신규');e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+  await waitFor(() => click("추가 질문하기"), "follow-up search button");
+  await waitFor(() => evaluate(`window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').length>=${previousResponses + 2} && document.body.innerText.includes('확인된 문서 내용')`), "follow-up revalidation and search");
   await waitFor(() => click("저장된 근거 다시 확인"), "snapshot refresh button");
   await waitFor(() => evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').length>=2 && document.body.innerText.includes('확인된 문서 내용')"), "snapshot refresh");
   await waitFor(() => click("결과 저장하기"), "create report button");
@@ -276,18 +314,25 @@ try {
     const response = await fetch(`${base}/${suffix}`, { headers: { cookie: `financial_helper_account=${other}` } });
     if (response.status !== 404) throw new Error("cross-account access accepted");
   }
+  await waitFor(() => click("저장된 근거 다시 확인"), "restore evidence before withdrawal");
+  await waitFor(() => evaluate("!!document.querySelector('#follow-up') && document.body.innerText.includes('확인된 문서 내용')"), "follow-up before withdrawal");
   if ((await evaluate("location.href")).includes(encodeURIComponent("신규"))) throw new Error("question in URL");
   process.stdout.write("READY\n");
   const lines = createInterface({ input: process.stdin });
   const signal = await new Promise((resolve) => lines.once("line", resolve));
   lines.close();
   if (signal !== "REVOKED") throw new Error("revocation signal missing");
-  await waitFor(() => click("저장된 결과 다시 확인"), "revoked report button");
-  await waitFor(() => evaluate("document.body.innerText.includes('저장된 결과의 근거가 변경')"), "revoked report");
-  if (await evaluate("document.body.innerText.includes('신규 대출은')")) throw new Error("revoked report content visible");
-  await waitFor(() => click("저장된 근거 다시 확인"), "revoked snapshot button");
-  await waitFor(() => evaluate("document.body.innerText.includes('근거를 다시 확인해야')"), "revoked snapshot");
-  if (await evaluate("document.body.innerText.includes('신규 대출은')")) throw new Error("revoked snapshot content visible");
+  const beforeRevoked = await evaluate("window.__testQuestions.length");
+  await setFollow("그러면 제외되는 경우는?");
+  await waitFor(() => click("추가 질문하기"), "revoked follow-up");
+  await waitFor(() => evaluate("document.body.innerText.includes('근거를 다시 확인해야')"), "revoked follow-up stale");
+  if (await evaluate("document.body.innerText.includes('신규 대출은')")) throw new Error("revoked follow-up content visible");
+  if (await evaluate(`window.__testQuestions.length!==${beforeRevoked}`)) throw new Error('revoked follow-up searched before revalidation');
+  for (const suffix of [ids.snapshot, `reports/${ids.report}`]) {
+    const response = await fetch(`${base}/${suffix}`, { headers: { cookie: `financial_helper_account=${account}` } });
+    const value = await response.json();
+    if (!response.ok || value.status !== 'STALE' || value.evidence?.length || value.explanation) throw new Error('revoked stored result exposed');
+  }
   if (questionLogged) throw new Error("question appeared in browser console");
   }
 } catch (error) {

@@ -2,7 +2,22 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
-import { visibleSnapshot, visibleReport, officialHttpsUrl } from "../src/lib/consultation/document-evidence-state.mjs";
+import { clarificationCondition, followUpQuery, visibleSnapshot, visibleReport, officialHttpsUrl } from "../src/lib/consultation/document-evidence-state.mjs";
+
+test("clarification uses a real condition only for a personal applicability question", () => {
+  const evidence = [{ related: [{ role: "CONDITION", text: "신규 계약에 한함" }] }];
+  assert.equal(clarificationCondition("대출이 무엇인가요?", evidence), null);
+  assert.equal(clarificationCondition("제가 대상인가요?", []), null);
+  assert.equal(clarificationCondition("제가 대상인가요?", evidence), "신규 계약에 한함");
+  assert.equal(clarificationCondition("신규 계약에 한함, 제가 대상인가요?", evidence), null);
+});
+
+test("follow-up keeps context only for explicit referential openings", () => {
+  const evidence = [{ excerpt: "예금의 연체 중이면 조건", related: [] }];
+  assert.equal(followUpQuery("예금 질문", "그러면 연체 중이면?", evidence), "예금 질문 연체 중이면?");
+  assert.equal(followUpQuery("예금 질문", "그러면 보험은?", evidence), "보험은?");
+  assert.equal(followUpQuery("예금 질문", "보험 조건은?"), "보험 조건은?");
+});
 
 test("STALE and unknown responses cannot expose previous content", () => {
   const evidence = [{ excerpt: "old sensitive content" }];
