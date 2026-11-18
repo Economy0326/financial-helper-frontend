@@ -7,7 +7,7 @@ import { Toast } from "@/components/ui/Toast";
 import { ReviewField } from "@/components/source-review/ReviewField";
 import { ReviewSummaryCards, type ReviewBucket } from "@/components/source-review/ReviewSummaryCards";
 import { ApiResponseError } from "@/lib/api/errors";
-import { documentReviewApi, type Claim, type ClaimAudit, type DocumentSummary, type UsageReview } from "@/lib/api/document-review";
+import { documentReviewApi, type Claim, type ClaimAudit, type ClaimScope, type DocumentSummary, type UsageReview } from "@/lib/api/document-review";
 import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
 import { nearbyReviewContext } from "@/lib/consultation/reviewer-context.mjs";
 
@@ -21,6 +21,10 @@ export default function DocumentReviewPage() {
   const [doc, setDoc] = useState<DocumentSummary | null>(null);
   const [history, setHistory] = useState<UsageReview[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
+  const [claimScopes, setClaimScopes] = useState<ClaimScope[]>([]);
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+  const [scopeText, setScopeText] = useState<Record<string, string>>({});
+  const [reapproving, setReapproving] = useState<string | null>(null);
   const [claimFilter, setClaimFilter] = useState<ReviewBucket | null>(null);
   const [audit, setAudit] = useState<ClaimAudit[]>([]);
   const [usage, setUsage] = useState("HOLD");
@@ -41,7 +45,8 @@ export default function DocumentReviewPage() {
     if (!found) throw new Error("document unavailable");
     const [reviews, audits] = await Promise.all([documentReviewApi.usage(id, found.rawSha256), documentReviewApi.audit(id, found.rawSha256)]);
     const currentClaims = reviews[0]?.decision === "ALLOWED" ? await documentReviewApi.claims(id, found.rawSha256) : [];
-    setDoc(found); setHistory(reviews); setAudit(audits); setClaims(currentClaims);
+    const proposals = reviews[0]?.decision === "ALLOWED" ? await documentReviewApi.claimScopes(id, found.rawSha256) : [];
+    setDoc(found); setHistory(reviews); setAudit(audits); setClaims(currentClaims); setClaimScopes(proposals);
   }, [id]);
   useEffect(() => { const message = sessionStorage.getItem("review-toast"); if (message) { sessionStorage.removeItem("review-toast"); window.setTimeout(() => setNotice(message), 0); } }, []);
   useEffect(() => { let live = true; Promise.resolve().then(refresh).catch(() => { if (live) setError("문서를 확인할 수 없습니다. Reviewer 권한과 문서 판본을 확인해 주세요."); });
@@ -111,14 +116,30 @@ export default function DocumentReviewPage() {
       {history[0]?.decision !== "ALLOWED" ? <p>이용조건을 허용하기 전에는 Claim 검토를 준비할 수 없습니다.</p> : <button className={button} disabled={busy || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.prepare(id, doc.rawSha256); }, "검토 후보를 확인했습니다.", "prepare")}>{busyAction === "prepare" ? "후보 확인 중..." : "Claim 검토 준비"}</button>}
       {canSeeClaims && visibleClaims.length === 0 && <p>표시할 Claim이 없습니다.</p>}
       {visibleClaims.map((claim) => <article key={claim.candidateId} data-claim-bucket={claimBucket(claim)} className="space-y-3 rounded-card border border-border p-5">
+        <details><summary className="font-semibold">추가 검토 정보</summary><p>원문과 비교해 확인할 수 있는 후보만 선택해 주세요. 선택하지 않으면 미확인 상태로 남습니다.</p>
+          {claimScopes.filter((scope) => scope.claimId === claim.candidateId).map((scope) => <div key={scope.id} className="mt-2 rounded border p-3">
+            {(claim.status === "PENDING" || reapproving === claim.candidateId) && scope.reviewStatus !== "REJECTED" && <input aria-label="승인 시 이 적용 범위 확인" type="checkbox" checked={selectedScopes.includes(scope.id)} disabled={busy} onChange={(event) => setSelectedScopes((previous) => event.target.checked ? [...previous, scope.id] : previous.filter((item) => item !== scope.id))} />}
+            <span> {scope.scopeText} ({scope.reviewStatus === "CONFIRMED" ? "확인됨" : scope.reviewStatus === "REJECTED" ? "거절됨" : "미확인"})</span>
+            <details><summary>판단 근거</summary><p className="whitespace-pre-wrap">{scope.evidenceText}</p></details>
+            {scope.reviewStatus !== "REJECTED" && claim.status === "PENDING" && <button className={button} disabled={busy} onClick={() => void act(() => documentReviewApi.decideScope(id, doc.rawSha256, scope.id, "REJECTED"), "적용 범위 후보를 거절했습니다.", `scope:${scope.id}`)}>{busyAction === `scope:${scope.id}` ? "저장 중..." : "후보 거절"}</button>}
+          </div>)}
+          {!claimScopes.some((scope) => scope.claimId === claim.candidateId) && <p>자동으로 찾은 후보가 없습니다.</p>}
+          <details><summary>원문에서 후보 추가</summary><p>앞뒤 문맥에서 범위로 검토할 원문을 드래그한 뒤 아래 버튼을 눌러 주세요. 원문 일치는 적용 범위의 의미가 확인됐다는 뜻이 아닙니다.</p>
+            <button className={button} disabled={busy} onMouseDown={(event) => event.preventDefault()} onClick={() => setScopeText((previous) => ({...previous, [claim.candidateId]: window.getSelection()?.toString() ?? ""}))}>선택한 원문 가져오기</button>
+            <p className="whitespace-pre-wrap">{scopeText[claim.candidateId] || "선택된 원문 없음"}</p>
+            <button className={button} disabled={busy || !scopeText[claim.candidateId]} onClick={() => void act(async () => { await documentReviewApi.addScopeEvidence(id, claim.candidateId, doc.rawSha256, scopeText[claim.candidateId]); setScopeText((previous) => ({...previous, [claim.candidateId]: ""})); }, "미확인 후보를 추가했습니다.", `scope-add:${claim.candidateId}`)}>{busyAction === `scope-add:${claim.candidateId}` ? "저장 중..." : "미확인 후보로 추가"}</button>
+          </details>
+          {claim.status === "APPROVED" && reapproving !== claim.candidateId && <button className={button} disabled={busy} onClick={() => setReapproving(claim.candidateId)}>적용 범위 다시 검토</button>}
+          {claim.status === "APPROVED" && reapproving === claim.candidateId && <div><p>선택한 범위로 Claim을 다시 승인합니다. 기존 검색 반영이 중단되며 새로 서비스에 반영해야 합니다.</p><button className={button} disabled={busy} onClick={() => setReapproving(null)}>취소</button><button className={button} disabled={busy || !claimScopes.some((scope) => scope.claimId === claim.candidateId && scope.reviewStatus !== "REJECTED" && selectedScopes.includes(scope.id))} onClick={() => void act(async () => { await documentReviewApi.reapproveScopes(id, claim.candidateId, doc.rawSha256, claimScopes.filter((scope) => scope.claimId === claim.candidateId && scope.reviewStatus !== "REJECTED" && selectedScopes.includes(scope.id)).map((scope) => scope.id)); setReapproving(null); }, "재승인했습니다. 서비스를 다시 반영해 주세요.", `scope-reapprove:${claim.candidateId}`)}>{busyAction === `scope-reapprove:${claim.candidateId}` ? "처리 중..." : "선택한 범위로 재승인"}</button></div>}
+        </details>
         <ReviewField label="검토 상태">{claim.status === "APPROVED" ? "승인" : claim.status === "REJECTED" ? "거절" : "검토 대기"}{claim.hold ? " (안전상 승인 제한)" : ""}</ReviewField>
         <p className="whitespace-pre-wrap"><strong>근거 발췌:</strong> {claim.body}</p>{claim.body.includes("|") && <p>표 등에서 변환된 텍스트가 포함되어 있습니다. 공식 원문과 대조해 주세요.</p>}
         <details><summary className="font-semibold">앞뒤 문맥</summary>{nearbyReviewContext(claim) ? <div className="space-y-2"><ReviewField label="앞 문맥">{nearbyReviewContext(claim)?.before || "없음"}</ReviewField><ReviewField label="뒤 문맥">{nearbyReviewContext(claim)?.after || "없음"}</ReviewField><details><summary>관련 문단 보기</summary><p className="whitespace-pre-wrap">{nearbyReviewContext(claim)?.paragraph}</p></details><p>전체 문맥은 공식 원문에서 확인해 주세요. 연결된 조건과 예외는 아래에 표시됩니다.</p></div> : <p>문맥을 표시할 수 없습니다. 공식 원문을 확인해 주세요.</p>}</details>
-        {!claim.relations.some((relation) => relation.role === "CONDITION") && <p><strong>적용 조건:</strong> 별도 연결 없음. 원문 확인 필요</p>}
-        {!claim.relations.some((relation) => relation.role === "EXCEPTION") && <p><strong>제외 및 예외:</strong> 별도 연결 없음. 원문 확인 필요</p>}
-        {claim.relations.filter((relation) => relation.role === "CONDITION" || relation.role === "EXCEPTION").map((relation, i) => <p key={`${relation.role}-${relation.start}-${i}`} className="whitespace-pre-wrap"><strong>{relation.role === "CONDITION" ? "적용 조건" : "제외 및 예외"}:</strong> {relation.text === claim.body ? "위 근거 발췌와 동일" : relation.text}{relation.ambiguous ? " (연결 확인 필요)" : ""}</p>)}
+        {claim.relations.filter((relation) => relation.role === "CONDITION" || relation.role === "EXCEPTION").map((relation, i) => claim.body.includes(relation.text) && relation.text !== claim.body
+          ? <details key={`${relation.role}-${relation.start}-${i}`}><summary className="font-semibold">{relation.role === "CONDITION" ? "적용 조건" : "제외 및 예외"} (발췌에 포함){relation.ambiguous ? " · 연결 확인 필요" : ""}</summary><p className="whitespace-pre-wrap">{relation.text}</p></details>
+          : <p key={`${relation.role}-${relation.start}-${i}`} className="whitespace-pre-wrap"><strong>{relation.role === "CONDITION" ? "적용 조건" : "제외 및 예외"}:</strong> {relation.text === claim.body ? "위 근거 발췌와 동일" : relation.text}{relation.ambiguous ? " (연결 확인 필요)" : ""}</p>)}
         <p><strong>검토 주의:</strong> {claim.hold ? "승인 제한. " : ""}{claim.holdReason || "별도 경고가 없더라도 공식 원문을 확인해 주세요."}</p>
-        {claim.status === "PENDING" && <div className="flex gap-3"><button className={button} disabled={busy || claim.hold || !doc.hashMatches || !canSeeClaims} onClick={() => void act(() => documentReviewApi.decide(id, claim.candidateId, doc.rawSha256, "APPROVE"), "Claim 승인을 기록했습니다.", `approve:${claim.candidateId}`)}>{busyAction === `approve:${claim.candidateId}` ? "승인 중..." : "승인하기"}</button>
+        {claim.status === "PENDING" && <div className="flex gap-3"><button className={button} disabled={busy || claim.hold || !doc.hashMatches || !canSeeClaims} onClick={() => void act(() => documentReviewApi.approveWithScopes(id, claim.candidateId, doc.rawSha256, claimScopes.filter((scope) => scope.claimId === claim.candidateId && scope.reviewStatus !== "REJECTED" && selectedScopes.includes(scope.id)).map((scope) => scope.id)), "Claim 승인을 기록했습니다.", `approve:${claim.candidateId}`)}>{busyAction === `approve:${claim.candidateId}` ? "승인 중..." : "승인하기"}</button>
           <button className={button} disabled={busy || !doc.hashMatches} onClick={() => { setRejecting(claim.candidateId); setClaimReason(""); }}>사용하지 않기</button></div>}
         {claim.status === "PENDING" && rejecting === claim.candidateId && <div className="space-y-2"><label className="block">사용하지 않는 이유 (선택)<textarea className="block w-full border p-2" maxLength={1000} value={claimReason} onChange={(e) => setClaimReason(e.target.value)} /></label><div className="flex gap-2"><button className={button} disabled={busy} onClick={() => { setRejecting(null); setClaimReason(""); }}>취소</button><button className={button} disabled={busy} onClick={() => void act(async () => { await documentReviewApi.decide(id, claim.candidateId, doc.rawSha256, "REJECT", claimReason); setRejecting(null); setClaimReason(""); }, "사용하지 않기 결정을 기록했습니다.", `reject:${claim.candidateId}`)}>{busyAction === `reject:${claim.candidateId}` ? "저장 중..." : "확정"}</button></div></div>}
         {claim.status === "REJECTED" && <button className={button} disabled={busy || !doc.hashMatches} onClick={() => void act(() => documentReviewApi.reconsider(id, claim.candidateId, doc.rawSha256), "다시 검토할 수 있습니다.", `reconsider:${claim.candidateId}`)}>{busyAction === `reconsider:${claim.candidateId}` ? "처리 중..." : "다시 검토하기"}</button>}

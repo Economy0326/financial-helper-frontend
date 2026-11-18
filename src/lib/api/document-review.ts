@@ -4,6 +4,7 @@ export type DocumentSummary = { documentId: string; organization: string; platfo
 export type UsageReview = { id: string; basisUrl: string; allowedScope: string; privacyReviewed: boolean; thirdPartyReviewed: boolean; decision: string; reviewerId: string; decidedAt: string; reason: string; previousReviewId: string | null };
 export type Claim = { candidateId: string; body: string; start: number; end: number; context: string; contextStart: number; publishedAt: string | null; currentApplicability: string; relations: { role: string; text: string; start: number; end: number; ambiguous: boolean }[]; hold: boolean; holdReason: string; status: string };
 export type ClaimAudit = { candidateId: string; reviewerId: string; decision: string; reason: string; decidedAt: string };
+export type ClaimScope = { id: string; claimId: string; scopeText: string; evidenceText: string; reviewStatus: string };
 export type Generation = { generationId: string; status: string; active: boolean; buildStatus: string | null };
 export type UsageDecision = { expectedRawSha256: string; documentVersion: number; basisUrl: string; scopes: string[]; privacyReviewed: boolean; thirdPartyReviewed: boolean; decision: string; reason: string; expectedPreviousReviewId: string | null };
 
@@ -25,6 +26,12 @@ export const documentReviewApi = {
   decideUsage: (id: string, body: UsageDecision) => apiFetch<UsageReview>(`${item(id)}/usage-review`, { method: "POST", body }),
   claims: (id: string, raw: string) => apiFetch<Claim[]>(`${item(id)}${hash(raw)}`, { cache: "no-store" }),
   prepare: (id: string, raw: string) => apiFetch<Claim[]>(`${item(id)}/prepare`, { method: "POST", body: { expectedRawSha256: raw } }),
+  claimScopes: (id: string, raw: string) => apiFetch<ClaimScope[]>(`${item(id)}/scope-candidates${hash(raw)}`, { cache: "no-store" }),
+  prepareClaimScopes: (id: string, raw: string) => apiFetch<ClaimScope[]>(`${item(id)}/scope-candidates/prepare`, { method: "POST", body: { expectedRawSha256: raw } }),
+  decideScope: (id: string, raw: string, scopeId: string, decision: "REJECTED") => apiFetch<void>(`${item(id)}/scope-candidates/${encodeURIComponent(scopeId)}/decision`, { method: "POST", body: { expectedRawSha256: raw, decision } }),
+  addScopeEvidence: (id: string, claimId: string, raw: string, evidenceText: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(claimId)}/scope-candidates`, { method: "POST", body: { expectedRawSha256: raw, evidenceText } }),
+  reapproveScopes: (id: string, claimId: string, raw: string, scopeCandidateIds: string[]) => apiFetch<void>(`${item(id)}/${encodeURIComponent(claimId)}/reapprove-scopes`, { method: "POST", body: { expectedRawSha256: raw, scopeCandidateIds } }),
+  approveWithScopes: (id: string, claimId: string, raw: string, scopeCandidateIds: string[]) => apiFetch<void>(`${item(id)}/${encodeURIComponent(claimId)}/decision`, { method: "POST", body: { expectedRawSha256: raw, decision: "APPROVE", scopeCandidateIds } }),
   decide: (id: string, candidate: string, raw: string, decision: "APPROVE" | "REJECT", reason?: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(candidate)}/decision`, { method: "POST", body: { expectedRawSha256: raw, decision, ...(reason === undefined ? {} : { reason }) } }),
   reconsider: (id: string, candidate: string, raw: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(candidate)}/reconsider`, { method: "POST", body: { expectedRawSha256: raw } }),
   withdraw: (id: string, candidate: string, raw: string, reason?: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(candidate)}/withdraw`, { method: "POST", body: { expectedRawSha256: raw, reason } }),
