@@ -80,7 +80,18 @@ try {
   await cdp("Page.enable");
   await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `window.__testResponses=[];window.__testHttp=[];window.__testQuestions=[];const originalFetch=window.fetch;window.fetch=async(...a)=>{try{const h=new Headers(a[1]?.headers);const csrf=h.get('X-XSRF-TOKEN');const cookies=document.cookie.split(';').map(x=>x.trim()).filter(x=>x.startsWith('XSRF-TOKEN='));const match=cookies.some(x=>decodeURIComponent(x.slice(11))===csrf);const r=await originalFetch(...a);window.__testHttp.push({path:new URL(String(a[0]),location.href).pathname,status:r.status,csrfHeader:!!csrf,csrfCookies:cookies.length,csrfMatch:match});if(String(a[0]).includes('information-evidence-snapshots')){try{if(a[1]?.body)window.__testQuestions.push(JSON.parse(a[1].body).question);window.__testResponses.push(await r.clone().json())}catch{}}return r}catch(e){window.__testHttp.push({status:'NETWORK_ERROR'});throw e}}` });
   await waitFor(async () => (await fetch(`http://localhost:${frontend}/financial-information`)).ok, "Next startup");
-  if (reviewDocumentId && reviewBasisUrl) {
+  if (process.env.FH_UI_FSC_PREVIEW_ONLY === "true") {
+    await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
+    await waitFor(() => evaluate("!![...document.querySelectorAll('summary')].find(x=>x.textContent.includes('검토할 텍스트 등록'))"), "registration control");
+    await evaluate("[...document.querySelectorAll('summary')].find(x=>x.textContent.includes('검토할 텍스트 등록')).click()");
+    await waitFor(() => evaluate("!!document.querySelector('[aria-label=\"등록 출처\"]') && window.__testHttp.some(x=>x.path.endsWith('/source-review/deposit/sources')&&x.status===200)"), "reviewer form");
+    await evaluate("(()=>{const e=document.querySelector('[aria-label=\"공식 문서 URL\"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'https://www.fsc.go.kr/no010101/86471');e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+    await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='문서 추가');if(!b||b.disabled)return false;b.click();return true})()"), "add FSC URL", 30000);
+    await waitFor(() => evaluate("document.querySelector('[aria-label=\"등록 출처\"]')?.selectedOptions[0]?.textContent.includes('86471')"), "FSC registry selected", 30000);
+    await waitFor(() => evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='제목·게시일 확인');if(!b||b.disabled)return false;b.click();return true})()"), "preview FSC metadata", 30000);
+    await waitFor(() => evaluate("document.body.innerText.includes('2026-03-17') && document.body.innerText.includes('이용조건: 미검토')"), "FSC metadata reviewed", 30000);
+    process.stdout.write("READY\n");
+  } else if (reviewDocumentId && reviewBasisUrl) {
     await cdp("Page.navigate", { url: `http://localhost:${frontend}/official-source-review/documents` });
     if (registrationRegistryId) {
       await waitFor(() => evaluate("!![...document.querySelectorAll('summary')].find(x=>x.textContent.includes('검토할 텍스트 등록'))"), "registration control");
@@ -274,6 +285,9 @@ try {
   if (await evaluate("!!document.querySelector('#clarification')")) throw new Error('unnecessary clarification');
   const initialClaim = await evaluate("window.__testResponses.filter(x=>x.status==='READY_CANDIDATES').at(-1)?.evidence?.find(e=>e.title==='합성 안내')?.claimId");
   if (!initialClaim) throw new Error('initial document claim identity missing');
+  await waitFor(() => click("근거 설명 확인하기"), "source explanation button");
+  await waitFor(() => evaluate("window.__testResponses.some(x=>x.status==='FALLBACK') && document.body.innerText.includes('원문 기반 안내')"), "external AI rights fallback");
+  if (await evaluate("document.body.innerText.includes('AI가 선택한 원문 기반 안내')")) throw new Error('fallback was labelled as AI');
   const setFollow = (value) => evaluate(`(()=>{const e=document.querySelector('#follow-up');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   const beforeNewProduct = await evaluate("window.__testResponses.length");
   await setFollow("그럼 예금은");

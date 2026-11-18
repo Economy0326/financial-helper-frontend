@@ -107,6 +107,11 @@ select {
   font: inherit;
 }
 
+:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;

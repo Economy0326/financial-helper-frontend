@@ -36,7 +36,7 @@ test("source link uses only a valid HTTPS URL without user information", () => {
   assert.equal(officialHttpsUrl("https://example.org/a"), "https://example.org/a");
 });
 
-test("frontend API functions follow the four backend paths and bodies", async () => {
+test("frontend API functions follow the backend paths and bodies", async () => {
   const calls = [];
   globalThis.__documentEvidenceFetch = async (...args) => { calls.push(args); return {}; };
   try {
@@ -48,12 +48,15 @@ test("frontend API functions follow the four backend paths and bodies", async ()
     await api.getEvidenceSnapshot("snapshot-id");
     await api.createEvidenceReport("snapshot-id", "금융 질문");
     await api.getEvidenceReport("report-id");
+    await api.explainDocumentEvidence("snapshot-id");
     assert.deepEqual(calls.map(([path]) => path), [
       "/information-evidence-snapshots", "/information-evidence-snapshots/snapshot-id",
       "/information-evidence-snapshots/snapshot-id/report", "/information-evidence-snapshots/reports/report-id",
+      "/information-evidence-snapshots/snapshot-id/explanation",
     ]);
     assert.deepEqual(calls[0][1].body, { question: "금융 질문" });
     assert.deepEqual(calls[2][1].body, { question: "금융 질문" });
+    assert.equal(calls[4][1].method, "POST");
     assert.ok(calls.every(([, options]) => options.cache === "no-store"));
   } finally { delete globalThis.__documentEvidenceFetch; }
 });
