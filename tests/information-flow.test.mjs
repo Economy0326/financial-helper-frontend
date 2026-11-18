@@ -1,0 +1,64 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { useInformationFlow as store } from "../src/lib/consultation/information-flow.ts";
+
+const result = { snapshotId: null, status: "READY_CANDIDATES", evidence: [] };
+test("old search responses cannot restore an ended flow", () => {
+  store.getState().reset();
+  const id = store.getState().begin();
+  store.getState().setExplanation({ status: "AI_EXPLANATION", explanation: "임시 설명" });
+  store.getState().reset();
+  store.getState().finish(id, result, "질문", null);
+  assert.equal(store.getState().stage, "input");
+  assert.equal(store.getState().snapshot, null);
+  assert.equal(store.getState().explanation, null);
+});
+test("previous selection discards later steps and ignores old responses", () => {
+  store.getState().reset();
+  let id = store.getState().begin();
+  store.getState().finish(id, result, "질문", "첫 조건");
+  assert.equal(store.getState().answer("답변"), "질문 답변");
+  id = store.getState().begin();
+  store.getState().finish(id, result, "질문 답변", "다음 조건");
+  assert.equal(store.getState().stage, "clarification");
+  const old = store.getState().begin();
+  store.getState().previous();
+  store.getState().finish(old, result, "오래된 응답", null);
+  assert.equal(store.getState().condition, "첫 조건");
+  assert.equal(store.getState().steps.length, 0);
+  assert.deepEqual(store.getState().snapshot, result);
+});
+test("repeating the same clarification does not loop", () => {
+  store.getState().reset();
+  let id = store.getState().begin();
+  store.getState().finish(id, result, "질문", "조건");
+  store.getState().answer("답변");
+  id = store.getState().begin();
+  store.getState().finish(id, result, "질문 답변", "조건");
+  assert.equal(store.getState().stage, "result");
+});
+test("ambiguous searches can request detail without inventing options", () => {
+  store.getState().reset();
+  const id = store.getState().begin();
+  store.getState().finish(id, { snapshotId: null, status: "NEEDS_CLARIFICATION", evidence: [] }, "질문", "추가 정보");
+  assert.equal(store.getState().stage, "clarification");
+  assert.equal(store.getState().condition, "추가 정보");
+  store.getState().stop();
+  assert.equal(store.getState().stage, "stop");
+  store.getState().resume();
+  assert.equal(store.getState().stage, "clarification");
+});
+test("subject and purpose steps can be revisited without retaining later choices", () => {
+  store.getState().reset();
+  const subject = { status: "NEEDS_CLARIFICATION", snapshotId: null, evidence: [], options: [{ label: "대상", title: "대상", purpose: null }] };
+  const purpose = { status: "NEEDS_CLARIFICATION", snapshotId: null, evidence: [], options: [{ label: "서류", title: "대상", purpose: "필요 서류" }] };
+  let id = store.getState().begin(); store.getState().finish(id, subject, "질문", "추가 정보");
+  store.getState().answer("대상");
+  id = store.getState().begin(); store.getState().finish(id, purpose, "질문", "추가 정보");
+  assert.equal(store.getState().stage, "clarification");
+  store.getState().answer("서류");
+  id = store.getState().begin(); store.getState().finish(id, result, "질문", null);
+  store.getState().previous(); assert.deepEqual(store.getState().snapshot, purpose);
+  store.getState().previous(); assert.deepEqual(store.getState().snapshot, subject);
+  assert.equal(store.getState().steps.length, 0);
+});

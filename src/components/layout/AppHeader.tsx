@@ -27,6 +27,8 @@ export function AppHeader({
         </Link>
 
         <nav aria-label="주요 메뉴" className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <Link href="/faq" className="px-2 py-2 font-bold text-primary">자주 묻는 질문</Link>
+          {authenticated && <Link href="/reports" className="px-2 py-2 font-bold text-primary">내 금융정보</Link>}
           <Link
             href={authenticated ? "/account" : "/auth/login"}
             className="inline-flex min-h-12 items-center rounded-control px-3 py-2 text-base font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"

@@ -10,6 +10,22 @@ export function officialHttpsUrl(value) {
   return safeOfficialLink(value);
 }
 
+// Deduplicate only identical evidence and relations; different conditions remain separate.
+export function groupEvidence(evidence) {
+  const groups = new Map();
+  for (const item of evidence) {
+    const key = JSON.stringify([item.documentId, item.documentVersion, item.officialUrl, item.currentApplicability]);
+    if (!groups.has(key)) groups.set(key, { source: item, items: [], seen: new Set() });
+    const group = groups.get(key);
+    const identity = JSON.stringify([item.excerpt, (item.related ?? []).map(part => [part.role, part.text])]);
+    if (!group.seen.has(identity)) { group.seen.add(identity); group.items.push(item); }
+  }
+  return [...groups.values()].map(({ source, items }) => ({ source, items }));
+}
+export function relationIsInExcerpt(excerpt, text) {
+  return typeof excerpt === "string" && typeof text === "string" && text.trim().length > 0 && excerpt.includes(text);
+}
+
 // Ask only when the user asks about their own eligibility and a retrieved
 // claim actually contains a condition. This does not decide eligibility.
 export function clarificationCondition(question, evidence) {

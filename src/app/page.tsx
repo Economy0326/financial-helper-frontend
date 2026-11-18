@@ -42,9 +42,9 @@ export default function Home() {
           <p className="mt-1 text-sm text-foreground-muted">주제별 공식 근거의 제공 범위는 확인 중이에요.</p>
         </section>
 
-        <section aria-label="긴급 피해 대응" className="mt-9">
+        <section aria-label="자주 묻는 질문" className="mt-9">
           <Link
-            href="/emergency/type"
+            href="/faq"
             className="group flex min-h-18 items-center gap-3 rounded-control border border-border bg-surface px-4 py-3.5 transition-colors hover:border-danger hover:bg-danger-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-3 motion-reduce:transition-none"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center text-danger" aria-hidden="true">
@@ -55,9 +55,9 @@ export default function Home() {
               </svg>
             </span>
             <span className="min-w-0 flex-1">
-              <strong className="block text-[1.0625rem] text-foreground">긴급 피해 대응</strong>
+              <strong className="block text-[1.0625rem] text-foreground">자주 묻는 질문</strong>
               <span className="block break-keep text-base leading-6 text-foreground-muted">
-                일반 상담과 별도로 즉시 확인할 대응
+                승인된 공식 근거로 자주 묻는 내용을 확인해요
               </span>
             </span>
             <span aria-hidden="true" className="text-2xl font-medium text-foreground-muted">›</span>

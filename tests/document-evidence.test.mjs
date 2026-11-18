@@ -2,7 +2,21 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
-import { clarificationCondition, followUpQuery, visibleSnapshot, visibleReport, officialHttpsUrl } from "../src/lib/consultation/document-evidence-state.mjs";
+import { clarificationCondition, followUpQuery, visibleSnapshot, visibleReport, officialHttpsUrl, groupEvidence, relationIsInExcerpt } from "../src/lib/consultation/document-evidence-state.mjs";
+
+test("groups by source and preserves distinct conditions and exceptions", () => {
+  const base = { documentId: "doc", documentVersion: 1, officialUrl: "https://example.org/a", excerpt: "원문", related: [{ role: "CONDITION", text: "조건" }] };
+  const duplicate = { ...base, claimId: "b" };
+  const different = { ...base, claimId: "c", related: [{ role: "EXCEPTION", text: "예외" }] };
+  const other = { ...base, documentId: "other", claimId: "d" };
+  const groups = groupEvidence([{ ...base, claimId: "a" }, duplicate, different, other]);
+  assert.equal(groups.length, 2);
+  assert.equal(groups[0].items.length, 2);
+  assert.equal(groups[0].items[0].related[0].text, "조건");
+  assert.equal(groups[0].items[1].related[0].text, "예외");
+  assert.equal(relationIsInExcerpt("조건과 예외 원문", "예외"), true);
+  assert.equal(relationIsInExcerpt("조건 원문", "별도 예외"), false);
+});
 
 test("clarification uses a real condition only for a personal applicability question", () => {
   const evidence = [{ related: [{ role: "CONDITION", text: "신규 계약에 한함" }] }];
@@ -48,15 +62,23 @@ test("frontend API functions follow the backend paths and bodies", async () => {
     await api.getEvidenceSnapshot("snapshot-id");
     await api.createEvidenceReport("snapshot-id", "금융 질문");
     await api.getEvidenceReport("report-id");
-    await api.explainDocumentEvidence("snapshot-id");
+    await api.explainDocumentEvidence("snapshot-id", "request-id");
+    await api.getExplanationQuota();
+    await api.getInformationTopics();
+    await api.searchDocumentEvidence("금융 질문", { title: "제목", excerpt: "원문" });
+    await api.getExplanationQuota("snapshot-id");
     assert.deepEqual(calls.map(([path]) => path), [
       "/information-evidence-snapshots", "/information-evidence-snapshots/snapshot-id",
       "/information-evidence-snapshots/snapshot-id/report", "/information-evidence-snapshots/reports/report-id",
-      "/information-evidence-snapshots/snapshot-id/explanation",
+      "/information-evidence-snapshots/snapshot-id/explanation", "/information-evidence-snapshots/explanation-quota",
+      "/information-evidence-snapshots/topics", "/information-evidence-snapshots",
+      "/information-evidence-snapshots/explanation-quota?snapshotId=snapshot-id",
     ]);
     assert.deepEqual(calls[0][1].body, { question: "금융 질문" });
     assert.deepEqual(calls[2][1].body, { question: "금융 질문" });
     assert.equal(calls[4][1].method, "POST");
+    assert.deepEqual(calls[4][1].body, { requestId: "request-id" });
+    assert.deepEqual(calls[7][1].body, { question: "금융 질문", selection: { title: "제목", excerpt: "원문" } });
     assert.ok(calls.every(([, options]) => options.cache === "no-store"));
   } finally { delete globalThis.__documentEvidenceFetch; }
 });

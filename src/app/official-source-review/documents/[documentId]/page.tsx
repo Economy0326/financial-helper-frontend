@@ -3,6 +3,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { FaqEditor } from "@/components/source-review/FaqEditor";
 import { Toast } from "@/components/ui/Toast";
 import { ReviewField } from "@/components/source-review/ReviewField";
 import { ReviewSummaryCards, type ReviewBucket } from "@/components/source-review/ReviewSummaryCards";
@@ -93,6 +94,7 @@ export default function DocumentReviewPage() {
       <p>공식 원문과 문맥, 제3자 권리를 직접 대조해 주세요.</p>
     </header>
     {error && <p role="alert" className="text-red-700">{error}</p>}{notice && <Toast message={notice} onClose={() => setNotice("")} />}
+    <FaqEditor documentId={id} claims={claims} />
     <section className="space-y-3 rounded-card border border-border p-5"><h2 className="text-xl font-bold">문서 이용조건 검토</h2>
       <p>등록 시 확인한 범위와 서비스 활용 범위는 별도입니다.</p>
       {scopes.map(([value,label]) => <ReviewField key={value} label={label}>{history[0]?.decision === "ALLOWED" && currentScopes.has(value) ? "허용됨" : "허용되지 않음"}</ReviewField>)}
