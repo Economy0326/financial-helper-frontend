@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { useInformationFlow as store } from "../src/lib/consultation/information-flow.ts";
+import { useInformationFlow as store } from "../src/lib/financial-information/information-flow.ts";
 
 const result = { snapshotId: null, status: "READY_CANDIDATES", evidence: [] };
 test("old search responses cannot restore an ended flow", () => {

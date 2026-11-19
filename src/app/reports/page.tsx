@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { EvidenceList } from "@/components/consultation/DocumentEvidenceList";
+import { EvidenceList } from "@/components/financial-information/DocumentEvidenceList";
 import { listEvidenceReports, getEvidenceReport, deleteEvidenceReport, type ReportSummary, type EvidenceReport } from "@/lib/api/document-evidence";
 import { useSessionQuery } from "@/lib/query/session";
 

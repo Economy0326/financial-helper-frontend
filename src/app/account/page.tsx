@@ -50,18 +50,6 @@ function formatDate(value: string | null | undefined) {
       }).format(date);
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "확인 불가";
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "확인 불가"
-    : new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
-}
-
 export default function AccountPage() {
   const router = useRouter();
   const queryClient = useQueryClient();

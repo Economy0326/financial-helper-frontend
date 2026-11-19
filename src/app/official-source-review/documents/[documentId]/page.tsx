@@ -9,8 +9,8 @@ import { ReviewField } from "@/components/source-review/ReviewField";
 import { ReviewSummaryCards, type ReviewBucket } from "@/components/source-review/ReviewSummaryCards";
 import { ApiResponseError } from "@/lib/api/errors";
 import { documentReviewApi, type Claim, type ClaimAudit, type DocumentSummary, type UsageReview, type VersionComparison } from "@/lib/api/document-review";
-import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
-import { nearbyReviewContext } from "@/lib/consultation/reviewer-context.mjs";
+import { safeOfficialLink } from "@/lib/financial-information/information-links.mjs";
+import { nearbyReviewContext } from "@/lib/source-review/reviewer-context.mjs";
 
 const scopes = [["STORE", "본문 저장"], ["EXTRACT", "추출"], ["REVIEW", "검토"], ["SEARCH", "검색"], ["EXCERPT", "원문 발췌"], ["EXTERNAL_AI", "외부 AI 전달"]] as const;
 const button = "rounded-control border border-border px-4 py-2 font-semibold disabled:opacity-50";

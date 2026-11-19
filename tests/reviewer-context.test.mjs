@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nearbyReviewContext } from "../src/lib/consultation/reviewer-context.mjs";
+import { nearbyReviewContext } from "../src/lib/source-review/reviewer-context.mjs";
 
 test("review context uses adjacent sentences and verifies UTF-16 offsets", () => {
   const context = "먼 앞 문장. 바로 앞 😀 문장. 금융 근거입니다. 바로 뒤 문장. 먼 뒤 문장.";

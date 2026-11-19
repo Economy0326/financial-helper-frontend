@@ -1,5 +1,5 @@
 import type { DocumentEvidence } from "@/lib/api/document-evidence";
-import { groupEvidence, officialHttpsUrl, relationIsInExcerpt } from "@/lib/consultation/document-evidence-state.mjs";
+import { groupEvidence, officialHttpsUrl, relationIsInExcerpt } from "@/lib/financial-information/document-evidence-state.mjs";
 
 export function EvidenceList({ evidence }: { evidence: DocumentEvidence[] }) {
   return <div className="space-y-4">{groupEvidence(evidence).map(({ source, items }) => {

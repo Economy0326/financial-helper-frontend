@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { safeOfficialLink } from "../src/lib/consultation/information-links.mjs";
+import { safeOfficialLink } from "../src/lib/financial-information/information-links.mjs";
 
 test("renders only safe HTTPS source links without credentials", () => {
   assert.equal(safeOfficialLink("https://www.example.org/article#section"), "https://www.example.org/article#section");

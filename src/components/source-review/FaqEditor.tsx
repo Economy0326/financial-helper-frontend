@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listReviewerFaq, saveFaq, deleteFaq, unpublishFaq, type FaqEntry } from "@/lib/api/document-evidence";
 import type { Claim } from "@/lib/api/document-review";
-import { safeOfficialLink } from "@/lib/consultation/information-links.mjs";
+import { safeOfficialLink } from "@/lib/financial-information/information-links.mjs";
 
 export function FaqEditor({ documentId, claims, officialUrl, title, publishedAt }: { documentId: string; claims: Claim[]; officialUrl: string; title: string; publishedAt: string | null }) {
   const [items,setItems]=useState<FaqEntry[]>([]); const [error,setError]=useState(""); const [notice,setNotice]=useState("");

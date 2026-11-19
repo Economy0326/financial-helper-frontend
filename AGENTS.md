@@ -1,5 +1,12 @@
 # 금융도우미 Frontend 작업 규칙
 
+## 현재 제품 경로
+
+- `src/app/financial-information`: 질문, 추가 확인 및 공식 근거 결과.
+- `src/app/official-source-review`: 공식문서와 Claim 검토.
+- `src/app/faq`, `src/app/reports`: 공개 FAQ와 저장한 금융정보.
+- `src/lib/financial-information`, `src/lib/source-review`: 화면 상태와 검토 유틸리티.
+
 - 사용자 승인 범위의 단일 Task만 수행하고, 다음 Task를 선행 구현하지 않는다.
 - 실제 코드·API 타입·관련 테스트가 구현 상태의 Source of Truth다.
 - 문서 workspace의 `docs/architecture.md`는 Architecture 판단이 필요한 때, `docs/task-contract.md`는 현재 Task 계약이 제공된 때 명시적으로 읽는다. 두 문서의 자동 로드를 가정하지 않는다.

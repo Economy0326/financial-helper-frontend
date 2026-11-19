@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { EvidenceList } from "@/components/consultation/DocumentEvidenceList";
+import { EvidenceList } from "@/components/financial-information/DocumentEvidenceList";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { useSessionQuery } from "@/lib/query/session";
 import {
   createEvidenceReport, explainDocumentEvidence, getEvidenceReport, getEvidenceSnapshot, getExplanationQuota, getInformationTopics, searchDocumentEvidence,
-  type DocumentEvidence, type EvidenceReport, type ExplanationQuota, type ClarificationOption, type ClarificationSelection,
+  type EvidenceReport, type ExplanationQuota, type ClarificationOption, type ClarificationSelection,
 } from "@/lib/api/document-evidence";
-import { clarificationCondition, visibleReport, visibleSnapshot } from "@/lib/consultation/document-evidence-state.mjs";
+import { clarificationCondition, visibleReport, visibleSnapshot } from "@/lib/financial-information/document-evidence-state.mjs";
 
-import { useInformationFlow } from "@/lib/consultation/information-flow";
+import { useInformationFlow } from "@/lib/financial-information/information-flow";
 
 
 function QuestionFlow({ authenticated }: { authenticated: boolean }) {
@@ -39,7 +39,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
   useEffect(() => { let live = true; void getInformationTopics().then(value => { if (live) setTopics(value); }).catch(() => { if (live) setTopics([]); }); return () => { live = false; }; }, []);
   const [applicabilityUncertain, setApplicabilityUncertain] = useState(false);
 
-  useEffect(() => { flow.reset(); return () => useInformationFlow.getState().reset(); }, []); // Memory only, including on navigation.
+  useEffect(() => { useInformationFlow.getState().reset(); return () => useInformationFlow.getState().reset(); }, []);
   async function search(input: string, selection?: ClarificationSelection) {
     const id = useInformationFlow.getState().begin();
     useInformationFlow.setState({ snapshot: null });

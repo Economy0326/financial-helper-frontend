@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
-import { clarificationCondition, visibleSnapshot, visibleReport, officialHttpsUrl, groupEvidence, relationIsInExcerpt } from "../src/lib/consultation/document-evidence-state.mjs";
+import { clarificationCondition, visibleSnapshot, visibleReport, officialHttpsUrl, groupEvidence, relationIsInExcerpt } from "../src/lib/financial-information/document-evidence-state.mjs";
 
 test("groups by source and preserves distinct conditions and exceptions", () => {
   const base = { documentId: "doc", documentVersion: 1, officialUrl: "https://example.org/a", excerpt: "원문", related: [{ role: "CONDITION", text: "조건" }] };

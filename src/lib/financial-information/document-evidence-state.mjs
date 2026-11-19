@@ -1,5 +1,5 @@
 import { safeOfficialLink } from "./information-links.mjs";
-// Only explicitly valid backend states can expose evidence or report text.
+// Backend가 유효하다고 확인한 상태에서만 근거와 보고서를 표시한다.
 export function visibleSnapshot(value) {
   return value?.status === "READY_CANDIDATES" && Array.isArray(value.evidence) ? value.evidence : [];
 }
