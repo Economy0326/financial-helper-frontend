@@ -33,17 +33,3 @@ export function clarificationCondition(question, evidence) {
   return evidence.flatMap(item => item.related ?? []).find(item => item.role === "CONDITION" && item.text?.trim()
     && !question.includes(item.text.trim()))?.text ?? null;
 }
-
-// Explicit new questions are searched on their own; a referential follow-up
-// may carry the earlier question, but it must still go through a fresh search.
-export function followUpQuery(previous, followUp, evidence = []) {
-  const text = followUp.trim();
-  if (!/^(그러면|그럼|그 경우|그것|그때)/.test(text)) return text;
-  const remainder = text.replace(/^(그러면|그럼|그 경우|그것|그때)\s*/, "").trim();
-  const original = evidence.map(item => [item.excerpt, ...(item.related ?? []).map(part => part.text)].join(" ")).join(" ");
-  const tokens = remainder.match(/[가-힣A-Za-z0-9]+/g) ?? [];
-  const meaningful = tokens.filter(token => !/^(경우|경우는|무엇|어떻게|인가요|되나요)$/.test(token));
-  // Do not assume that a newly mentioned product or condition belongs to the old source.
-  return meaningful.length > 0 && meaningful.every(token => original.includes(token))
-    ? `${previous.trim()} ${remainder}`.trim() : remainder;
-}

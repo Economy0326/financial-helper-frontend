@@ -11,6 +11,8 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentSummary[] | null>(null);
   const [error, setError] = useState("");
   const [rights, setRights] = useState<Record<string, boolean>>({});
+  const [groups, setGroups] = useState<Record<string, string[]>>({});
+  const [versions, setVersions] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [stage, setStage] = useState("");
   const pending = useRef(false);
@@ -20,10 +22,15 @@ export default function DocumentsPage() {
     const checks = await Promise.all(docs.map(async (doc) => {
       try { const usage = (await documentReviewApi.usage(doc.documentId, doc.rawSha256))[0];
         const scopes = usage?.allowedScope.split(",") ?? [];
-        return [doc.documentId, usage?.decision === "ALLOWED" && scopes.includes("SEARCH") && scopes.includes("EXCERPT")] as const;
-      } catch { return [doc.documentId, false] as const; }
+        const allowed = usage?.decision === "ALLOWED" && scopes.includes("SEARCH") && scopes.includes("EXCERPT");
+        const claims = allowed ? await documentReviewApi.claims(doc.documentId, doc.rawSha256) : [];
+        const available = [...new Set(claims.filter((claim) => claim.status === "APPROVED").map((claim) => claim.extractorVersion === "generic-claim-v3" ? "LATEST" : "LEGACY"))];
+        return { id: doc.documentId, allowed, available };
+      } catch { return { id: doc.documentId, allowed: false, available: [] as string[] }; }
     }));
-    setDocuments(docs); setRights(Object.fromEntries(checks));
+    setDocuments(docs); setRights(Object.fromEntries(checks.map((check) => [check.id, check.allowed])));
+    setGroups(Object.fromEntries(checks.map((check) => [check.id, check.available])));
+    setVersions(Object.fromEntries(checks.filter((check) => check.available.length === 1).map((check) => [check.id, check.available[0]])));
   }
   useEffect(() => { let live = true; Promise.resolve().then(() => { if (live) return load(); }).catch(() => { if (live) setError("문서 목록을 확인할 수 없습니다. Reviewer 권한을 확인해 주세요."); }); return () => { live = false; }; }, []);
   const eligible = (documents ?? []).filter((doc) => doc.approvedCount > 0 && doc.hashMatches && rights[doc.documentId]);
@@ -32,7 +39,12 @@ export default function DocumentsPage() {
     pending.current = true;
     setError(""); setNotice("");
     try {
-      setStage("반영 대상 확인 중..."); const generation = await documentReviewApi.prepareBatch(selected);
+      setStage("반영 대상 확인 중...");
+      const selectedVersions = Object.fromEntries(selected.map((id) => [id, versions[id]]));
+      if (await documentReviewApi.unchangedBatch(selected, selectedVersions)) {
+        setSelected([]); setNotice("이미 최신 내용이 반영되어 있습니다."); return;
+      }
+      const generation = await documentReviewApi.prepareBatch(selected, selectedVersions);
       setStage("검색 인덱스 생성 중..."); await documentReviewApi.buildBatch(generation);
       setStage("근거 검증 및 서비스 반영 중..."); await documentReviewApi.activateBatch(generation);
       setSelected([]); setNotice("서비스에 반영되었습니다.");
@@ -41,6 +53,7 @@ export default function DocumentsPage() {
       const code = cause instanceof ApiResponseError ? cause.code : null;
       setError(code === "READY_NO_ELIGIBLE_CLAIMS_OR_RIGHTS"
         ? "선택한 문서에 승인된 적격 Claim이 없거나 검색·원문 발췌 이용권이 부족합니다. 문서 상세에서 확인해 주세요."
+        : code === "READY_CLAIM_VERSION_REQUIRED" ? "각 문서에서 서비스에 반영할 후보 구분을 선택해 주세요."
         : code === "READY_INDEX_BUILD_FAILED" ? "검색 인덱스를 만들지 못했습니다. 기존 서비스 반영 상태는 유지됩니다."
         : code === "READY_ACTIVE_GENERATION_CHANGED" ? "다른 반영 작업이 먼저 완료됐습니다. 목록을 새로고침하고 다시 시도해 주세요."
         : code === "READY_EVIDENCE_CHANGED" ? "검증 중 Claim 승인 또는 문서 이용권이 변경됐습니다. 상태를 확인하고 다시 시도해 주세요."
@@ -55,10 +68,11 @@ export default function DocumentsPage() {
     {documents === null && !error && <p>문서 목록을 불러오는 중...</p>}
     {documents && <p>등록된 문서 {documents.length}건</p>}
     {notice && <Toast message={notice} onClose={() => setNotice("")} />}
-    <section className="rounded-card border border-border p-4 space-y-2"><label><input type="checkbox" disabled={!!stage || eligible.length === 0} checked={eligible.length > 0 && eligible.every((doc) => selected.includes(doc.documentId))} onChange={(event) => setSelected(event.target.checked ? eligible.map((doc) => doc.documentId) : [])} /> 반영 가능한 문서 전체 선택</label><p>선택 문서 {selected.length}건</p><p>선택 문서의 승인 Claim {(documents ?? []).filter((doc) => selected.includes(doc.documentId)).reduce((sum, doc) => sum + doc.approvedCount, 0)}건 (최종 자격은 반영 중 확인)</p><button type="button" disabled={!!stage || !selected.length} onClick={() => void activate()} className="rounded-control bg-primary px-4 py-2 font-bold text-white disabled:opacity-50">{stage || "서비스 반영 (READY)"}</button></section>
+    <section className="rounded-card border border-border p-4 space-y-2"><label><input type="checkbox" disabled={!!stage || eligible.length === 0} checked={eligible.length > 0 && eligible.every((doc) => selected.includes(doc.documentId))} onChange={(event) => setSelected(event.target.checked ? eligible.map((doc) => doc.documentId) : [])} /> 반영 가능한 문서 전체 선택</label><p>선택 문서 {selected.length}건</p><p>선택 문서의 승인 Claim {(documents ?? []).filter((doc) => selected.includes(doc.documentId)).reduce((sum, doc) => sum + doc.approvedCount, 0)}건 (최종 자격은 반영 중 확인)</p><button type="button" disabled={!!stage || !selected.length || selected.some((id) => !versions[id])} onClick={() => void activate()} className="rounded-control bg-primary px-4 py-2 font-bold text-white disabled:opacity-50">{stage || "서비스 반영 (READY)"}</button></section>
     {documents?.length === 0 && <p>등록된 문서가 없습니다.</p>}
     {documents?.map((doc) => <article key={doc.documentId} className="rounded-card border border-border bg-surface p-5">
       <label className="block mb-2"><input type="checkbox" checked={selected.includes(doc.documentId)} disabled={!!stage || !eligible.some((entry) => entry.documentId === doc.documentId)} onChange={(event) => setSelected((previous) => event.target.checked ? [...previous, doc.documentId] : previous.filter((id) => id !== doc.documentId))} /> 반영할 문서 선택</label>
+      {(groups[doc.documentId]?.length ?? 0) > 1 && <label className="block mb-2">반영할 후보 <select className="border p-2" value={versions[doc.documentId] ?? ""} onChange={(event) => setVersions((previous) => ({ ...previous, [doc.documentId]: event.target.value }))}><option value="">선택해 주세요</option><option value="LEGACY">기존 후보</option><option value="LATEST">최신 후보</option></select></label>}
       <Link href={`/official-source-review/documents/${encodeURIComponent(doc.documentId)}`} className="text-lg font-bold text-primary underline">{doc.title}</Link>
       <div className="mt-3 space-y-2"><ReviewField label="제공 기관">{doc.platformDomain === "korea.kr" ? "금융위원회" : doc.organization}</ReviewField><ReviewField label="게시 플랫폼">{doc.platformDomain === "korea.kr" ? "대한민국 정책브리핑" : doc.organization}</ReviewField><ReviewField label="게시일">{doc.publishedAt ?? "미확인"}</ReviewField><ReviewField label="Claim 검토">승인 {doc.approvedCount}건, 검토 대기 {doc.pendingCount}건</ReviewField><ReviewField label="서비스 반영">{doc.activeGenerationMembership ? "활성 세대 포함 (현재 자격 별도 확인)" : "미반영"}</ReviewField></div>
       <p className="mt-2">{doc.approvedCount === 0 ? "승인된 Claim이 없습니다." : !doc.hashMatches ? "문서 무결성을 확인할 수 없습니다." : !rights[doc.documentId] ? "검색 또는 원문 발췌 이용권 확인이 필요합니다." : "반영 대상 확인 가능"}</p>

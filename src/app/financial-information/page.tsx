@@ -20,17 +20,17 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
   const [snapshotId, setSnapshotId] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
   const [report, setReport] = useState<EvidenceReport | null>(null);
-  const [quota, setQuota] = useState<ExplanationQuota | null>(null);
-  const [quotaLoading, setQuotaLoading] = useState(authenticated);
+  const quotaKey = `${authenticated}:${snapshotId ?? ""}`;
+  const [quotaState, setQuotaState] = useState<{ key: string; value: ExplanationQuota | null }>({ key: "", value: null });
+  const quota = quotaState.key === quotaKey ? quotaState.value : null;
+  const quotaLoading = authenticated && quotaState.key !== quotaKey;
   const [explanationError, setExplanationError] = useState("");
   const explaining = useRef(false);
   useEffect(() => {
     let live = true;
-    setQuota(null);
-    setQuotaLoading(authenticated);
-    if (authenticated) void getExplanationQuota(snapshotId ?? undefined).then((value) => { if (live) setQuota(value); }).catch(() => { if (live) setQuota(null); }).finally(() => { if (live) setQuotaLoading(false); });
+    if (authenticated) void getExplanationQuota(snapshotId ?? undefined).then((value) => { if (live) setQuotaState({ key: quotaKey, value }); }).catch(() => { if (live) setQuotaState({ key: quotaKey, value: null }); });
     return () => { live = false; };
-  }, [authenticated, snapshotId]);
+  }, [authenticated, snapshotId, quotaKey]);
   const [clarification, setClarification] = useState("");
   const [retryQuestion, setRetryQuestion] = useState("");
   const [retrySelection, setRetrySelection] = useState<ClarificationSelection | undefined>();
@@ -150,7 +150,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
           setExplanation(result);
         } catch { if (useInformationFlow.getState().requestId === id) setExplanationError("설명을 불러오지 못했습니다. 위 공식 근거는 계속 확인할 수 있어요."); }
         finally {
-          try { const value = await getExplanationQuota(snapshotId); if (useInformationFlow.getState().requestId === id) setQuota(value); } catch { /* Keep the last known quota. */ }
+          try { const value = await getExplanationQuota(snapshotId); if (useInformationFlow.getState().requestId === id) setQuotaState({ key: quotaKey, value }); } catch { /* Keep the last known quota. */ }
           explaining.current = false; if (useInformationFlow.getState().requestId === id) useInformationFlow.setState({ busy: false });
         }
       })();

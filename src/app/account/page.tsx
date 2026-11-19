@@ -10,21 +10,13 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import { logout } from "@/lib/api/auth";
 import { resetClientAuthState } from "@/lib/api/client";
-import { ApiResponseError } from "@/lib/api/errors";
 import {
   useAccountConsultationHistoryQuery,
   useAccountEmergencyHistoryQuery,
   useAccountOverviewQuery,
 } from "@/lib/query/account";
-import {
-  useStartConsultationMutation,
-} from "@/lib/query/consultation";
-import {
-  getConsultationStepHref,
-} from "@/lib/consultation/navigation";
 import { useSessionQuery } from "@/lib/query/session";
 import { queryKeys } from "@/lib/query/keys";
-import { getHistoryLinks } from "@/lib/consultation/history-links.mjs";
 
 const categoryLabels: Record<string, string> = {
   INSURANCE: "보험",
@@ -32,16 +24,6 @@ const categoryLabels: Record<string, string> = {
   CARD: "카드",
   FINANCIAL_FRAUD: "송금·사기·개인정보",
   UNKNOWN: "금융 문제",
-};
-
-const stepLabels: Record<string, string> = {
-  CATEGORY: "문제 유형 선택",
-  PROBLEM_CATEGORY: "문제 유형 선택",
-  SITUATION: "상황 입력",
-  FOLLOW_UP: "추가 질문",
-  SUMMARY: "내용 확인",
-  ANALYSIS: "분석",
-  REPORT: "결과 확인",
 };
 
 const providerLabels: Record<string, string> = {
@@ -80,20 +62,6 @@ function formatDateTime(value: string | null | undefined) {
       }).format(date);
 }
 
-function getQuotaMessage(
-  used: number,
-  limit: number,
-  nextAvailableAt: string | null | undefined,
-) {
-  if (used >= limit) {
-    return nextAvailableAt
-      ? `${formatDateTime(nextAvailableAt)}부터 새 상담을 시작할 수 있어요.`
-      : "새 상담 가능 시점을 확인할 수 없어요. 기존 상담은 계속 이용할 수 있어요.";
-  }
-
-  return "지금 새 상담을 시작할 수 있어요.";
-}
-
 export default function AccountPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -109,8 +77,6 @@ export default function AccountPage() {
     0,
     authenticated,
   );
-  const startConsultationMutation =
-    useStartConsultationMutation();
   const [logoutPending, setLogoutPending] = useState(false);
 
   if (
@@ -145,7 +111,7 @@ export default function AccountPage() {
             <p className="mx-auto mt-3 max-w-[320px] break-keep leading-7 text-foreground-muted">
               로그인하면 상담 기록과
               <br />
-              이용 한도를 확인할 수 있어요.
+              저장된 기록을 확인할 수 있어요.
             </p>
             <Link
               href="/auth/login"
@@ -183,23 +149,7 @@ export default function AccountPage() {
     }
   }
 
-  function startNewConsultation(startNew: boolean) {
-    startConsultationMutation.mutate(startNew, {
-      onSuccess: (consultation) => {
-        router.replace(
-          getConsultationStepHref(consultation.currentStep),
-        );
-      },
-    });
-  }
-
-  const startError = startConsultationMutation.error;
-  const quotaExhausted = startError instanceof ApiResponseError &&
-    startError.code === "ACCOUNT_NEW_CONSULTATION_QUOTA_EXHAUSTED";
-
-  const completedHistory = history.data?.content.filter(
-    (item) => getHistoryLinks(item).length > 0,
-  );
+  const completedHistory = history.data?.content;
 
   return (
     <div className="min-h-screen bg-background">
@@ -212,100 +162,26 @@ export default function AccountPage() {
             내 금융상담
           </h1>
           <p className="mt-2 break-keep leading-7 text-foreground-muted">
-            진행 중인 상담과 지난 결과를 확인하세요.
+            지난 상담과 긴급 대응 기록을 확인하세요.
           </p>
           <p className="mt-2 text-foreground-muted">
             {providerLabels[data.provider] ?? "소셜"} 계정으로 로그인되어 있어요.
           </p>
         </header>
 
-        <section
-          aria-labelledby="account-quota-heading"
-          className="mt-7 border-y border-border py-5"
-        >
-          <h2 id="account-quota-heading" className="text-lg font-bold">
-            이용 한도
-          </h2>
-          <p className="mt-2 text-2xl font-bold text-primary">
-            최근 7일 상담 {data.quota.used} / {data.quota.limit}
+        <section className="mt-7 rounded-card border border-border p-5">
+          <h2 className="text-lg font-bold">지난 상담 기록</h2>
+          <p className="mt-2 break-keep leading-7 text-foreground-muted">
+            기존 상담 시작 기능은 종료되었으며 아래에서 저장된 기록을 확인할 수 있어요.
+            새 질문은 금융정보 질문하기에서 시작해 주세요.
           </p>
-          <p className="mt-2 break-keep text-[0.9375rem] leading-6 text-foreground-muted">
-            {getQuotaMessage(
-              data.quota.used,
-              data.quota.limit,
-              data.quota.nextAvailableAt,
-            )}
-          </p>
+          {data.activeConsultation ? (
+            <p className="mt-2 text-sm text-foreground-muted">완료하지 않은 이전 상담도 보존되어 있어요. 상세 조회는 아직 지원되지 않아요.</p>
+          ) : null}
+          <Link href="/financial-information" className="mt-4 inline-flex min-h-12 items-center rounded-control bg-primary px-5 font-semibold text-primary-foreground">
+            금융정보 질문하기
+          </Link>
         </section>
-
-        {data.activeConsultation ? (
-          <section className="mt-5 rounded-card border border-primary bg-primary-subtle p-5 sm:p-6">
-            <h2 className="text-lg font-bold">진행 중인 상담</h2>
-            <p className="mt-2 break-keep leading-7">
-              {categoryLabels[data.activeConsultation.category ?? "UNKNOWN"] ??
-                "금융 문제"} 상담 · {stepLabels[data.activeConsultation.currentStep] ??
-                "상담 진행 중"}
-            </p>
-            <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
-              새 상담을 시작하면 현재 진행 중인 상담은 종료돼요.
-            </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href={getConsultationStepHref(
-                  data.activeConsultation.currentStep,
-                )}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
-              >
-                이어서 하기
-              </Link>
-              <button
-                type="button"
-                disabled={startConsultationMutation.isPending}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-control border border-primary px-5 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
-                onClick={() => startNewConsultation(true)}
-              >
-                {startConsultationMutation.isPending
-                  ? "새 상담 준비 중..."
-                  : "새 상담 시작"}
-              </button>
-            </div>
-          </section>
-        ) : (
-          <section className="mt-6 border-b border-border pb-6">
-            <h2 className="text-lg font-bold">새 상담</h2>
-            <p className="mt-2 text-foreground-muted">
-              새로운 금융 상담을 시작해 보세요.
-            </p>
-            <button
-              type="button"
-              disabled={startConsultationMutation.isPending}
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-5 font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto"
-              onClick={() => startNewConsultation(false)}
-            >
-              {startConsultationMutation.isPending
-                ? "새 상담 준비 중..."
-                : "새 상담 시작"}
-            </button>
-          </section>
-        )}
-
-        {startConsultationMutation.isError ? (
-          <div
-            role="alert"
-            className="mt-5 rounded-control border border-danger bg-surface-subtle p-4"
-          >
-            <p className="font-semibold text-danger">
-              {quotaExhausted
-                ? "최근 7일 새 상담 한도를 모두 사용했어요."
-                : "새 상담을 시작하지 못했어요."}
-            </p>
-            <p className="mt-2 break-keep text-sm leading-6 text-foreground-muted">
-              {quotaExhausted
-                ? "완료된 상담과 지난 결과는 상담 내역에서 계속 확인할 수 있어요."
-                : "잠시 후 다시 시도해 주세요."}
-            </p>
-          </div>
-        ) : null}
 
         <section
           aria-labelledby="completed-consultations-heading"
@@ -340,8 +216,6 @@ export default function AccountPage() {
           ) : completedHistory && completedHistory.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
               {completedHistory.map((item) => {
-                const links = getHistoryLinks(item);
-                const informationOnly = links.length === 1 && links[0].kind === "INFORMATION";
                 return <li key={item.consultationId} className="py-1 first:pt-0 last:pb-0">
                   <div className="flex min-h-18 items-center justify-between gap-4 px-1 py-3">
                     <span className="min-w-0">
@@ -349,16 +223,13 @@ export default function AccountPage() {
                         {categoryLabels[item.category ?? "UNKNOWN"] ?? "금융 문제"} 상담
                       </strong>
                       <span className="mt-1 block text-[0.9375rem] text-foreground-muted">
-                        {informationOnly ? "공식 정보 결과 · " : ""}
-                        {formatDate((informationOnly ? item.informationReportGeneratedAt : item.reportGeneratedAt) ?? item.updatedAt)}
+                        {formatDate(item.reportGeneratedAt ?? item.informationReportGeneratedAt ?? item.updatedAt)}
                       </span>
                     </span>
                   </div>
-                  <div className="flex flex-col gap-2 pb-3 sm:flex-row">
-                    {links.map((link) => <Link key={link.kind} href={link.href} className="inline-flex min-h-12 items-center justify-center rounded-control border border-border-strong bg-surface px-4 py-2 text-center font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:w-auto">
-                      {link.kind === "INFORMATION" ? "공식 정보 결과 보기" : "행동 안내 결과 보기"}
-                    </Link>)}
-                  </div>
+                  <p className="pb-3 text-sm text-foreground-muted">
+                    이전 상담의 상세 내용은 현재 확인할 수 없어요.
+                  </p>
                 </li>;
               })}
             </ul>
