@@ -22,6 +22,8 @@ export const documentReviewApi = {
   registerText: (body: { registryId: string; html: string; title: string; publishedAt: string | null; basisUrl: string; reason: string; privacyReviewed: boolean; thirdPartyReviewed: boolean; storageApproved: boolean }) =>
     apiFetch<{ documentId: string; sourceVerification: string; contentReview: string }>(`${root}/text-registration`, { method: "POST", body }),
   documents: () => apiFetch<DocumentSummary[]>(root, { cache: "no-store" }),
+  changeStatus: (id: string) => apiFetch<{ checkedAt: string | null; result: string; changeDetected: boolean }>(`${item(id)}/change-status`, { cache: "no-store" }),
+  checkChange: (id: string) => apiFetch<{ checkedAt: string | null; result: string; changeDetected: boolean }>(`${item(id)}/change-check`, { method: "POST", cache: "no-store" }),
   usage: (id: string, raw: string) => apiFetch<UsageReview[]>(`${item(id)}/usage-review${hash(raw)}`, { cache: "no-store" }),
   decideUsage: (id: string, body: UsageDecision) => apiFetch<UsageReview>(`${item(id)}/usage-review`, { method: "POST", body }),
   claims: (id: string, raw: string) => apiFetch<Claim[]>(`${item(id)}${hash(raw)}`, { cache: "no-store" }),

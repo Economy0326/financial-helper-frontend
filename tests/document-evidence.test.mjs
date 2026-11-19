@@ -55,7 +55,7 @@ test("frontend API functions follow the backend paths and bodies", async () => {
     await api.getEvidenceSnapshot("snapshot-id");
     await api.createEvidenceReport("snapshot-id", "금융 질문");
     await api.getEvidenceReport("report-id");
-    await api.explainDocumentEvidence("snapshot-id", "request-id");
+    await api.explainDocumentEvidence("snapshot-id", "request-id", "금융 질문");
     await api.getExplanationQuota();
     await api.getInformationTopics();
     await api.searchDocumentEvidence("금융 질문", { title: "제목", excerpt: "원문" });
@@ -70,7 +70,7 @@ test("frontend API functions follow the backend paths and bodies", async () => {
     assert.deepEqual(calls[0][1].body, { question: "금융 질문" });
     assert.deepEqual(calls[2][1].body, { question: "금융 질문" });
     assert.equal(calls[4][1].method, "POST");
-    assert.deepEqual(calls[4][1].body, { requestId: "request-id" });
+    assert.deepEqual(calls[4][1].body, { requestId: "request-id", question: "금융 질문" });
     assert.deepEqual(calls[7][1].body, { question: "금융 질문", selection: { title: "제목", excerpt: "원문" } });
     assert.ok(calls.every(([, options]) => options.cache === "no-store"));
   } finally { delete globalThis.__documentEvidenceFetch; }

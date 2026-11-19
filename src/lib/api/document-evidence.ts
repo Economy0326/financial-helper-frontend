@@ -22,8 +22,8 @@ export const searchDocumentEvidence = (question: string, selection?: Clarificati
   apiFetch<EvidenceSnapshot>(root, { method: "POST", body: selection ? { question, selection } : { question }, cache: "no-store" });
 export const getEvidenceSnapshot = (id: string) =>
   apiFetch<EvidenceSnapshot>(`${root}/${encodeURIComponent(id)}`, { cache: "no-store" });
-export const explainDocumentEvidence = (id: string, requestId: string) =>
-  apiFetch<EvidenceExplanation>(`${root}/${encodeURIComponent(id)}/explanation`, { method: "POST", body: { requestId }, cache: "no-store" });
+export const explainDocumentEvidence = (id: string, requestId: string, question: string) =>
+  apiFetch<EvidenceExplanation>(`${root}/${encodeURIComponent(id)}/explanation`, { method: "POST", body: { requestId, question }, cache: "no-store" });
 export const getExplanationQuota = (snapshotId?: string) => apiFetch<ExplanationQuota>(`${root}/explanation-quota${snapshotId ? `?snapshotId=${encodeURIComponent(snapshotId)}` : ""}`, { cache: "no-store" });
 export const createEvidenceReport = (id: string, question: string) =>
   apiFetch<EvidenceReport>(`${root}/${encodeURIComponent(id)}/report`, { method: "POST", body: { question }, cache: "no-store" });

@@ -38,12 +38,13 @@ export default function DocumentReviewPage() {
   const [busyAction, setBusyAction] = useState("");
   const pending = useRef(false);
   const [notice, setNotice] = useState("");
+  const [change, setChange] = useState<{ checkedAt: string | null; result: string; changeDetected: boolean } | null>(null);
   const refresh = useCallback(async () => {
     const found = (await documentReviewApi.documents()).find((value) => value.documentId === id);
     if (!found) throw new Error("document unavailable");
-    const [reviews, audits] = await Promise.all([documentReviewApi.usage(id, found.rawSha256), documentReviewApi.audit(id, found.rawSha256)]);
+    const [reviews, audits, observation] = await Promise.all([documentReviewApi.usage(id, found.rawSha256), documentReviewApi.audit(id, found.rawSha256), documentReviewApi.changeStatus(id)]);
     const currentClaims = reviews[0]?.decision === "ALLOWED" ? await documentReviewApi.claims(id, found.rawSha256) : [];
-    setDoc(found); setHistory(reviews); setAudit(audits); setClaims(currentClaims);
+    setDoc(found); setHistory(reviews); setAudit(audits); setClaims(currentClaims); setChange(observation);
   }, [id]);
   useEffect(() => { const message = sessionStorage.getItem("review-toast"); if (message) { sessionStorage.removeItem("review-toast"); window.setTimeout(() => setNotice(message), 0); } }, []);
   useEffect(() => { let live = true; Promise.resolve().then(refresh).catch(() => { if (live) setError("문서를 확인할 수 없습니다. Reviewer 권한과 문서 판본을 확인해 주세요."); });
@@ -56,7 +57,8 @@ export default function DocumentReviewPage() {
     catch (e) {
       try { await refresh(); } catch { setClaims([]); }
       const code = e instanceof ApiResponseError ? e.code : null;
-      setError(code === "SOURCE_USAGE_TRANSITION_INVALID" ? "범위를 줄이거나 이용조건 근거를 바꾸려면 먼저 보류로 전환해 주세요."
+      setError(e instanceof Error && e.message === "SOURCE_CHANGE_CHECK_FAILED" ? "공식 문서를 조회하지 못했습니다. 잠시 후 다시 확인해 주세요."
+        : code === "SOURCE_USAGE_TRANSITION_INVALID" ? "범위를 줄이거나 이용조건 근거를 바꾸려면 먼저 보류로 전환해 주세요."
         : code === "SOURCE_REVIEW_NO_CANDIDATES" ? "최신 방식으로 검토할 후보를 찾지 못했습니다. 기존 후보는 유지됩니다."
         : code === "SOURCE_USAGE_SCOPE_INVALID" ? "저장·추출·검토 범위와 개인정보·제3자 권리 확인을 확인해 주세요."
         : code === "SOURCE_USAGE_STALE_DECISION" ? "다른 결정이 먼저 기록됐습니다. 현재 이용조건을 다시 확인해 주세요."
@@ -89,6 +91,10 @@ export default function DocumentReviewPage() {
       <ReviewField label="게시일">{doc.publishedAt ?? "미확인"}</ReviewField>
       <ReviewField label="현행성">현재 적용 여부 미확인</ReviewField>
       {link && <a className="text-primary underline" href={link} target="_blank" rel="noopener noreferrer">공식 원문 열기</a>}
+      <p><strong>원문 변경 확인:</strong> {change?.changeDetected ? "변경이 확인되어 재검토가 필요합니다." : change?.result === "UNCHANGED" ? "본문 변경 없음" : change?.result === "FAILED" ? "조회 실패" : "아직 확인하지 않음"}</p>
+      {change?.checkedAt && <p><strong>마지막 확인:</strong> {reviewTime(change.checkedAt)}</p>}
+      {change?.changeDetected && <p>기존 근거의 검색과 공개가 제한됩니다. <Link className="text-primary underline" href="/official-source-review/documents/new">문서 추가</Link>에서 같은 URL을 다시 확인하고 최신 본문과 이용조건을 검토한 뒤 등록해 주세요. 새 후보는 직접 승인하고 서비스에 반영해야 합니다.</p>}
+      <button disabled={busy} className={button} onClick={() => void act(async () => { const result = await documentReviewApi.checkChange(id); if (result.result === "FAILED") throw new Error("SOURCE_CHANGE_CHECK_FAILED"); }, "확인이 완료되었습니다.", "원문 확인 중...")}>{busyAction === "원문 확인 중..." ? busyAction : "원문 변경 확인"}</button>
       <p>공식 원문과 문맥, 제3자 권리를 직접 대조해 주세요.</p>
     </header>
     {error && <p role="alert" className="text-red-700">{error}</p>}{notice && <Toast message={notice} onClose={() => setNotice("")} />}

@@ -46,7 +46,10 @@ export default function AddDocumentPage() {
     setBusy(true); setError(""); setPreview(null); setStorage(false); setPrivacy(false); setThirdParty(false);
     try {
       const candidate = await documentReviewApi.addCandidate(newUrl.trim());
-      if (candidate.documentId) { router.push(`/official-source-review/documents/${encodeURIComponent(candidate.documentId)}`); return; }
+      if (candidate.documentId) {
+        const status = await documentReviewApi.changeStatus(candidate.documentId);
+        if (!status.changeDetected) { router.push(`/official-source-review/documents/${encodeURIComponent(candidate.documentId)}`); return; }
+      }
       const metadata = await documentReviewApi.previewCandidate(candidate.registryId);
       setSource(candidate.registryId); setPreview(metadata);
       if (metadata.licenseType === "PUBLIC_NURI_TYPE_1_TEXT") {

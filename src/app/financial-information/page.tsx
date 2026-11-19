@@ -144,7 +144,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
       const requestId = crypto.randomUUID();
       void (async () => {
         try {
-          const result = await explainDocumentEvidence(snapshotId, requestId);
+          const result = await explainDocumentEvidence(snapshotId, requestId, submitted);
           if (useInformationFlow.getState().requestId !== id) return;
           if (result.status === "STALE") { useInformationFlow.setState({ snapshot: null }); setSnapshotId(null); }
           setExplanation(result);
@@ -162,7 +162,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
     {explanation?.status === "AI_SOURCE_BOUND" && <p>AI 설명을 제공하지 못해 위 공식 원문을 안내해 드려요.</p>}
     </section>}
     {flow.stage === "result" && snapshotId && !condition && <div className="mt-6 flex flex-wrap gap-3">
-      <button disabled={busy} className="rounded-control border border-border px-4 py-3 font-semibold" onClick={() => { setReport(null); void run(async id => { const result = await getEvidenceSnapshot(snapshotId); if (useInformationFlow.getState().requestId === id) useInformationFlow.setState({ snapshot: result }); }); }}>저장된 근거 다시 확인</button>
+      <button disabled={busy} className="rounded-control border border-border px-4 py-3 font-semibold" onClick={() => { setReport(null); void run(async id => { const result = await getEvidenceSnapshot(snapshotId); if (useInformationFlow.getState().requestId === id) useInformationFlow.setState({ snapshot: result.status === "READY_CANDIDATES" ? { ...result, missingPurposes: snapshot?.missingPurposes ?? result.missingPurposes } : result }); }); }}>저장된 근거 다시 확인</button>
       {snapshot?.status === "READY_CANDIDATES" && <button disabled={busy} className="rounded-control bg-primary px-4 py-3 font-bold text-primary-foreground" onClick={() => { setReport(null); void run(async id => { const value = await createEvidenceReport(snapshotId, submitted); if (useInformationFlow.getState().requestId === id) { setReport(value); setReportId(value.reportId); } }); }}>결과 저장하기</button>}
     </div>}
     {flow.stage === "result" && reportId && <button disabled={busy} className="mt-4 rounded-control border border-border px-4 py-3 font-semibold" onClick={() => { setReport(null); void run(async id => { const value = await getEvidenceReport(reportId); if (useInformationFlow.getState().requestId === id) setReport(value); }); }}>저장된 결과 다시 확인</button>}
