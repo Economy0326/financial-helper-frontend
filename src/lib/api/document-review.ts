@@ -4,6 +4,7 @@ export type DocumentSummary = { documentId: string; organization: string; platfo
 export type UsageReview = { id: string; basisUrl: string; allowedScope: string; privacyReviewed: boolean; thirdPartyReviewed: boolean; decision: string; reviewerId: string; decidedAt: string; reason: string; previousReviewId: string | null };
 export type Claim = { candidateId: string; extractorVersion: string; body: string; start: number; end: number; context: string; contextStart: number; publishedAt: string | null; currentApplicability: string; relations: { role: string; text: string; start: number; end: number; ambiguous: boolean }[]; hold: boolean; holdReason: string; status: string };
 export type ClaimAudit = { candidateId: string; reviewerId: string; decision: string; reason: string; decidedAt: string };
+export type VersionComparison = { inheritedApproved: number; inheritedRejected: number; excludedCount: number; excludedUnavailable: boolean; excluded: { body: string; status: string; reason: string }[] };
 export type Generation = { generationId: string; status: string; active: boolean; buildStatus: string | null };
 export type UsageDecision = { expectedRawSha256: string; documentVersion: number; basisUrl: string; scopes: string[]; privacyReviewed: boolean; thirdPartyReviewed: boolean; decision: string; reason: string; expectedPreviousReviewId: string | null };
 
@@ -33,5 +34,6 @@ export const documentReviewApi = {
   reconsider: (id: string, candidate: string, raw: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(candidate)}/reconsider`, { method: "POST", body: { expectedRawSha256: raw } }),
   withdraw: (id: string, candidate: string, raw: string, reason?: string) => apiFetch<void>(`${item(id)}/${encodeURIComponent(candidate)}/withdraw`, { method: "POST", body: { expectedRawSha256: raw, reason } }),
   audit: (id: string, raw: string) => apiFetch<ClaimAudit[]>(`${item(id)}/audit${hash(raw)}`, { cache: "no-store" }),
+  comparison: (id: string, raw: string) => apiFetch<VersionComparison>(`${item(id)}/version-comparison${hash(raw)}`, { cache: "no-store" }),
   generations: (id: string, raw: string) => apiFetch<Generation[]>(`${item(id)}/generations${hash(raw)}`, { cache: "no-store" }),
 };
