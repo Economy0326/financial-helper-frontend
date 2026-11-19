@@ -17,7 +17,7 @@ export function AppHeader({
 
   return (
     <header className="border-b border-border/80 bg-background/95">
-      <div className="mx-auto flex min-h-16 w-full max-w-[72rem] items-center justify-between gap-3 px-5 sm:gap-4 sm:px-8">
+      <div className="mx-auto flex min-h-16 w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 sm:flex-nowrap sm:gap-4 sm:px-8">
         <Link
           href="/"
           className="min-w-0 rounded-md text-lg font-extrabold tracking-[-0.025em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
@@ -26,14 +26,14 @@ export function AppHeader({
           <span className="text-primary">금융</span>도우미
         </Link>
 
-        <nav aria-label="주요 메뉴" className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <Link href="/faq" className="px-2 py-2 font-bold text-primary">자주 묻는 질문</Link>
-          {authenticated && <Link href="/reports" className="px-2 py-2 font-bold text-primary">내 금융정보</Link>}
+        <nav aria-label="주요 메뉴" className="flex min-w-0 flex-wrap items-center gap-1 sm:shrink-0 sm:gap-2">
+          <Link href="/faq" className="inline-flex min-h-11 items-center px-2 py-2 font-bold text-primary">자주 묻는 질문</Link>
+          {authenticated && <Link href="/reports" className="inline-flex min-h-11 items-center px-2 py-2 font-bold text-primary">내 금융정보</Link>}
           <Link
             href={authenticated ? "/account" : "/auth/login"}
             className="inline-flex min-h-12 items-center rounded-control px-3 py-2 text-base font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           >
-            {authenticated ? "상담 내역" : "로그인"}
+            {authenticated ? "마이페이지" : "로그인"}
           </Link>
           {rightSlot ? rightSlot : null}
         </nav>

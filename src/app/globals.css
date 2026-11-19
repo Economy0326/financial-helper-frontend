@@ -107,6 +107,10 @@ select {
   font: inherit;
 }
 
+button { min-height: 44px; }
+input:not([type="checkbox"]):not([type="radio"]), select, summary { min-height: 44px; }
+main { overflow-wrap: anywhere; }
+
 :focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
