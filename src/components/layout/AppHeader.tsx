@@ -30,11 +30,11 @@ export function AppHeader({ rightSlot, logoOnly = false, confirmLeave = false }:
     finally { setPending(false); }
   }
   return <header className="bg-background">
-    <div className="mx-auto flex w-full max-w-[72rem] flex-col items-center gap-3 px-4 py-5 sm:px-8">
-      <div className="relative flex w-full justify-center"><Link href="/" onClick={event => { if (confirmLeave && !window.confirm("진행 중인 질문을 종료할까요?")) event.preventDefault(); }}
-        className="rounded-md text-xl font-extrabold tracking-tight" aria-label="금융도우미 메인으로 이동"><span className="text-primary">금융</span>도우미</Link>
-        {!logoOnly && reviewer.isSuccess && <Link className="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-semibold text-foreground sm:hidden" href="/official-source-review/documents">공식문서 관리</Link>}</div>
-      {!logoOnly && <nav aria-label="주요 메뉴" className="flex flex-nowrap items-center justify-center gap-x-2 whitespace-nowrap text-[13px] font-bold text-black sm:gap-x-6 sm:text-base">
+    <div className="mx-auto flex w-full max-w-[72rem] flex-col items-center gap-2 px-4 pt-4 pb-2 sm:px-8">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center"><Link href="/" onClick={event => { if (confirmLeave && !window.confirm("진행 중인 질문을 종료할까요?")) event.preventDefault(); }}
+        className="col-start-2 rounded-md text-xl font-extrabold tracking-tight" aria-label="금융도우미 메인으로 이동"><span className="text-primary">금융</span>도우미</Link>
+        {!logoOnly && reviewer.isSuccess && <Link className="min-w-0 justify-self-end py-2 text-right text-xs font-semibold text-foreground sm:hidden" href="/official-source-review/documents">공식문서 관리</Link>}</div>
+      {!logoOnly && <nav aria-label="주요 메뉴" className="flex max-w-full flex-wrap items-center justify-center gap-x-2 whitespace-nowrap text-[13px] font-bold text-black sm:gap-x-6 sm:text-base">
         <Link className="inline-flex min-h-11 items-center px-1" href="/">메인으로</Link>
         <Link className="inline-flex min-h-11 items-center px-1" href="/faq">자주 묻는 질문</Link>
         <Link className="inline-flex min-h-11 items-center px-1" href="/reports">상담 기록</Link>

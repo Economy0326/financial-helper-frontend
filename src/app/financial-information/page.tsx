@@ -165,7 +165,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
 export default function FinancialInformationPage() {
   const session = useSessionQuery();
   const hasQuestion = useInformationFlow(state => !state.saved && Boolean(state.question.trim() || state.submitted));
-  return <div className="min-h-dvh bg-background"><AppHeader logoOnly confirmLeave={hasQuestion} /><main className="mx-auto max-w-3xl px-5 pb-10 pt-4 sm:pt-6">
+  return <div className="min-h-dvh bg-background"><AppHeader logoOnly confirmLeave={hasQuestion} /><main className="mx-auto max-w-3xl px-5 pb-10 pt-2 sm:pt-4">
     <h1 className="text-center text-3xl font-bold">금융정보 질문하기</h1>
     {session.isPending ? <p role="status" className="mt-6">로그인 상태를 확인하고 있어요.</p>
       : session.isError ? <p role="alert" className="mt-6">로그인 상태를 확인하지 못했어요. 다시 접속해 주세요.</p>
