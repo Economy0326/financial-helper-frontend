@@ -12,6 +12,6 @@ export default function FaqDetailPage() {
   useEffect(() => { let live = true; listFaq().then(value => { if (live) setItems(value); }).catch(() => { if (live) setError(true); }); return () => { live = false; }; }, []);
   const item = items?.find(value => value.id === id);
   return <div><AppHeader /><main className="mx-auto max-w-3xl space-y-6 px-5 py-10">
-    {error ? <p role="alert" className="text-center">질문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p> : !items ? <p role="status" className="text-center">불러오는 중...</p> : !item ? <p className="text-center">현재 확인할 수 없는 질문이에요.</p> : <><h1 className="text-center text-2xl font-bold">{item.question}</h1><EvidenceList evidence={item.evidence} /></>}
+    {error ? <p role="alert" className="text-center">질문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p> : !items ? <p role="status" className="text-center">불러오는 중...</p> : !item ? <p className="text-center">현재 확인할 수 없는 질문이에요.</p> : <><h1 className="text-center text-2xl font-bold">{item.question}</h1><EvidenceList evidence={item.evidence} bulleted /></>}
   </main></div>;
 }
