@@ -36,6 +36,7 @@ export type FaqEntry = { id: string; claimId: string | null; claimIds: string[];
 export type FaqInput = { claimId: string; claimIds?: string[]; question: string; displayOrder: number | null; published: boolean; meaningConfirmed: boolean };
 export const listFaq = () => apiFetch<FaqEntry[]>("/faq", { cache: "no-store" });
 export const listReviewerFaq = (documentId: string) => apiFetch<FaqEntry[]>(`/source-review/faq?documentId=${encodeURIComponent(documentId)}`, { cache: "no-store" });
+export const listFaqEligibleClaims = (documentId: string) => apiFetch<string[]>(`/source-review/faq/eligible-claims?documentId=${encodeURIComponent(documentId)}`, { cache: "no-store" });
 export const saveFaq = (value: FaqInput, id?: string) => apiFetch<FaqEntry>(`/source-review/faq${id ? `/${encodeURIComponent(id)}` : ""}`, { method: id ? "PUT" : "POST", body: value });
 export const deleteFaq = (id: string) => apiFetch<void>(`/source-review/faq/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const unpublishFaq = (id: string) => apiFetch<void>(`/source-review/faq/${encodeURIComponent(id)}/unpublish`, { method: "POST" });

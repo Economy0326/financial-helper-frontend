@@ -72,7 +72,6 @@ export default function DocumentsPage() {
     finally { pending.current = false; setStage(""); }
   }
   return <div className="min-h-dvh bg-background"><AppHeader /><main className="mx-auto max-w-4xl space-y-5 px-5 py-10">
-    <Link href="/" className="inline-block text-primary underline">← 돌아가기</Link>
     <header className="flex flex-wrap items-center justify-between gap-4"><h1 className="text-3xl font-bold">공식문서 관리</h1><Link href="/official-source-review/documents/new" className="rounded-control bg-primary px-4 py-2 font-bold text-white">문서 추가</Link></header>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {documents === null && !error && <p>문서 목록을 불러오는 중...</p>}
