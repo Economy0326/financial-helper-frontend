@@ -33,7 +33,7 @@ export type ReportSummary = { reportId: string; question: string; createdAt: str
 export const listEvidenceReports = () => apiFetch<ReportSummary[]>(`${root}/reports`, { cache: "no-store" });
 export const deleteEvidenceReport = (id: string) => apiFetch<void>(`${root}/reports/${encodeURIComponent(id)}`, { method: "DELETE" });
 export type FaqEntry = { id: string; claimId: string | null; claimIds: string[]; question: string; displayOrder: number; published: boolean; evidence: DocumentEvidence[] };
-export type FaqInput = { claimId: string; claimIds?: string[]; question: string; displayOrder: number; published: boolean; meaningConfirmed: boolean };
+export type FaqInput = { claimId: string; claimIds?: string[]; question: string; displayOrder: number | null; published: boolean; meaningConfirmed: boolean };
 export const listFaq = () => apiFetch<FaqEntry[]>("/faq", { cache: "no-store" });
 export const listReviewerFaq = (documentId: string) => apiFetch<FaqEntry[]>(`/source-review/faq?documentId=${encodeURIComponent(documentId)}`, { cache: "no-store" });
 export const saveFaq = (value: FaqInput, id?: string) => apiFetch<FaqEntry>(`/source-review/faq${id ? `/${encodeURIComponent(id)}` : ""}`, { method: id ? "PUT" : "POST", body: value });

@@ -14,6 +14,7 @@ import { nearbyReviewContext } from "@/lib/source-review/reviewer-context.mjs";
 
 const scopes = [["STORE", "본문 저장"], ["EXTRACT", "추출"], ["REVIEW", "검토"], ["SEARCH", "검색"], ["EXCERPT", "원문 발췌"], ["EXTERNAL_AI", "외부 AI 전달"]] as const;
 const button = "rounded-control border border-border px-4 py-2 font-semibold disabled:opacity-50";
+const secondaryButton = "rounded-control bg-primary-subtle px-4 py-2 font-semibold text-primary disabled:opacity-50";
 const reviewTime = (value: string) => new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const decisionLabel = (value: string) => ({ APPROVED: "승인", REJECTED: "거절", REVOKED: "철회", PENDING: "검토 대기", HOLD: "보류", ALLOWED: "허용" }[value] ?? "상태 확인 필요");
 
@@ -76,6 +77,7 @@ export default function DocumentReviewPage() {
   const canSeeClaims = history[0]?.decision === "ALLOWED";
   const currentScopes = new Set((history[0]?.allowedScope?.split(",") ?? []).flatMap((scope) => scope === "STORE_EXTRACT_REVIEW" ? ["STORE", "EXTRACT", "REVIEW"] : [scope]));
   const hasLatestClaims = claims.some(claim => claim.extractorVersion === "generic-claim-v3");
+  const hasLegacyClaims = claims.some(claim => claim.extractorVersion !== "generic-claim-v3");
   const visibleClaims = claims.filter((claim) => (!claimFilter || claimBucket(claim) === claimFilter)
     && (versionFilter === "all" || (versionFilter === "latest" && !hasLatestClaims) || (versionFilter === "latest") === (claim.extractorVersion === "generic-claim-v3")));
   const summaryClaims = hasLatestClaims ? claims.filter(claim => claim.extractorVersion === "generic-claim-v3") : claims;
@@ -86,12 +88,12 @@ export default function DocumentReviewPage() {
   return <div className="min-h-dvh bg-background"><AppHeader /><main className="mx-auto max-w-4xl space-y-8 px-5 py-10">
     <Link href="/official-source-review/documents" className="inline-block text-primary underline">← 공식문서 관리로 돌아가기</Link>
     <ReviewSummaryCards selected={claimFilter} onSelect={selectClaimFilter} items={[
-      { key: "pending", label: "검토 필요", count: canSeeClaims ? summaryClaims.filter((claim) => claimBucket(claim) === "pending").length : null },
+      { key: "pending", label: "검토", count: canSeeClaims ? summaryClaims.filter((claim) => claimBucket(claim) === "pending").length : null },
       { key: "approved", label: "승인", count: canSeeClaims ? summaryClaims.filter((claim) => claimBucket(claim) === "approved").length : null },
-      { key: "rejected", label: "사용 안 함", count: canSeeClaims ? summaryClaims.filter((claim) => claimBucket(claim) === "rejected").length : null },
+      { key: "rejected", label: "거절", count: canSeeClaims ? summaryClaims.filter((claim) => claimBucket(claim) === "rejected").length : null },
     ]} />
     {hasLatestClaims && <p className="text-sm">검토 현황은 최신 추출 후보를 기준으로 표시합니다.</p>}
-    {comparison && <div className="space-y-2"><p>승인 승계 {comparison.inheritedApproved}건, 거절 승계 {comparison.inheritedRejected}건</p><button type="button" className="text-sm text-primary underline" aria-expanded={showExcluded} onClick={() => setShowExcluded(value => !value)}>사용 제외 ({comparison.excludedCount})</button>{showExcluded && <div className="space-y-3">{comparison.excludedUnavailable ? <p>기존 문서의 이용조건 또는 원문 무결성을 확인할 수 없어 내용을 표시하지 않습니다.</p> : comparison.excluded.length === 0 ? <p>표시할 근거가 없습니다.</p> : comparison.excluded.map((item, index) => <article key={index} className="rounded-card border p-4"><p><strong>기존 검토:</strong> {decisionLabel(item.status)}</p><p className="whitespace-pre-wrap">{item.body}</p><p>{item.reason}</p></article>)}</div>}</div>}
+    {comparison && <div className="space-y-2">{(comparison.inheritedApproved > 0 || comparison.inheritedRejected > 0) && <p>승인 승계 {comparison.inheritedApproved}건, 거절 승계 {comparison.inheritedRejected}건</p>}<button type="button" className="text-sm text-primary underline" aria-expanded={showExcluded} onClick={() => setShowExcluded(value => !value)}>사용 제외 ({comparison.excludedCount})</button>{showExcluded && <div className="space-y-3">{comparison.excludedUnavailable ? <p>기존 문서의 이용조건 또는 원문 무결성을 확인할 수 없어 내용을 표시하지 않습니다.</p> : comparison.excluded.length === 0 ? <p>표시할 근거가 없습니다.</p> : comparison.excluded.map((item, index) => <article key={index} className="rounded-card border p-4"><p><strong>기존 검토:</strong> {decisionLabel(item.status)}</p><p className="whitespace-pre-wrap">{item.body}</p><p>{item.reason}</p></article>)}</div>}</div>}
     <header className="space-y-3"><h1 className="break-words text-3xl font-bold">{doc.title}</h1>
       <ReviewField label="제공 기관">{doc.platformDomain === "korea.kr" ? "금융위원회" : doc.organization}</ReviewField>
       <ReviewField label="게시 플랫폼">{doc.platformDomain === "korea.kr" ? "대한민국 정책브리핑" : doc.organization}</ReviewField>
@@ -101,12 +103,11 @@ export default function DocumentReviewPage() {
       <p><strong>원문 변경 확인:</strong> {change?.changeDetected ? "변경이 확인되어 재검토가 필요합니다." : change?.result === "UNCHANGED" ? "본문 변경 없음" : change?.result === "FAILED" ? "조회 실패" : "아직 확인하지 않음"}</p>
       {change?.checkedAt && <p><strong>마지막 확인:</strong> {reviewTime(change.checkedAt)}</p>}
       {change?.changeDetected && <p>기존 근거의 검색과 공개가 제한됩니다. <Link className="text-primary underline" href="/official-source-review/documents/new">문서 추가</Link>에서 같은 URL을 다시 확인하고 최신 본문과 이용조건을 검토한 뒤 등록해 주세요. 승계 결과와 새 후보를 검토한 뒤 서비스에 직접 반영해 주세요.</p>}
-      <button disabled={busy} className={button} onClick={() => void act(async () => { const result = await documentReviewApi.checkChange(id); if (result.result === "FAILED") throw new Error("SOURCE_CHANGE_CHECK_FAILED"); }, "확인이 완료되었습니다.", "원문 확인 중...")}>{busyAction === "원문 확인 중..." ? busyAction : "원문 변경 확인"}</button>
+      <button disabled={busy} className={secondaryButton} onClick={() => void act(async () => { const result = await documentReviewApi.checkChange(id); if (result.result === "FAILED") throw new Error("SOURCE_CHANGE_CHECK_FAILED"); }, "확인이 완료되었습니다.", "원문 확인 중...")}>{busyAction === "원문 확인 중..." ? busyAction : "↻ 원문 변경 확인"}</button>
       <p>공식 원문과 문맥, 제3자 권리를 직접 대조해 주세요.</p>
     </header>
     {error && <p role="alert" className="text-red-700">{error}</p>}{notice && <Toast message={notice} onClose={() => setNotice("")} />}
-    <FaqEditor documentId={id} claims={claims} officialUrl={link ?? ""} title={doc.title} publishedAt={doc.publishedAt} />
-    <section className="space-y-3 rounded-card border border-border p-5"><h2 className="text-xl font-bold">문서 이용조건 검토</h2>
+    <section className="space-y-3"><h2 className="text-xl font-bold">문서 이용조건 검토</h2><div className="space-y-3 rounded-card border border-border p-5">
       <p>등록 시 확인한 범위와 서비스 활용 범위는 별도입니다.</p>
       {scopes.map(([value,label]) => <ReviewField key={value} label={label}>{history[0]?.decision === "ALLOWED" && currentScopes.has(value) ? "허용됨" : "허용되지 않음"}</ReviewField>)}
       {history[0] && safeOfficialLink(history[0].basisUrl) && <a className="text-primary underline" href={safeOfficialLink(history[0].basisUrl) ?? undefined} target="_blank" rel="noopener noreferrer">공식 이용조건 근거</a>}
@@ -124,10 +125,11 @@ export default function DocumentReviewPage() {
       <button className={button} disabled={busy || !basisUrl.trim() || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.decideUsage(id, { expectedRawSha256: doc.rawSha256, documentVersion: doc.documentVersion, basisUrl, scopes: selected, privacyReviewed: privacy, thirdPartyReviewed: thirdParty, decision: usage, reason, expectedPreviousReviewId: history[0]?.id ?? null }); }, "이용조건 결정이 기록되었습니다.", "usage")}>{busyAction === "usage" ? "저장 중..." : "이용조건 결정 저장"}</button>
       {history.length > 0 && <details><summary>이용조건 결정 이력</summary>{history.map((entry) => <div key={entry.id} className="mt-2"><ReviewField label="결정">{entry.decision === "REJECTED" ? "불가" : decisionLabel(entry.decision)}</ReviewField><ReviewField label="일시">{reviewTime(entry.decidedAt)}</ReviewField><ReviewField label="사유">{entry.reason}</ReviewField><ReviewField label="허용 범위">{entry.allowedScope ? entry.allowedScope.split(",").map((value) => scopes.find(([key]) => key === value)?.[1] ?? "확인 필요").join(", ") : "없음"}</ReviewField></div>)}</details>}
       </details>
-    </section>
+    </div></section>
     <section className="space-y-4"><h2 className="text-xl font-bold">Claim 원문 검토</h2>
-      {history[0]?.decision !== "ALLOWED" ? <p>이용조건을 허용하기 전에는 Claim 검토를 준비할 수 없습니다.</p> : <button className={button} disabled={busy || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.prepare(id, doc.rawSha256); }, "검토 후보를 확인했습니다.", "prepare")}>{busyAction === "prepare" ? "후보 확인 중..." : "Claim 검토 준비"}</button>}
-      {canSeeClaims && <div className="space-y-2"><button className={button} disabled={busy || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.prepareLatest(id, doc.rawSha256); }, "최신 후보를 준비했습니다. 기존 결정은 유지됩니다.", "latest")}>{busyAction === "latest" ? "후보 추출 중..." : "최신 방식으로 후보 추출"}</button><p>기존 결정과 서비스 반영 상태는 유지됩니다. 승계 결과와 검토 대기 후보를 확인해 주세요.</p><label>후보 구분 <select className="border p-2" value={versionFilter} onChange={(event) => setVersionFilter(event.target.value)}><option value="all">전체</option><option value="latest">최신 후보</option><option value="legacy">기존 후보</option></select></label></div>}
+      {history[0]?.decision !== "ALLOWED" ? <p>이용조건을 허용하기 전에는 Claim 검토를 준비할 수 없습니다.</p> : claims.length === 0 && <button className={secondaryButton} disabled={busy || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.prepare(id, doc.rawSha256); }, "검토 후보를 확인했습니다.", "prepare")}>{busyAction === "prepare" ? "후보 확인 중..." : "Claim 검토 준비"}</button>}
+      {canSeeClaims && claims.length > 0 && !hasLatestClaims && <div className="space-y-2"><button className={secondaryButton} disabled={busy || !doc.hashMatches} onClick={() => void act(async () => { await documentReviewApi.prepareLatest(id, doc.rawSha256); }, "최신 후보를 준비했습니다. 기존 결정은 유지됩니다.", "latest")}>{busyAction === "latest" ? "후보 추출 중..." : "최신 방식으로 후보 추출"}</button><p>기존 결정과 서비스 반영 상태는 유지됩니다.</p></div>}
+      {hasLatestClaims && hasLegacyClaims && <label>후보 구분 <select className="border p-2" value={versionFilter} onChange={(event) => setVersionFilter(event.target.value)}><option value="all">전체</option><option value="latest">최신 후보</option><option value="legacy">기존 후보</option></select></label>}
       {canSeeClaims && visibleClaims.length === 0 && <p>표시할 Claim이 없습니다.</p>}
       {visibleClaims.map((claim) => <article key={claim.candidateId} data-claim-bucket={claimBucket(claim)} className="space-y-3 rounded-card border border-border p-5">
         <ReviewField label="후보 구분">{claim.extractorVersion === "generic-claim-v3" ? "최신 후보" : "기존 후보"}</ReviewField>
@@ -147,5 +149,6 @@ export default function DocumentReviewPage() {
         {audit.some((entry) => entry.candidateId === claim.candidateId) && <details><summary className="font-semibold">검토 이력</summary>{audit.filter((entry) => entry.candidateId === claim.candidateId).sort((a, b) => Date.parse(a.decidedAt) - Date.parse(b.decidedAt)).map((entry, i) => <div className="mt-2" key={`${entry.decidedAt}-${i}`}><ReviewField label="결정">{entry.reason === "REJECTION_RECONSIDERED" ? "다시 검토" : decisionLabel(entry.decision)}</ReviewField><ReviewField label="일시">{reviewTime(entry.decidedAt)}</ReviewField>{entry.reason && entry.reason !== "REJECTION_RECONSIDERED" && <ReviewField label="사유">{entry.reason.replace(/^APPROVAL_WITHDRAWN:\s*/, "")}</ReviewField>}</div>)}</details>}
       </article>)}
     </section>
+    <FaqEditor documentId={id} claims={claims} officialUrl={link ?? ""} title={doc.title} publishedAt={doc.publishedAt} />
   </main></div>;
 }
