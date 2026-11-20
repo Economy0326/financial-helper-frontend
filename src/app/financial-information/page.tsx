@@ -92,7 +92,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
         {topicsStatus === "ready" && topics.length === 0 && <p className="text-center text-sm">현재 표시할 주제가 없어요.</p>}
         {topics.length > 0 && <div className="topic-scroll mt-2 flex gap-3 overflow-x-auto">{topics.map(topic => <button key={topic} type="button" className="shrink-0 rounded-control bg-primary-subtle px-4 py-2 font-semibold text-primary" onClick={() => setQuestion(`${topic}에 대해 알려 주세요`)}>{topic}</button>)}</div>}
       </div>
-      <div className="flex justify-end"><button type="submit" disabled={busy || !question.trim()} className="rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50">금융정보 확인하기</button></div>
+      <div className="flex justify-center"><button type="submit" disabled={busy || !question.trim()} className="rounded-control bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-50">금융정보 확인하기</button></div>
     </form>}
     {busy && <p role="status" className="mt-4">최신 근거를 확인하고 있어요.</p>}
     {error && <p role="alert" className="mt-4">{error}</p>}
@@ -103,7 +103,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
         <div className="mr-auto max-w-[90%] rounded-card bg-surface p-4 shadow-card"><p className="font-bold">{step.snapshot?.options?.some(option => option.purpose) ? "어떤 내용이 궁금하세요?" : "어떤 금융정보가 궁금하세요?"}</p>
           <div className="mt-3 flex flex-wrap gap-3">{step.snapshot?.options?.map((option, optionIndex) => <button key={`${option.title}-${option.purpose}-${optionIndex}`} type="button" disabled={busy} className="rounded-control border border-border bg-background px-4 py-2 text-left" onClick={() => changeAnswer(index, option)}>{option.label}</button>)}</div>
         </div>
-        <p className="ml-auto max-w-[85%] rounded-card bg-primary-subtle px-4 py-3 text-right font-semibold text-primary">{step.answer}</p>
+        <p className="ml-auto w-fit max-w-[85%] break-keep rounded-card bg-primary-subtle px-4 py-3 text-left font-semibold text-primary [overflow-wrap:break-word]">{step.answer}</p>
       </div>)}
       {(flow.stage === "clarification" || flow.stage === "stop") && condition && snapshot && <div className="mr-auto max-w-[90%] rounded-card bg-surface p-4 shadow-card">
         <p className="font-bold">{snapshot.status === "NEEDS_CLARIFICATION" ? (snapshot.options?.some(option => option.purpose) ? "어떤 내용이 궁금하세요?" : "어떤 금융정보가 궁금하세요?") : `문서에 다음 조건이 있어요: ${condition}`}</p>
@@ -112,18 +112,18 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
           <button type="button" disabled={busy} className="rounded-control border border-border bg-background px-4 py-2" onClick={() => flow.stop()}>해당하는 항목 없음</button>
         </div></div>}
       {flow.stage === "stop" && <p role="status" className="text-center">확인할 수 있는 정보를 찾지 못했어요. 이전 선택을 바꾸거나 메인에서 새 질문을 시작해 주세요.</p>}
-      {flow.stage === "result" && !showResult && <div className="mr-auto rounded-card bg-surface p-4"><button type="button" className="font-bold text-primary underline" onClick={() => setShowResult(true)}>결과 확인하기</button></div>}
+      {flow.stage === "result" && !showResult && <div className="text-center"><button type="button" className="font-bold text-primary underline" onClick={() => setShowResult(true)}>결과 확인하기</button></div>}
     </section>}
     {flow.stage === "result" && (snapshot?.status === "STALE" || explanation?.status === "STALE") && <p role="status" className="mt-6">근거가 변경되어 내용을 표시할 수 없어요. 종료하고 다시 검색해 주세요.</p>}
     {applicabilityUncertain && <p role="status" className="mt-4">입력한 내용만으로 개인별 적용 여부를 확인할 수 없어요. 아래 문서의 조건과 예외를 확인해 주세요.</p>}
-    {evidence.length > 0 && <section className="mt-8 space-y-4"><h2 className="text-center text-xl font-bold">질문과 확인된 공식 정보</h2>
-      <div className="rounded-card bg-surface p-4 text-center"><h3 className="font-bold">확인한 질문</h3><p className="mt-1 whitespace-pre-wrap">{submitted || question}</p>
-        {flow.steps.length > 0 && <ul className="mt-2 space-y-1 text-sm text-foreground-muted">{flow.steps.map((step, index) => <li key={index}>선택한 내용: {step.answer}</li>)}</ul>}
+    {evidence.length > 0 && <section className="mt-8 space-y-4 text-left"><h2 className="text-xl font-bold">질문과 확인된 공식 정보</h2>
+      <div className="rounded-card bg-surface p-4"><h3 className="font-bold">확인한 질문</h3><p className="mt-1 whitespace-pre-wrap">{question || submitted}</p>
+        {flow.steps.length > 0 && <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-foreground-muted">{flow.steps.map((step, index) => <li key={index}>{step.snapshot?.options?.find(option => option.label === step.answer)?.purpose ? "선택한 내용" : "선택한 문서"}: {step.answer}</li>)}</ul>}
       </div>
-      <p className="text-center text-sm text-foreground-muted">문서의 내용을 보여드려요. 여러 상품을 함께 안내하는 일반 절차일 수 있으므로 질문한 상품의 적용 여부와 현재 효력은 별도 확인이 필요해요.</p>
+      <p className="text-sm text-foreground-muted">문서의 내용을 보여드려요. 여러 상품을 함께 안내하는 일반 절차일 수 있으므로 질문한 상품의 적용 여부와 현재 효력은 별도 확인이 필요해요.</p>
       {/(비교|차이|다른\s*점)/.test(submitted) && <p role="status">각 문서에서 확인된 내용을 구분해 보여드려요. 문서에서 직접 확인되지 않은 차이는 확정할 수 없어요.</p>}
       {(snapshot?.missingPurposes?.length ?? 0) > 0 && <p role="status">질문 중 {snapshot?.missingPurposes?.join(", ")}에 대해서는 확인된 근거를 찾지 못했어요.</p>}
-      <EvidenceList evidence={evidence} />
+      <EvidenceList evidence={evidence} metadataAlignment="left" />
     </section>}
     {evidence.length > 0 && <section className="mt-6 space-y-3 rounded-card border border-border bg-surface p-5 text-center"><h2 className="text-xl font-bold">AI 쉬운 설명</h2>
     {!authenticated && <p>AI 쉬운 설명은 제공 시 로그인한 사용자만 요청할 수 있어요. 위 공식 근거는 로그인 없이 확인할 수 있어요. <a href="/auth/login" className="font-semibold text-primary underline">로그인하기</a></p>}
@@ -165,7 +165,7 @@ function QuestionFlow({ authenticated }: { authenticated: boolean }) {
 export default function FinancialInformationPage() {
   const session = useSessionQuery();
   const hasQuestion = useInformationFlow(state => !state.saved && Boolean(state.question.trim() || state.submitted));
-  return <div className="min-h-dvh bg-background"><AppHeader logoOnly confirmLeave={hasQuestion} /><main className="mx-auto max-w-3xl px-5 py-10">
+  return <div className="min-h-dvh bg-background"><AppHeader logoOnly confirmLeave={hasQuestion} /><main className="mx-auto max-w-3xl px-5 pb-10 pt-4 sm:pt-6">
     <h1 className="text-center text-3xl font-bold">금융정보 질문하기</h1>
     {session.isPending ? <p role="status" className="mt-6">로그인 상태를 확인하고 있어요.</p>
       : session.isError ? <p role="alert" className="mt-6">로그인 상태를 확인하지 못했어요. 다시 접속해 주세요.</p>
