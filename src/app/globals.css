@@ -27,7 +27,7 @@
   --danger: #b42318;
   --danger-surface: #fff3f1;
 
-  --focus: #087f73;
+  --focus: #52646c;
 
   --radius-card: 1.125rem;
   --radius-control: 0.75rem;
@@ -110,6 +110,8 @@ select {
 button { min-height: 44px; }
 input:not([type="checkbox"]):not([type="radio"]), select, summary { min-height: 44px; }
 main { overflow-wrap: anywhere; }
+.topic-scroll { scrollbar-width: none; }
+.topic-scroll::-webkit-scrollbar { display: none; }
 
 :focus:not(:focus-visible) {
   outline: none !important;
@@ -124,6 +126,10 @@ main { overflow-wrap: anywhere; }
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled), a:active, summary:active {
+  opacity: 0.82;
 }
 
 ::selection {

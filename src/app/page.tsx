@@ -1,73 +1,20 @@
-"use client";
-
 import Link from "next/link";
-
 import { AppHeader } from "@/components/layout/AppHeader";
 
 export default function Home() {
-  return (
-    <div className="min-h-dvh bg-background">
-      <AppHeader />
-
-      <main className="mx-auto flex w-full max-w-3xl flex-col px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-12 sm:px-8 sm:pt-16">
-        <section aria-labelledby="home-heading">
-          <h1
-            id="home-heading"
-            className="break-keep text-[1.9375rem] font-bold leading-[1.28] tracking-[-0.03em] text-foreground sm:text-[2.5rem]"
-          >
-            금융 피해 상황을 정리하고<br className="hidden min-[360px]:block" />
-            필요한 정보와 대응을 확인하세요
-          </h1>
-
-          <p className="mt-4 break-keep text-[1.0625rem] font-medium leading-[1.65] text-foreground-muted sm:text-lg">
-            상황을 차근차근 확인하고, 관련 공식 자료와<br className="hidden min-[360px]:block" />
-            필요한 대응을 구분해 살펴볼 수 있어요.
-          </p>
-
-          <Link href="/financial-information" className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-control bg-primary px-6 py-4 text-lg font-bold text-primary-foreground sm:w-auto sm:min-w-64">
-            금융 정보 질문하기
-          </Link>
-        </section>
-
-        <section aria-label="다루는 금융정보 주제" className="mt-7">
-          <p className="break-keep text-base font-medium leading-7 text-foreground-muted">
-            카드 분실·부정사용 · 보이스피싱 · 무단이체 · 스미싱·악성앱
-          </p>
-          <p className="mt-1 text-sm text-foreground-muted">주제별 공식 근거의 제공 범위는 확인 중이에요.</p>
-        </section>
-
-        <section aria-label="자주 묻는 질문" className="mt-9">
-          <Link
-            href="/faq"
-            className="group flex min-h-18 items-center gap-3 rounded-control border border-border bg-surface px-4 py-3.5 transition-colors hover:border-danger hover:bg-danger-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-3 motion-reduce:transition-none"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center text-danger" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M12 3 20 6v5c0 5.1-3.1 8.5-8 11-4.9-2.5-8-5.9-8-11V6l8-3Z" />
-                <path d="M12 8v5" strokeLinecap="round" />
-                <path d="M12 17h.01" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="min-w-0 flex-1">
-              <strong className="block text-[1.0625rem] text-foreground">자주 묻는 질문</strong>
-              <span className="block break-keep text-base leading-6 text-foreground-muted">
-                승인된 공식 근거로 자주 묻는 내용을 확인해요
-              </span>
-            </span>
-            <span aria-hidden="true" className="text-2xl font-medium text-foreground-muted">›</span>
-          </Link>
-        </section>
-
-        <section aria-label="서비스 신뢰 안내" className="mt-8">
-          <p className="flex gap-3 text-base font-medium leading-7 text-foreground">
-            <span aria-hidden="true" className="font-bold text-primary">✓</span>
-            <span>확인된 범위의 공식 자료를 찾아요.</span>
-          </p>
-          <p className="mt-2 pl-7 text-[0.9375rem] leading-6 text-foreground-muted">
-            상담에 필요한 정보만 사용해요.
-          </p>
-        </section>
-      </main>
-    </div>
-  );
+  return <div className="flex min-h-dvh flex-col bg-background">
+    <AppHeader />
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-5 pb-16 pt-16 text-center sm:px-8 sm:pt-24">
+      <svg aria-hidden="true" viewBox="0 0 180 150" className="h-36 w-44 text-primary" fill="none">
+        <path d="M32 15h75a12 12 0 0 1 12 12v61a12 12 0 0 1-12 12H70l-23 18v-18H32a12 12 0 0 1-12-12V27a12 12 0 0 1 12-12Z" fill="var(--primary-subtle)" stroke="currentColor" strokeWidth="3" />
+        <path d="M45 43h49M45 59h38M45 75h29" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+        <rect x="95" y="54" width="62" height="78" rx="8" fill="white" stroke="currentColor" strokeWidth="3" />
+        <path d="m109 91 10 10 22-25" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <h1 className="mt-8 break-keep text-3xl font-bold leading-tight sm:text-4xl">어려운 금융정보, 쉽고 정확하게 확인하세요.</h1>
+      <p className="mt-5 break-keep text-lg text-foreground-muted">궁금한 금융정보를 질문하고 관련 공식 자료를 확인할 수 있어요.</p>
+      <Link href="/financial-information" className="mt-8 inline-flex min-h-14 items-center justify-center rounded-control bg-primary px-8 py-3 text-lg font-bold text-primary-foreground">금융정보 질문하기</Link>
+    </main>
+    <footer className="px-5 pb-8 text-center text-foreground-muted">확인된 범위의 공식 자료를 찾아요.</footer>
+  </div>;
 }

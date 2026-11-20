@@ -1,43 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
+import { logout } from "@/lib/api/auth";
+import { apiFetch, resetClientAuthState } from "@/lib/api/client";
 import { useSessionQuery } from "@/lib/query/session";
 
-type AppHeaderProps = {
-  rightSlot?: ReactNode;
-};
+type AppHeaderProps = { rightSlot?: ReactNode; logoOnly?: boolean; confirmLeave?: boolean };
 
-export function AppHeader({
-  rightSlot,
-}: AppHeaderProps) {
+export function AppHeader({ rightSlot, logoOnly = false, confirmLeave = false }: AppHeaderProps) {
   const session = useSessionQuery();
-  const authenticated =
-    session.data?.authenticated === true;
-
-  return (
-    <header className="border-b border-border/80 bg-background/95">
-      <div className="mx-auto flex min-h-16 w-full max-w-[72rem] flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 sm:flex-nowrap sm:gap-4 sm:px-8">
-        <Link
-          href="/"
-          className="min-w-0 rounded-md text-lg font-extrabold tracking-[-0.025em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-          aria-label="금융도우미 홈으로 이동"
-        >
-          <span className="text-primary">금융</span>도우미
-        </Link>
-
-        <nav aria-label="주요 메뉴" className="flex min-w-0 flex-wrap items-center gap-1 sm:shrink-0 sm:gap-2">
-          <Link href="/faq" className="inline-flex min-h-11 items-center px-2 py-2 font-bold text-primary">자주 묻는 질문</Link>
-          {authenticated && <Link href="/reports" className="inline-flex min-h-11 items-center px-2 py-2 font-bold text-primary">내 금융정보</Link>}
-          <Link
-            href={authenticated ? "/account" : "/auth/login"}
-            className="inline-flex min-h-12 items-center rounded-control px-3 py-2 text-base font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-          >
-            {authenticated ? "마이페이지" : "로그인"}
-          </Link>
-          {rightSlot ? rightSlot : null}
-        </nav>
-      </div>
-    </header>
-  );
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const reviewer = useQuery({
+    queryKey: ["reviewer-access", session.data?.accountId],
+    queryFn: () => apiFetch<unknown[]>("/source-review/document-claims", { cache: "no-store" }),
+    enabled: !logoOnly && session.data?.authenticated === true,
+    retry: false,
+  });
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  async function handleLogout() {
+    if (pending) return;
+    setPending(true); setError("");
+    try { await logout(); resetClientAuthState(); queryClient.clear(); router.replace("/"); }
+    catch { setError("로그아웃하지 못했어요. 다시 시도해 주세요."); }
+    finally { setPending(false); }
+  }
+  return <header className="bg-background">
+    <div className="mx-auto flex w-full max-w-[72rem] flex-col items-center gap-3 px-4 py-5 sm:px-8">
+      <Link href="/" onClick={event => { if (confirmLeave && !window.confirm("진행 중인 질문을 종료할까요?")) event.preventDefault(); }}
+        className="rounded-md text-xl font-extrabold tracking-tight" aria-label="금융도우미 메인으로 이동"><span className="text-primary">금융</span>도우미</Link>
+      {!logoOnly && <nav aria-label="주요 메뉴" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-bold text-black sm:gap-x-6 sm:text-base">
+        <Link className="inline-flex min-h-11 items-center px-1" href="/">메인으로</Link>
+        <Link className="inline-flex min-h-11 items-center px-1" href="/faq">자주 묻는 질문</Link>
+        <Link className="inline-flex min-h-11 items-center px-1" href="/reports">상담 기록</Link>
+        {reviewer.isSuccess && <Link className="inline-flex min-h-11 items-center px-1" href="/official-source-review/documents">공식문서 관리</Link>}
+        {session.data?.authenticated ? <button type="button" disabled={pending} onClick={() => void handleLogout()}>{pending ? "로그아웃 중" : "로그아웃"}</button>
+          : <Link className="inline-flex min-h-11 items-center px-1" href="/auth/login">로그인</Link>}
+        {rightSlot}
+      </nav>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    </div>
+  </header>;
 }

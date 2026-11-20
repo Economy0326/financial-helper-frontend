@@ -62,3 +62,19 @@ test("subject and purpose steps can be revisited without retaining later choices
   store.getState().previous(); assert.deepEqual(store.getState().snapshot, subject);
   assert.equal(store.getState().steps.length, 0);
 });
+test("changing an earlier answer clears later answers, saved state and pending results", () => {
+  store.getState().reset();
+  const first = { status: "NEEDS_CLARIFICATION", snapshotId: null, evidence: [], options: [{ label: "첫 대상", title: "첫 대상", purpose: null }] };
+  let id = store.getState().begin(); store.getState().finish(id, first, "질문", "대상");
+  store.getState().answer("첫 대상");
+  id = store.getState().begin(); store.getState().finish(id, first, "질문", "목적");
+  store.getState().answer("서류");
+  store.getState().setSaved(true);
+  const stale = store.getState().begin();
+  store.getState().revisit(0);
+  store.getState().finish(stale, result, "오래된 응답", null);
+  assert.equal(store.getState().stage, "clarification");
+  assert.equal(store.getState().steps.length, 0);
+  assert.equal(store.getState().saved, false);
+  assert.deepEqual(store.getState().snapshot, first);
+});
