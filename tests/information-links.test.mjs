@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { safeOfficialLink, isSyntheticTestDomain } from "../src/lib/consultation/information-links.mjs";
+import { safeOfficialLink } from "../src/lib/financial-information/information-links.mjs";
 
 test("renders only safe HTTPS source links without credentials", () => {
   assert.equal(safeOfficialLink("https://www.example.org/article#section"), "https://www.example.org/article#section");
@@ -9,9 +9,7 @@ test("renders only safe HTTPS source links without credentials", () => {
   }
 });
 
-test("reserved synthetic domains are labelled and never linked", () => {
-  assert.equal(isSyntheticTestDomain("https://synthetic.invalid/source"), true);
+test("reserved synthetic domains are never linked", () => {
   assert.equal(safeOfficialLink("https://synthetic.invalid/source"), null);
-  assert.equal(isSyntheticTestDomain("https://invalid.example.org/"), false);
-  assert.equal(isSyntheticTestDomain("not a URL"), false);
+  assert.equal(safeOfficialLink("https://invalid.example.org/"), "https://invalid.example.org/");
 });

@@ -15,7 +15,7 @@ export default function LoginPage() {
             <a href={buildApiUrl("/auth/kakao/start")} className="flex min-h-14 items-center justify-center rounded-control bg-[#FEE500] px-4 font-semibold text-[#191919] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">카카오로 로그인</a>
             <a href={buildApiUrl("/auth/naver/start")} className="flex min-h-14 items-center justify-center rounded-control bg-[#03C75A] px-4 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">네이버로 로그인</a>
           </div>
-          <Link href="/emergency/type" className="mt-6 inline-flex min-h-11 w-full items-center justify-center text-center text-sm font-semibold text-foreground-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">긴급 금융 피해 대응은 로그인 없이 이용하기</Link>
+          <Link href="/faq" className="mt-6 inline-flex min-h-11 w-full items-center justify-center text-center text-sm font-semibold text-foreground-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">자주 묻는 질문은 로그인 없이 이용하기</Link>
         </section>
       </main>
     </div>

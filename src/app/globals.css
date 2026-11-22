@@ -27,7 +27,7 @@
   --danger: #b42318;
   --danger-surface: #fff3f1;
 
-  --focus: #087f73;
+  --focus: #52646c;
 
   --radius-card: 1.125rem;
   --radius-control: 0.75rem;
@@ -107,14 +107,56 @@ select {
   font: inherit;
 }
 
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+button { min-height: 44px; }
+input:not([type="checkbox"]):not([type="radio"]), select, summary { min-height: 44px; }
+main select { border-width: 0; border-radius: 0.5rem; background-color: var(--surface-subtle); }
+main button.border { border-color: transparent; background-color: var(--surface-subtle); }
+main { overflow-wrap: anywhere; }
+.topic-scroll { scrollbar-width: none; }
+.topic-scroll::-webkit-scrollbar { display: none; }
+
+:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible,
+input:focus-visible, textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+button:focus-visible, select:focus-visible, summary:focus-visible {
+  background-color: var(--primary-subtle);
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+a:focus-visible {
+  background-color: var(--primary-subtle);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+input:not([type="checkbox"]):focus-visible, textarea:focus-visible {
+  background-color: var(--primary-subtle);
+}
+
+label:has(input[type="checkbox"]:focus-visible), label:has(input[type="radio"]:focus-visible) {
+  background-color: var(--primary-subtle);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled), a:active, summary:active, select:active {
+  opacity: 0.82;
 }
 
 ::selection {

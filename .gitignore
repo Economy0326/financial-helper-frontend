@@ -15,6 +15,10 @@
 
 # next.js
 /.next/
+/.next-separate-review*/
+/.next-separate-review*.tsconfig.json
+/.next-ui-e2e-*/
+/.next-ui-e2e-*.tsconfig.json
 /out/
 
 # production
